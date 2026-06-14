@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 interface TooltipProps {
   content: string;
@@ -17,8 +17,9 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
     if (!visible || !triggerRef.current || !tooltipRef.current) return;
 
     const updatePosition = () => {
-      const triggerRect = triggerRef.current!.getBoundingClientRect();
-      const tooltipRect = tooltipRef.current!.getBoundingClientRect();
+      const triggerRect = triggerRef.current?.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current?.getBoundingClientRect();
+      if (!triggerRect || !tooltipRect) return;
 
       let top = triggerRect.top;
       let left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;

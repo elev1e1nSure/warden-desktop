@@ -7,9 +7,7 @@ import type { Block } from "../types";
 
 type ToolBlock = Extract<Block, { kind: "tool" }>;
 
-type Group =
-  | { kind: "single"; block: Block }
-  | { kind: "tools"; items: ToolBlock[] };
+type Group = { kind: "single"; block: Block } | { kind: "tools"; items: ToolBlock[] };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -18,10 +16,13 @@ function groupBlocks(blocks: Block[]): Group[] {
   let i = 0;
   while (i < blocks.length) {
     const b = blocks[i];
+    if (!b) break;
     if (b.kind === "tool") {
       const run: ToolBlock[] = [];
-      while (i < blocks.length && blocks[i].kind === "tool") {
-        run.push(blocks[i] as ToolBlock);
+      while (i < blocks.length) {
+        const next = blocks[i];
+        if (next?.kind !== "tool") break;
+        run.push(next);
         i++;
       }
       out.push({ kind: "tools", items: run });
@@ -44,14 +45,14 @@ function toolLine(b: ToolBlock): string {
   } catch {
     firstArg = b.args.replace(/\n/g, " ").trim();
   }
-  const short = firstArg.length > 68 ? firstArg.slice(0, 68) + "…" : firstArg;
+  const short = firstArg.length > 68 ? `${firstArg.slice(0, 68)}…` : firstArg;
   const name = b.name.charAt(0).toUpperCase() + b.name.slice(1);
   const arg = short ? short.charAt(0).toUpperCase() + short.slice(1) : "";
   return arg ? `${name}  ${arg}` : name;
 }
 
 function groupKey(g: Group): string {
-  return g.kind === "tools" ? g.items[0].id : g.block.id;
+  return g.kind === "tools" ? (g.items[0]?.id ?? "") : g.block.id;
 }
 
 // ─── blocks ──────────────────────────────────────────────────────────────────
@@ -162,11 +163,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
             </motion.span>
           )}
         </span>
-        <span>
-          {running
-            ? "Running…"
-            : `Ran ${n} command${n === 1 ? "" : "s"}`}
-        </span>
+        <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
       </button>
 
       <AnimatePresence>
@@ -180,10 +177,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
           >
             <ul className="mt-1 flex flex-col gap-0.5 pl-4">
               {items.map((t) => (
-                <li
-                  key={t.id}
-                  className="text-[13.5px] leading-[1.65] text-[#666]"
-                >
+                <li key={t.id} className="text-[13.5px] leading-[1.65] text-[#666]">
                   {toolLine(t)}
                 </li>
               ))}
@@ -196,9 +190,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
 }
 
 function ThinkingIndicator() {
-  return (
-    <p className="shimmer-text pl-[18px] text-[14px] font-normal">Thinking</p>
-  );
+  return <p className="shimmer-text pl-[18px] text-[14px] font-normal">Thinking</p>;
 }
 
 // ─── main ────────────────────────────────────────────────────────────────────
@@ -220,7 +212,7 @@ export default function Timeline({
   useEffect(() => {
     if (!follow) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [blocks, thinking, follow]);
+  }, [follow]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 pt-12 pb-8">
@@ -231,15 +223,11 @@ export default function Timeline({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         >
-          {g.kind === "single" && g.block.kind === "user" && (
-            <UserBlock text={g.block.text} />
-          )}
+          {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
           {g.kind === "single" && g.block.kind === "assistant" && (
             <AssistantBlock text={g.block.text} />
           )}
-          {g.kind === "single" && g.block.kind === "think" && (
-            <ThinkBlock text={g.block.text} />
-          )}
+          {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
           {g.kind === "single" && g.block.kind === "error" && (
             <p className="text-[13px] text-[#c05050]">{g.block.text}</p>
           )}

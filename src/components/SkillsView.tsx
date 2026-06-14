@@ -15,22 +15,28 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     setLoadState("loading");
-    api.skills()
+    api
+      .skills()
       .then((res) => {
         setSkills(res.skills ?? []);
         setLoadState("ok");
-        if (res.skills?.length) setSelectedName(res.skills[0].name);
+        const first = res.skills?.[0];
+        if (first) setSelectedName(first.name);
       })
       .catch(() => setLoadState("error"));
   }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  useEffect(() => { searchRef.current?.focus(); }, []);
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -79,29 +85,32 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
               {query ? "No matches." : "No skills installed."}
             </p>
           )}
-          {loadState === "ok" && filtered.map((skill) => {
-            const active = skill.name === selectedName;
-            return (
-              <button
-                key={skill.name}
-                onClick={() => setSelectedName(skill.name)}
-                className={`flex w-full flex-col rounded-xl px-2.5 py-2 text-left ${
-                  active ? "bg-white/[0.09]" : "hover:bg-white/[0.05]"
-                }`}
-              >
-                <span className={`text-[13.5px] tracking-[-0.01em] ${
-                  active ? "font-medium text-white" : "text-[#e0e0e0]"
-                }`}>
-                  {skill.name}
-                </span>
-                {skill.description && (
-                  <span className="mt-0.5 line-clamp-1 text-[12px] text-text-muted">
-                    {skill.description}
+          {loadState === "ok" &&
+            filtered.map((skill) => {
+              const active = skill.name === selectedName;
+              return (
+                <button
+                  key={skill.name}
+                  onClick={() => setSelectedName(skill.name)}
+                  className={`flex w-full flex-col rounded-xl px-2.5 py-2 text-left ${
+                    active ? "bg-white/[0.09]" : "hover:bg-white/[0.05]"
+                  }`}
+                >
+                  <span
+                    className={`text-[13.5px] tracking-[-0.01em] ${
+                      active ? "font-medium text-white" : "text-[#e0e0e0]"
+                    }`}
+                  >
+                    {skill.name}
                   </span>
-                )}
-              </button>
-            );
-          })}
+                  {skill.description && (
+                    <span className="mt-0.5 line-clamp-1 text-[12px] text-text-muted">
+                      {skill.description}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -118,9 +127,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
               </p>
             )}
             {selected.location && (
-              <p className="mt-3 font-mono text-[11px] text-text-muted">
-                {selected.location}
-              </p>
+              <p className="mt-3 font-mono text-[11px] text-text-muted">{selected.location}</p>
             )}
             {selected.content && (
               <pre className="mt-6 whitespace-pre-wrap break-words rounded-xl bg-white/[0.04] px-4 py-4 font-mono text-[12.5px] leading-relaxed text-[#ccc]">

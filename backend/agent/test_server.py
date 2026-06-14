@@ -1,19 +1,18 @@
 """Tests for agent/server.py HTTP endpoints."""
+
 from __future__ import annotations
 
 import asyncio
 import json
-from typing import AsyncIterator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from aiohttp import web
 
 import agent.server as server_module
 from agent.confirmations import ConfirmationManager, QuestionManager
 
-
 # ── test app factory ──────────────────────────────────────────────────────────
+
 
 def _make_backend(auto_mode: bool = False, api_url: str = "") -> MagicMock:
     backend = MagicMock()
@@ -30,11 +29,13 @@ def _make_backend(auto_mode: bool = False, api_url: str = "") -> MagicMock:
     backend.chat.token_limit = 8192
     backend.chat.reset = MagicMock()
     backend.chat.generate_title = AsyncMock(return_value="")
-    backend.chat.compact = AsyncMock(return_value={
-        "tokens_before": 100,
-        "tokens_after": 50,
-        "summary": "compacted",
-    })
+    backend.chat.compact = AsyncMock(
+        return_value={
+            "tokens_before": 100,
+            "tokens_after": 50,
+            "summary": "compacted",
+        }
+    )
     backend.chat_store = MagicMock()
     backend.chat_store.list_chats.return_value = []
     backend.chat_store.rename_chat.return_value = True
@@ -70,6 +71,7 @@ def _make_app(backend: MagicMock, shutdown_event: asyncio.Event | None = None) -
 
 
 # ── basic endpoints ───────────────────────────────────────────────────────────
+
 
 async def test_health(aiohttp_client):
     backend = _make_backend()
@@ -136,6 +138,7 @@ async def test_tools_list(aiohttp_client):
 
 # ── chats ────────────────────────────────────────────────────────────────────
 
+
 async def test_chat_rename(aiohttp_client):
     backend = _make_backend()
     app = _make_app(backend)
@@ -173,6 +176,7 @@ async def test_chat_delete_active_resets_to_blank_draft(aiohttp_client):
 
 # ── compact ───────────────────────────────────────────────────────────────────
 
+
 async def test_compact(aiohttp_client):
     backend = _make_backend()
     app = _make_app(backend)
@@ -186,6 +190,7 @@ async def test_compact(aiohttp_client):
 
 # ── shutdown ──────────────────────────────────────────────────────────────────
 
+
 async def test_shutdown_sets_event(aiohttp_client):
     backend = _make_backend()
     evt = asyncio.Event()
@@ -198,6 +203,7 @@ async def test_shutdown_sets_event(aiohttp_client):
 
 
 # ── confirm ───────────────────────────────────────────────────────────────────
+
 
 async def test_confirm_ok(aiohttp_client):
     backend = _make_backend()
@@ -221,6 +227,7 @@ async def test_confirm_not_found(aiohttp_client):
 
 # ── question ──────────────────────────────────────────────────────────────────
 
+
 async def test_question_ok(aiohttp_client):
     backend = _make_backend()
     app = _make_app(backend)
@@ -242,6 +249,7 @@ async def test_question_not_found(aiohttp_client):
 
 # ── chat endpoint ─────────────────────────────────────────────────────────────
 
+
 async def _fake_stream_all_types(text, auto_mode=False):
     yield ("warden_start", {})
     yield ("token", "hello ")
@@ -249,17 +257,23 @@ async def _fake_stream_all_types(text, auto_mode=False):
     yield ("think", "thinking deeply")
     yield ("tool_start", {"name": "file_list", "args": '{"path": "."}'})
     yield ("tool", {"name": "file_list", "args": '{"path": "."}', "result": "ok"})
-    yield ("confirm", {
-        "id": "c1",
-        "tool": "file_delete",
-        "risk": "confirm",
-        "title": "Delete file",
-        "summary": "Deletes a file",
-        "details": ["file.txt"],
-        "args": '{"path": "file.txt"}',
-        "preview": "",
-    })
-    yield ("question", {"id": "q1", "questions": [{"question": "Are you sure?", "header": "confirm"}]})
+    yield (
+        "confirm",
+        {
+            "id": "c1",
+            "tool": "file_delete",
+            "risk": "confirm",
+            "title": "Delete file",
+            "summary": "Deletes a file",
+            "details": ["file.txt"],
+            "args": '{"path": "file.txt"}',
+            "preview": "",
+        },
+    )
+    yield (
+        "question",
+        {"id": "q1", "questions": [{"question": "Are you sure?", "header": "confirm"}]},
+    )
 
 
 async def test_chat_all_event_types(aiohttp_client):
@@ -327,6 +341,7 @@ async def test_chat_error_yields_error_event(aiohttp_client):
 
 
 # ── _client_disconnected ──────────────────────────────────────────────────────
+
 
 def test_client_disconnected_true():
     transport = MagicMock()

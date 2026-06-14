@@ -37,6 +37,10 @@ def is_dangerous_path(path: str) -> bool:
     if "../" in normalized or "/.." in normalized:
         return True
     # On Windows, a bare "/" prefix is suspicious unless it's a drive-mapped path like /c:/...
-    if sys.platform == "win32" and normalized.startswith("/") and not re.match(r"^/[a-z]:", normalized):
+    if (
+        sys.platform == "win32"
+        and normalized.startswith("/")
+        and not re.match(r"^/[a-z]:", normalized)
+    ):
         return True
     return False

@@ -1,14 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState, type UIEvent } from "react";
+import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api/client";
 import { loadConnection } from "./api/session";
 import { streamChat } from "./api/stream";
-import type {
-  ChatEvent,
-  ConfirmEvent,
-  QuestionEvent,
-  StatusResult,
-} from "./api/types";
+import type { ChatEvent, ConfirmEvent, QuestionEvent, StatusResult } from "./api/types";
 import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
 import InputBar, { type AttachedFile } from "./components/InputBar";
@@ -87,7 +82,9 @@ function App() {
       setActiveChatId((cur) =>
         cur && res.chats.some((chat) => chat.id === cur)
           ? cur
-          : (res.chats.some((chat) => chat.id === res.active_chat_id) ? res.active_chat_id : null),
+          : res.chats.some((chat) => chat.id === res.active_chat_id)
+            ? res.active_chat_id
+            : null,
       );
       return res;
     } catch {
@@ -174,9 +171,7 @@ function App() {
     const list = blocksRef.current;
     if (cur) {
       commit(
-        list.map((b) =>
-          b.id === cur && b.kind === kind ? { ...b, text: b.text + text } : b,
-        ),
+        list.map((b) => (b.id === cur && b.kind === kind ? { ...b, text: b.text + text } : b)),
       );
     } else {
       const id = genId();
@@ -197,10 +192,7 @@ function App() {
           const idx = prev.findIndex((chat) => chat.id === e.chat_id);
           const timestamp = nowTimestamp();
           if (idx === -1) {
-            return [
-              { id: e.chat_id, title: e.title, timestamp, messages: [] },
-              ...prev,
-            ];
+            return [{ id: e.chat_id, title: e.title, timestamp, messages: [] }, ...prev];
           }
           return prev.map((chat) =>
             chat.id === e.chat_id ? { ...chat, title: e.title, timestamp } : chat,
@@ -214,7 +206,11 @@ function App() {
         const cur = thinkIdRef.current;
         const list = blocksRef.current;
         if (cur) {
-          commit(list.map((b) => b.id === cur && b.kind === "think" ? { ...b, text: b.text + e.text } : b));
+          commit(
+            list.map((b) =>
+              b.id === cur && b.kind === "think" ? { ...b, text: b.text + e.text } : b,
+            ),
+          );
         } else {
           const id = genId();
           thinkIdRef.current = id;
@@ -280,10 +276,7 @@ function App() {
         break;
       case "error":
         assistantIdRef.current = null;
-        commit([
-          ...blocksRef.current,
-          { id: genId(), kind: "error", text: e.text.trim() },
-        ]);
+        commit([...blocksRef.current, { id: genId(), kind: "error", text: e.text.trim() }]);
         break;
     }
   };
@@ -434,8 +427,10 @@ function App() {
     if (!title.trim()) return;
     try {
       await api.renameChat(id, title.trim());
-      setChats((prev) => prev.map((c) => c.id === id ? { ...c, title: title.trim() } : c));
-    } catch { /* ignore */ }
+      setChats((prev) => prev.map((c) => (c.id === id ? { ...c, title: title.trim() } : c)));
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleDeleteChat = async (id: string) => {
@@ -447,7 +442,9 @@ function App() {
         setGen((g) => g + 1);
       }
       await loadChats();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleConnected = async () => {
@@ -465,126 +462,136 @@ function App() {
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
       <TitleBar />
       <div className="flex min-h-0 flex-1 bg-sidebar">
-      <Sidebar
-        chats={chats}
-        activeChatId={activeChatId}
-        width={sidebarWidth}
-        skillsActive={view === "skills"}
-        onSelectChat={(id) => { setView("chat"); void handleSelectChat(id); }}
-        onNewChat={() => { setView("chat"); void handleNewChat(); }}
-        onOpenSkills={() => setView(v => v === "skills" ? "chat" : "skills")}
-        onRenameChat={(id, title) => { void handleRenameChat(id, title); }}
-        onDeleteChat={(id) => { void handleDeleteChat(id); }}
-      />
+        <Sidebar
+          chats={chats}
+          activeChatId={activeChatId}
+          width={sidebarWidth}
+          skillsActive={view === "skills"}
+          onSelectChat={(id) => {
+            setView("chat");
+            void handleSelectChat(id);
+          }}
+          onNewChat={() => {
+            setView("chat");
+            void handleNewChat();
+          }}
+          onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
+          onRenameChat={(id, title) => {
+            void handleRenameChat(id, title);
+          }}
+          onDeleteChat={(id) => {
+            void handleDeleteChat(id);
+          }}
+        />
 
-      {/* Resize handle — sits on top of main's border-l */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault();
-          const startX = e.clientX;
-          const startW = sidebarWidth;
-          const onMove = (ev: MouseEvent) => setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-          const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
-          document.addEventListener("mousemove", onMove);
-          document.addEventListener("mouseup", onUp);
-        }}
-        className="relative z-10 w-0 shrink-0 cursor-col-resize"
-      >
-        <div className="absolute inset-y-0 -left-2 -right-2" />
-      </div>
+        {/* Resize handle — sits on top of main's border-l */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = sidebarWidth;
+            const onMove = (ev: MouseEvent) =>
+              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+          className="relative z-10 w-0 shrink-0 cursor-col-resize"
+        >
+          <div className="absolute inset-y-0 -left-2 -right-2" />
+        </div>
 
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl border-l-2 border-t-2 border-white/[0.1] bg-bg">
-        <AnimatePresence mode="wait" initial={false}>
-          {view === "skills" ? (
-            <SkillsView key="skills" onClose={() => setView("chat")} />
-          ) : (
-            <motion.div
-              key="chat"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <StatusBar
-                status={status}
-                connected={connected}
-                models={models}
-                onSelectModel={handleSelectModel}
-                onOpenConnect={() => setShowConnect(true)}
-              />
-
-              {/* Timeline */}
-              <AnimatePresence mode="popLayout" initial={false}>
-                {(hasBlocks || streaming) && (
-                  <motion.div
-                    key="timeline"
-                    onScroll={handleTimelineScroll}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
-                  >
-                    <Timeline
-                      blocks={blocks}
-                      generation={gen}
-                      thinking={streaming && blocks.length > 0 && blocks[blocks.length - 1].kind === "user"}
-                      follow={followTimeline}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Input zone */}
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl border-l-2 border-t-2 border-white/[0.1] bg-bg">
+          <AnimatePresence mode="wait" initial={false}>
+            {view === "skills" ? (
+              <SkillsView key="skills" onClose={() => setView("chat")} />
+            ) : (
               <motion.div
-                className={
-                  hasBlocks
-                    ? "shrink-0 px-6 pt-2 pb-6"
-                    : "flex flex-1 flex-col items-center justify-center px-6"
-                }
+                key="chat"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="flex min-h-0 flex-1 flex-col"
               >
-                <AnimatePresence mode="popLayout">
-                  {!hasBlocks && (
+                <StatusBar
+                  status={status}
+                  connected={connected}
+                  models={models}
+                  onSelectModel={handleSelectModel}
+                  onOpenConnect={() => setShowConnect(true)}
+                />
+
+                {/* Timeline */}
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {(hasBlocks || streaming) && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                      className="mb-7 text-center select-none"
+                      key="timeline"
+                      onScroll={handleTimelineScroll}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
                     >
-                      <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-white">
-                        {connected ? "Where should we begin?" : "warden"}
-                      </h1>
+                      <Timeline
+                        blocks={blocks}
+                        generation={gen}
+                        thinking={streaming && blocks.length > 0 && blocks.at(-1)?.kind === "user"}
+                        follow={followTimeline}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                <InputBar
-                  onSend={handleSend}
-                  onStop={handleStop}
-                  streaming={streaming}
-                  disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
-                  placeholder={connected ? "Message warden..." : "Connect a model first"}
-                  auto={status?.mode === "auto"}
-                  onToggleMode={connected ? handleToggleMode : undefined}
-                />
+                {/* Input zone */}
+                <motion.div
+                  className={
+                    hasBlocks
+                      ? "shrink-0 px-6 pt-2 pb-6"
+                      : "flex flex-1 flex-col items-center justify-center px-6"
+                  }
+                >
+                  <AnimatePresence mode="popLayout">
+                    {!hasBlocks && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                        className="mb-7 text-center select-none"
+                      >
+                        <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-white">
+                          {connected ? "Where should we begin?" : "warden"}
+                        </h1>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <InputBar
+                    onSend={handleSend}
+                    onStop={handleStop}
+                    streaming={streaming}
+                    disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
+                    placeholder={connected ? "Message warden..." : "Connect a model first"}
+                    auto={status?.mode === "auto"}
+                    onToggleMode={connected ? handleToggleMode : undefined}
+                  />
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+            )}
+          </AnimatePresence>
+        </main>
       </div>
 
       <AnimatePresence>
-        {confirmReq && (
-          <ConfirmModal request={confirmReq} onResolve={handleConfirm} />
-        )}
+        {confirmReq && <ConfirmModal request={confirmReq} onResolve={handleConfirm} />}
       </AnimatePresence>
       <AnimatePresence>
-        {questionReq && (
-          <QuestionModal request={questionReq} onSubmit={handleAnswer} />
-        )}
+        {questionReq && <QuestionModal request={questionReq} onSubmit={handleAnswer} />}
       </AnimatePresence>
       <AnimatePresence>
         {showConnect && (

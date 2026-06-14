@@ -8,8 +8,8 @@ $out = Join-Path $root "src-tauri\binaries"
 
 Push-Location $backend
 try {
-    python -m pip install -r requirements.txt pyinstaller
-    pyinstaller --noconfirm --onefile --name warden-backend `
+    uv sync --extra tools --extra build
+    uv run pyinstaller --noconfirm --onefile --name warden-backend `
         --collect-all agent `
         --collect-all playwright `
         --collect-submodules openai `

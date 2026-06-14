@@ -22,7 +22,7 @@ export async function streamChat(
 ): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(API_BASE + "/chat", {
+    res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -60,10 +60,11 @@ export async function streamChat(
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buffer.indexOf("\n")) >= 0) {
+      let nl = buffer.indexOf("\n");
+      while (nl >= 0) {
         flushLine(buffer.slice(0, nl));
         buffer = buffer.slice(nl + 1);
+        nl = buffer.indexOf("\n");
       }
     }
     flushLine(buffer);

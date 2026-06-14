@@ -8,18 +8,14 @@ interface QuestionModalProps {
   onSubmit: (answers: string[][]) => void;
 }
 
-export default function QuestionModal({
-  request,
-  onSubmit,
-}: QuestionModalProps) {
-  const [answers, setAnswers] = useState<string[][]>(
-    request.questions.map(() => []),
-  );
+export default function QuestionModal({ request, onSubmit }: QuestionModalProps) {
+  const [answers, setAnswers] = useState<string[][]>(request.questions.map(() => []));
 
   const toggle = (qi: number, label: string, multiple: boolean) => {
     setAnswers((prev) => {
       const next = prev.map((a) => [...a]);
       const current = next[qi];
+      if (!current) return prev;
       if (multiple) {
         next[qi] = current.includes(label)
           ? current.filter((l) => l !== label)
@@ -55,12 +51,10 @@ export default function QuestionModal({
                 </p>
               )}
               <p className="text-sm text-text-primary">{q.question}</p>
-              {q.multiple && (
-                <p className="text-xs text-text-muted">Select all that apply</p>
-              )}
+              {q.multiple && <p className="text-xs text-text-muted">Select all that apply</p>}
               <div className="flex flex-col gap-1.5">
                 {q.options.map((opt) => {
-                  const selected = answers[qi].includes(opt.label);
+                  const selected = answers[qi]?.includes(opt.label) ?? false;
                   return (
                     <button
                       key={opt.label}
@@ -75,21 +69,15 @@ export default function QuestionModal({
                         className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded ${
                           q.multiple ? "rounded" : "rounded-full"
                         } border ${
-                          selected
-                            ? "border-[#8AB89A] bg-[#8AB89A] text-black"
-                            : "border-white/20"
+                          selected ? "border-[#8AB89A] bg-[#8AB89A] text-black" : "border-white/20"
                         }`}
                       >
                         {selected && <Check className="h-3 w-3" />}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-sm text-text-primary">
-                          {opt.label}
-                        </span>
+                        <span className="block text-sm text-text-primary">{opt.label}</span>
                         {opt.description && (
-                          <span className="block text-xs text-text-muted">
-                            {opt.description}
-                          </span>
+                          <span className="block text-xs text-text-muted">{opt.description}</span>
                         )}
                       </span>
                     </button>

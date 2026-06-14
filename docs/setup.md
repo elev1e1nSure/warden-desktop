@@ -6,8 +6,8 @@
 
 - Node.js и pnpm.
 - Rust toolchain для Tauri.
-- Python для backend.
-- Зависимости backend из `backend/requirements.txt`.
+- Python 3.11+.
+- [uv](https://docs.astral.sh/uv/) для управления Python-зависимостями и виртуальным окружением.
 
 ## Установка frontend-зависимостей
 
@@ -19,6 +19,21 @@ pnpm install
 
 ```powershell
 pnpm.cmd install
+```
+
+## Установка backend-зависимостей
+
+```powershell
+uv sync
+```
+
+из папки `backend/`. Команда создаёт `.venv` и ставит runtime + dev зависимости из `pyproject.toml`/`uv.lock`.
+
+Опциональные extras:
+
+```powershell
+uv sync --extra tools    # pyautogui, playwright, html2text
+uv sync --extra build    # pyinstaller (для сборки exe)
 ```
 
 ## Запуск только frontend
@@ -38,10 +53,10 @@ pnpm dev:backend
 Скрипт запускает:
 
 ```text
-python -m agent.server
+uv run python -m agent.server
 ```
 
-из папки `backend/`, чтобы Python видел пакет `agent`.
+из папки `backend/`. uv автоматически активирует `.venv`.
 
 ## Запуск desktop-приложения вместе с backend
 
@@ -63,6 +78,19 @@ pnpm build
 
 Команда выполняет TypeScript check и Vite build. Результат попадает в `dist/`.
 
+## Линт и проверки
+
+```powershell
+pnpm lint           # Biome lint (frontend)
+pnpm format         # Biome format --write
+pnpm typecheck      # tsc --noEmit
+pnpm check          # Biome: lint + format + import-sort
+
+uv run ruff check backend       # Python lint
+uv run ruff format backend      # Python format
+uv run pytest                   # Backend тесты (из backend/)
+```
+
 ## Сборка backend exe
 
 ```powershell
@@ -71,9 +99,9 @@ pnpm build:backend
 
 Скрипт:
 
-1. ставит Python-зависимости из `backend/requirements.txt`;
-2. собирает `warden-backend.exe` через PyInstaller;
-3. кладет exe в `src-tauri/binaries/`.
+1. вызывает `uv sync --extra tools --extra build`;
+2. собирает `warden-backend.exe` через `uv run pyinstaller`;
+3. кладёт exe в `src-tauri/binaries/`.
 
 ## Сборка desktop-приложения
 

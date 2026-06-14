@@ -39,7 +39,14 @@ export default function TitleBar() {
           </svg>
         </WinBtn>
         <WinBtn onClick={() => win.toggleMaximize()}>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1"
+          >
             <rect x="0.5" y="0.5" width="9" height="9" />
           </svg>
         </WinBtn>

@@ -38,7 +38,7 @@ export default function InputBar({
     if (!el) return;
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, [value]);
+  }, []);
 
   const submit = () => {
     if (streaming || disabled) return;
@@ -65,9 +65,11 @@ export default function InputBar({
     if (!files) return;
     const newFiles: AttachedFile[] = [];
     for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
       newFiles.push({
-        file: files[i],
-        id: `${files[i].name}-${Date.now()}-${i}`,
+        file,
+        id: `${file.name}-${Date.now()}-${i}`,
       });
     }
     setAttachedFiles((prev) => [...prev, ...newFiles]);
@@ -146,11 +148,7 @@ export default function InputBar({
             </Tooltip>
             {onToggleMode !== undefined && (
               <div className="ml-2">
-              <ModeToggle
-                auto={Boolean(auto)}
-                disabled={streaming}
-                onToggle={onToggleMode}
-              />
+                <ModeToggle auto={Boolean(auto)} disabled={streaming} onToggle={onToggleMode} />
               </div>
             )}
           </div>

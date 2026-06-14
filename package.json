@@ -11,7 +11,13 @@
     "build:backend": "powershell -ExecutionPolicy Bypass -File scripts/build-backend.ps1",
     "build:app": "pnpm build:backend && tauri build --config src-tauri/tauri.bundle.conf.json",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
@@ -26,8 +32,10 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.0",
     "@tailwindcss/vite": "^4.3.1",
     "@tauri-apps/cli": "^2",
+    "@types/node": "^25.9.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

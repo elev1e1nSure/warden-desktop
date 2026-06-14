@@ -9,10 +9,7 @@ interface ConnectModalProps {
   onClose?: () => void;
 }
 
-export default function ConnectModal({
-  onConnected,
-  onClose,
-}: ConnectModalProps) {
+export default function ConnectModal({ onConnected, onClose }: ConnectModalProps) {
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -54,9 +51,7 @@ export default function ConnectModal({
         className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-surface-raised shadow-2xl"
       >
         <div className="border-b border-white/[0.07] px-5 py-4">
-          <h2 className="text-[15px] font-semibold text-text-primary">
-            Connect OpenRouter
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary">Connect OpenRouter</h2>
           <p className="mt-0.5 text-xs text-text-muted">
             Enter API key. Pick model from status bar after connect.
           </p>

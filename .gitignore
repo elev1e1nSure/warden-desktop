@@ -20,6 +20,12 @@ backend/.coverage
 backend/coverage.json
 backend/htmlcov/
 
+# Python virtualenvs (uv-managed)
+.venv/
+backend/.venv/
+backend/dist/
+backend/build/
+
 # Local temp/runtime output
 .tmp/
 backend/.tmp/
@@ -52,6 +58,7 @@ lerna-debug.log*
 # Linter / type checker caches
 .mypy_cache/
 .ruff_cache/
+*.tsbuildinfo
 
 # OS / editor files
 .DS_Store

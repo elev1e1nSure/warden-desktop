@@ -1,13 +1,13 @@
 // Dev launcher for the Python backend.
-// Spawns `python -m agent.server` with cwd = ./backend so the `agent` package
-// resolves with the same UTF-8 environment used in bundled builds.
+// Spawns `uv run python -m agent.server` with cwd = ./backend so the `agent`
+// package resolves with the same UTF-8 environment used in bundled builds.
+// uv auto-activates ./backend/.venv (created via `uv sync`).
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const backendDir = join(scriptDir, "..", "backend");
-const python = process.platform === "win32" ? "python" : "python3";
 
 const env = {
   ...process.env,
@@ -16,10 +16,11 @@ const env = {
   PYTHONUNBUFFERED: "1",
 };
 
-const child = spawn(python, ["-m", "agent.server"], {
+const child = spawn("uv", ["run", "python", "-m", "agent.server"], {
   cwd: backendDir,
   env,
   stdio: "inherit",
+  shell: process.platform === "win32",
 });
 
 const stop = () => {

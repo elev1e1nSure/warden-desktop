@@ -37,7 +37,7 @@ export default function MessageList({ messages }: MessageListProps) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  }, []);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pt-10 pb-6">

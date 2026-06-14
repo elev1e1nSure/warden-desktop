@@ -40,9 +40,7 @@ export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) 
 
         <div className="space-y-3 px-5 py-4">
           {request.summary && (
-            <p className="text-sm text-text-primary leading-relaxed">
-              {request.summary}
-            </p>
+            <p className="text-sm text-text-primary leading-relaxed">{request.summary}</p>
           )}
 
           {request.details?.length > 0 && (

@@ -1,4 +1,6 @@
 // REST wrappers around the local Python backend.
+
+import type { Block } from "../types";
 import type {
   ChatDetail,
   ChatListResult,
@@ -8,7 +10,6 @@ import type {
   SkillInfo,
   StatusResult,
 } from "./types";
-import type { Block } from "../types";
 
 export const API_BASE = "http://localhost:8765";
 
@@ -40,7 +41,7 @@ export const api = {
   /** Returns true when the backend answers /health. */
   async health(): Promise<boolean> {
     try {
-      const res = await fetch(API_BASE + "/health");
+      const res = await fetch(`${API_BASE}/health`);
       return res.ok;
     } catch {
       return false;
@@ -62,8 +63,7 @@ export const api = {
 
   confirm: (id: string, ok: boolean) => postJSON("/confirm", { id, ok }),
 
-  answerQuestion: (id: string, answers: string[][]) =>
-    postJSON("/question", { id, answers }),
+  answerQuestion: (id: string, answers: string[][]) => postJSON("/question", { id, answers }),
 
   reset: () => postJSON("/reset"),
 
@@ -71,21 +71,16 @@ export const api = {
 
   newChat: () => postJSON<{ chat: ChatDetail }>("/chats/new"),
 
-  selectChat: (id: string) =>
-    postJSON<{ chat: ChatDetail }>("/chats/select", { id }),
+  selectChat: (id: string) => postJSON<{ chat: ChatDetail }>("/chats/select", { id }),
 
-  saveChatBlocks: (id: string, blocks: Block[]) =>
-    postJSON("/chats/blocks", { id, blocks }),
+  saveChatBlocks: (id: string, blocks: Block[]) => postJSON("/chats/blocks", { id, blocks }),
 
-  renameChat: (id: string, title: string) =>
-    postJSON("/chats/rename", { id, title }),
+  renameChat: (id: string, title: string) => postJSON("/chats/rename", { id, title }),
 
   deleteChat: (id: string) => postJSON("/chats/delete", { id }),
 
   compact: () =>
-    postJSON<{ summary: string; tokens_before: number; tokens_after: number }>(
-      "/compact",
-    ),
+    postJSON<{ summary: string; tokens_before: number; tokens_after: number }>("/compact"),
 
   skills: () => getJSON<{ skills: SkillInfo[] }>("/skills"),
 
@@ -100,7 +95,7 @@ export const api = {
   async uploadFile(file: File): Promise<string> {
     const form = new FormData();
     form.append("files", file);
-    const res = await fetch(API_BASE + "/upload", {
+    const res = await fetch(`${API_BASE}/upload`, {
       method: "POST",
       body: form,
     });

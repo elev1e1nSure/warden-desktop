@@ -9,18 +9,12 @@ interface ModelSelectorProps {
   onSelect: (model: Model) => void;
 }
 
-export default function ModelSelector({
-  models,
-  selected,
-  onSelect,
-}: ModelSelectorProps) {
+export default function ModelSelector({ models, selected, onSelect }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
-  const filtered = models.filter((m) =>
-    m.name.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = models.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +46,6 @@ export default function ModelSelector({
           >
             <div className="border-b border-white/[0.06] px-3">
               <input
-                autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
@@ -68,10 +61,15 @@ export default function ModelSelector({
                 return (
                   <button
                     key={model.id}
-                    onClick={() => { onSelect(model); setOpen(false); }}
+                    onClick={() => {
+                      onSelect(model);
+                      setOpen(false);
+                    }}
                     className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left transition-colors hover:bg-white/[0.06]"
                   >
-                    <span className={`text-[13px] tracking-[-0.01em] ${active ? "text-text-primary" : "text-text-secondary"}`}>
+                    <span
+                      className={`text-[13px] tracking-[-0.01em] ${active ? "text-text-primary" : "text-text-secondary"}`}
+                    >
                       {model.name}
                     </span>
                     {active && <Check className="h-3.5 w-3.5 shrink-0 text-text-muted" />}

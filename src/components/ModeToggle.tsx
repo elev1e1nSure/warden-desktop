@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Tooltip from "./Tooltip";
 
 const MODES = [
-  { value: "ask" as const, label: "Ask", Icon: MessageSquare, description: "Confirms before each action" },
+  {
+    value: "ask" as const,
+    label: "Ask",
+    Icon: MessageSquare,
+    description: "Confirms before each action",
+  },
   { value: "auto" as const, label: "Auto", Icon: Zap, description: "Runs actions without asking" },
 ];
 
@@ -57,8 +62,12 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
                     active ? "" : "hover:bg-white/[0.06]"
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 shrink-0 ${active ? "text-text-secondary" : "text-text-muted"}`} />
-                  <span className={`flex-1 text-[13px] tracking-[-0.01em] ${active ? "text-text-primary" : "text-text-secondary"}`}>
+                  <Icon
+                    className={`h-3.5 w-3.5 shrink-0 ${active ? "text-text-secondary" : "text-text-muted"}`}
+                  />
+                  <span
+                    className={`flex-1 text-[13px] tracking-[-0.01em] ${active ? "text-text-primary" : "text-text-secondary"}`}
+                  >
                     {label}
                   </span>
                   {active && <Check className="h-3 w-3 shrink-0 text-text-muted" />}
@@ -75,12 +84,18 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}
           className={`flex items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] transition-all disabled:opacity-40 ${
-            auto ? "text-[#8ab8d4] hover:text-[#9fc5db]" : "text-text-secondary hover:text-text-primary"
+            auto
+              ? "text-[#8ab8d4] hover:text-[#9fc5db]"
+              : "text-text-secondary hover:text-text-primary"
           }`}
         >
           <current.Icon className="h-3 w-3" />
           {current.label}
-          <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.15 }} className="flex opacity-50">
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex opacity-50"
+          >
             <ChevronDown className="h-3 w-3" />
           </motion.span>
         </button>
