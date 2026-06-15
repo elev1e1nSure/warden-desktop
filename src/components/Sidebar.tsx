@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HIGHLIGHT_SPRING } from "../motion";
 import type { Chat } from "../types";
 
 interface SidebarProps {
@@ -158,6 +157,11 @@ export default function Sidebar({
                 exit={{ maxHeight: 0, opacity: 0 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className="min-h-0 flex-1 overflow-y-auto"
+                style={{
+                  maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                }}
               >
                 <div className="flex flex-col gap-0.5 pt-1 pb-2">
                   {chats.map((chat) => {
@@ -176,16 +180,9 @@ export default function Sidebar({
                           if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
                         }}
                         className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
-                          active ? "" : "hover:bg-fill-hover"
+                          active ? "bg-fill-active" : "hover:bg-fill-hover"
                         }`}
                       >
-                        {active && (
-                          <motion.div
-                            layoutId="chat-active"
-                            transition={HIGHLIGHT_SPRING}
-                            className="absolute inset-0 rounded-xl bg-fill-active"
-                          />
-                        )}
                         {renaming ? (
                           <input
                             value={renameValue}
@@ -274,7 +271,7 @@ export default function Sidebar({
                       transformOrigin: "top right",
                       zIndex: 9999,
                     }}
-                    className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl"
+                    className="w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-xl flex flex-col gap-0.5"
                   >
                     <button
                       type="button"
@@ -283,7 +280,7 @@ export default function Sidebar({
                         setRenameValue(chat.title);
                         setMenuChatId(null);
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
                     >
                       <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       Rename
@@ -294,7 +291,7 @@ export default function Sidebar({
                         onDeleteChat(chat.id);
                         setMenuChatId(null);
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
                     >
                       <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       Delete

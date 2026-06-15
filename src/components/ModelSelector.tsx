@@ -47,7 +47,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "top left" }}
-            className="absolute left-0 top-full z-50 mt-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40"
+            className="absolute left-0 top-full z-50 mt-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
           >
             <div className="flex items-center gap-2 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" strokeWidth={1.75} />
@@ -60,7 +60,15 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
               />
             </div>
             <div className="mx-1 mb-1 mt-0.5 h-px bg-hairline" />
-            <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto no-scrollbar">
+            <div
+              className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto no-scrollbar"
+              style={{
+                maskImage:
+                  "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+              }}
+            >
               {filtered.length === 0 && (
                 <p className="px-2.5 py-2 text-ui text-text-muted">No models match.</p>
               )}

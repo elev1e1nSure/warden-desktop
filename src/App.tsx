@@ -12,7 +12,8 @@ import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StatusBar from "./components/StatusBar";
 import Timeline from "./components/Timeline";
-import { headingPop, panelFromLeft, panelFromRight } from "./motion";
+import Toaster from "./components/Toaster";
+import { headingPop } from "./motion";
 import type { Block, Chat } from "./types";
 
 type AppView = "chat" | "skills";
@@ -553,143 +554,143 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
-        <div className="flex min-h-0 flex-1">
-          <AnimatePresence mode="wait" initial={false}>
-            {view === "skills" ? (
-              <motion.div key="skills" {...panelFromRight} className="flex min-h-0 flex-1">
-                <SkillsView onClose={handleCloseSkills} />
-              </motion.div>
-            ) : (
-              <motion.div key="chat" {...panelFromLeft} className="flex min-h-0 flex-1">
-                <Sidebar
-                  chats={chats}
-                  activeChatId={activeChatId}
-                  width={sidebarWidth}
-                  skillsActive={false}
-                  onSelectChat={(id) => {
-                    setView("chat");
-                    void handleSelectChat(id);
-                  }}
-                  onNewChat={() => {
-                    setView("chat");
-                    void handleNewChat();
-                  }}
-                  onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
-                  onRenameChat={(id, title) => {
-                    void handleRenameChat(id, title);
-                  }}
-                  onDeleteChat={(id) => {
-                    void handleDeleteChat(id);
-                  }}
+        <div className="flex min-h-0 flex-1 relative">
+          <div
+            className={
+              view === "skills"
+                ? "flex min-h-0 flex-1"
+                : "absolute inset-0 opacity-0 pointer-events-none"
+            }
+          >
+            <SkillsView onClose={handleCloseSkills} />
+          </div>
+          <div
+            className={
+              view === "chat"
+                ? "flex min-h-0 flex-1"
+                : "absolute inset-0 opacity-0 pointer-events-none"
+            }
+          >
+            <Sidebar
+              chats={chats}
+              activeChatId={activeChatId}
+              width={sidebarWidth}
+              skillsActive={false}
+              onSelectChat={(id) => {
+                setView("chat");
+                void handleSelectChat(id);
+              }}
+              onNewChat={() => {
+                setView("chat");
+                void handleNewChat();
+              }}
+              onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
+              onRenameChat={(id, title) => {
+                void handleRenameChat(id, title);
+              }}
+              onDeleteChat={(id) => {
+                void handleDeleteChat(id);
+              }}
+            />
+
+            {/* Resize handle — sits on top of main's border-l */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startW = sidebarWidth;
+                const onMove = (ev: MouseEvent) =>
+                  setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+                const onUp = () => {
+                  document.removeEventListener("mousemove", onMove);
+                  document.removeEventListener("mouseup", onUp);
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+              }}
+              className="relative z-10 w-0 shrink-0 cursor-col-resize"
+            >
+              <div className="absolute inset-y-0 -left-2 -right-2" />
+            </div>
+
+            <main
+              style={
+                {
+                  "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
+                } as CSSProperties
+              }
+              className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg"
+            >
+              <div className="flex min-h-0 flex-1 flex-col">
+                <StatusBar
+                  status={status}
+                  connected={connected}
+                  models={models}
+                  onSelectModel={handleSelectModel}
+                  onOpenConnect={() => setShowConnect(true)}
                 />
 
-                {/* Resize handle — sits on top of main's border-l */}
-                {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
-                <div
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    const startX = e.clientX;
-                    const startW = sidebarWidth;
-                    const onMove = (ev: MouseEvent) =>
-                      setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-                    const onUp = () => {
-                      document.removeEventListener("mousemove", onMove);
-                      document.removeEventListener("mouseup", onUp);
-                    };
-                    document.addEventListener("mousemove", onMove);
-                    document.addEventListener("mouseup", onUp);
-                  }}
-                  className="relative z-10 w-0 shrink-0 cursor-col-resize"
-                >
-                  <div className="absolute inset-y-0 -left-2 -right-2" />
-                </div>
-
-                <main
-                  style={
-                    {
-                      "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
-                    } as CSSProperties
-                  }
-                  className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg"
-                >
-                  <motion.div
-                    key="chat"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.12 }}
-                    className="flex min-h-0 flex-1 flex-col"
-                  >
-                    <StatusBar
-                      status={status}
-                      connected={connected}
-                      models={models}
-                      onSelectModel={handleSelectModel}
-                      onOpenConnect={() => setShowConnect(true)}
-                    />
-
-                    {/* Timeline */}
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      {(hasBlocks || streaming) && (
-                        <motion.div
-                          key="timeline"
-                          onScroll={handleTimelineScroll}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
-                        >
-                          <Timeline
-                            blocks={blocks}
-                            generation={gen}
-                            thinking={
-                              streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
-                            }
-                            follow={followTimeline}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Input zone */}
+                {/* Timeline */}
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {(hasBlocks || streaming) && (
                     <motion.div
-                      className={
-                        hasBlocks
-                          ? "shrink-0 px-6 pt-2 pb-6"
-                          : "flex flex-1 flex-col items-center justify-center px-6"
-                      }
+                      key="timeline"
+                      onScroll={handleTimelineScroll}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
                     >
-                      <AnimatePresence mode="popLayout">
-                        {!hasBlocks && (
-                          <motion.div {...headingPop} className="mb-7 select-none">
-                            <div
-                              style={{ transform: "translateX(var(--chat-shift, 0px))" }}
-                              className="text-center"
-                            >
-                              <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
-                                {connected ? "Where should we begin?" : "warden"}
-                              </h1>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <InputBar
-                        onSend={handleSend}
-                        onStop={handleStop}
-                        streaming={streaming}
-                        disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
-                        placeholder={connected ? "Message warden..." : "Connect a model first"}
-                        auto={status?.mode === "auto"}
-                        onToggleMode={connected ? handleToggleMode : undefined}
+                      <Timeline
+                        blocks={blocks}
+                        generation={gen}
+                        thinking={
+                          streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
+                        }
+                        follow={followTimeline}
                       />
                     </motion.div>
-                  </motion.div>
-                </main>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  )}
+                </AnimatePresence>
+
+                {/* Input zone */}
+                <motion.div
+                  className={
+                    hasBlocks
+                      ? "shrink-0 px-6 pt-2 pb-6"
+                      : "flex flex-1 flex-col items-center justify-center px-6"
+                  }
+                >
+                  <AnimatePresence mode="popLayout">
+                    {!hasBlocks && (
+                      <motion.div {...headingPop} className="mb-7 select-none">
+                        <div
+                          style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+                          className="text-center"
+                        >
+                          <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
+                            {connected ? "Where should we begin?" : "warden"}
+                          </h1>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <InputBar
+                    onSend={handleSend}
+                    onStop={handleStop}
+                    streaming={streaming}
+                    disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
+                    placeholder={connected ? "Message warden..." : "Connect a model first"}
+                    auto={status?.mode === "auto"}
+                    onToggleMode={connected ? handleToggleMode : undefined}
+                  />
+                </motion.div>
+              </div>
+            </main>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -706,6 +707,7 @@ function App() {
             />
           )}
         </AnimatePresence>
+        <Toaster />
       </div>
     </MotionConfig>
   );

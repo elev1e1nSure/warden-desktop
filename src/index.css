@@ -37,6 +37,7 @@ html {
   --color-danger: #e05555;
   --color-danger-hover: #e86666;
   --color-warning: #e0b341;
+  --color-accent: #6a9fb5;
 
   /* ─── Type scale ───────────────────────────────────────────── */
   --text-meta: 0.75rem; /* 12 — timestamps, section labels, tool meta */

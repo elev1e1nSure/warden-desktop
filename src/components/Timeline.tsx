@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { timelineReveal } from "../motion";
 import type { Block } from "../types";
 
 // ─── types ──────────────────────────────────────────────────────────────────
@@ -424,12 +423,12 @@ export default function Timeline({
   follow?: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const groups = groupBlocks(blocks);
+  const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!follow) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "instant" });
   }, [follow]);
 
   return (
@@ -437,20 +436,9 @@ export default function Timeline({
       style={{ transform: "translateX(var(--chat-shift, 0px))" }}
       className="mx-auto w-full max-w-3xl"
     >
-      <motion.div
-        key={generation}
-        initial={timelineReveal.initial}
-        animate={timelineReveal.animate}
-        transition={timelineReveal.transition}
-        className="flex w-full flex-col gap-4 px-6 pt-12 pb-8"
-      >
+      <div className="flex w-full flex-col gap-4 px-6 pt-12 pb-8">
         {groups.map((g) => (
-          <motion.div
-            key={`${generation}-${groupKey(g)}`}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <div key={`${generation}-${groupKey(g)}`}>
             {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
             {g.kind === "single" &&
               g.block.kind === "image" &&
@@ -472,7 +460,7 @@ export default function Timeline({
               <p className="text-ui text-danger">{g.block.text}</p>
             )}
             {g.kind === "tools" && <ToolGroup items={g.items} />}
-          </motion.div>
+          </div>
         ))}
 
         <AnimatePresence>
@@ -490,7 +478,7 @@ export default function Timeline({
         </AnimatePresence>
 
         <div ref={bottomRef} />
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {lightbox && (
