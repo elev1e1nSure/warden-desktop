@@ -1,28 +1,36 @@
-<div align="center">
-
-<img src="docs/demo.gif" alt="Warden Desktop demo" width="100%" />
+<p align="center">
+  <img src="docs/demo.gif" alt="Warden Desktop demo" width="100%" />
+</p>
 
 <br />
 
-```
+<pre align="center">
 ██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗███╗   ██╗
 ██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝████╗  ██║
 ██║ █╗ ██║███████║██████╔╝██║  ██║█████╗  ██╔██╗ ██║
 ██║███╗██║██╔══██║██╔══██╗██║  ██║██╔══╝  ██║╚██╗██║
 ╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████╗██║ ╚████║
  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝
-```
+</pre>
 
-**AI agent desktop shell with full computer control**
+<p align="center">
+  <strong>AI agent desktop shell with full computer control</strong>
+</p>
 
-[![Release](https://img.shields.io/github/v/release/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1&label=latest)](https://github.com/elev1e1nSure/warden-desktop/releases/latest)
-[![License](https://img.shields.io/github/license/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1)](LICENSE)
-[![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-6366f1?style=flat-square)](https://tauri.app)
-[![Python](https://img.shields.io/badge/backend-Python-6366f1?style=flat-square)](https://python.org)
+<p align="center">
+  <a href="https://github.com/elev1e1nSure/warden-desktop/releases/latest"><img src="https://img.shields.io/github/v/release/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1&label=latest" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1" alt="License"></a>
+  <a href="https://tauri.app"><img src="https://img.shields.io/badge/built%20with-Tauri%202-6366f1?style=flat-square" alt="Built with Tauri"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/backend-Python-6366f1?style=flat-square" alt="Python"></a>
+</p>
 
-[**Download**](https://github.com/elev1e1nSure/warden-desktop/releases/latest) · [**Docs**](docs/README.md) · [**Report bug**](https://github.com/elev1e1nSure/warden-desktop/issues)
-
-</div>
+<p align="center">
+  <a href="https://github.com/elev1e1nSure/warden-desktop/releases/latest"><strong>Download</strong></a>
+  ·
+  <a href="docs/README.md"><strong>Docs</strong></a>
+  ·
+  <a href="https://github.com/elev1e1nSure/warden-desktop/issues"><strong>Report bug</strong></a>
+</p>
 
 ---
 
@@ -37,16 +45,14 @@ Works with [OpenRouter](https://openrouter.ai) — bring any model: GPT, Claude,
 ## Capabilities
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Files       read · write · search · archives · patches    │
-│  Shell       PowerShell · Bash · risk-based security        │
-│  Browser     URLs · screenshots · clicks · forms · YouTube  │
-│  Screen      OCR · image search · mouse · keyboard          │
-│  System      processes · windows · notifications · clipboard│
-│  Memory      long-term · retrieval · aggregation             │
-│  Network     HTTP · web scraping                             │
-│  Code        LSP · session todo-list                         │
-└─────────────────────────────────────────────────────────────┘
+Files       read · write · search · archives · patches
+Shell       PowerShell · Bash · risk-based security
+Browser     URLs · screenshots · clicks · forms · YouTube
+Screen      OCR · image search · mouse · keyboard
+System      processes · windows · notifications · clipboard
+Memory      long-term · retrieval · aggregation
+Network     HTTP · web scraping
+Code        LSP · session todo-list
 ```
 
 ### Modes
@@ -70,17 +76,12 @@ Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest)
 ### Build from source
 
 ```powershell
-# Install dependencies
 pnpm install
-
-# Run in development mode
 pnpm dev:all
-
-# Build installer
 pnpm build:app
 ```
 
-> Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain
+Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain
 
 ---
 
@@ -88,12 +89,12 @@ pnpm build:app
 
 ```
 warden-desktop/
-├── backend/       # Python: agent runtime, tools, memory, skills
-├── src/           # React UI
-├── src-tauri/     # Tauri shell, desktop packaging
-├── scripts/       # build & dev helpers
-├── public/        # static assets
-└── docs/          # documentation & architecture
+├── backend/       Python agent runtime, tools, memory, skills
+├── src/           React UI
+├── src-tauri/     Tauri shell, desktop packaging
+├── scripts/       build & dev helpers
+├── public/        static assets
+└── docs/          documentation & architecture
 ```
 
 Architecture, data flow, and source map → see [docs/README.md](docs/README.md).
@@ -112,8 +113,6 @@ Architecture, data flow, and source map → see [docs/README.md](docs/README.md)
 
 ---
 
-<div align="center">
-
-Built solo · open source · [MIT License](LICENSE)
-
-</div>
+<p align="center">
+  Built solo · open source · <a href="LICENSE">MIT License</a>
+</p>
