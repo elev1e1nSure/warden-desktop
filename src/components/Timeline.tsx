@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { timelineReveal } from "../motion";
 import type { Block } from "../types";
 
 // ─── types ──────────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ function groupKey(g: Group): string {
 function UserBlock({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-white/[0.09] px-4 py-3 text-[15px] leading-relaxed text-white">
+      <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-fill-active px-4 py-3 text-body leading-relaxed text-text-primary">
         {text}
       </div>
     </div>
@@ -91,13 +92,13 @@ const mdComponents = {
   h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h3
       {...props}
-      className="mb-1.5 mt-3 text-[15.5px] font-semibold tracking-[-0.015em] text-text-primary"
+      className="mb-1.5 mt-3 text-body font-semibold tracking-[-0.015em] text-text-primary"
     />
   ),
   h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h4
       {...props}
-      className="mb-1.5 mt-3 text-[14.5px] font-semibold tracking-[-0.01em] text-text-primary"
+      className="mb-1.5 mt-3 text-ui-lg font-semibold tracking-[-0.01em] text-text-primary"
     />
   ),
   ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
@@ -120,30 +121,30 @@ const mdComponents = {
   blockquote: (props: React.BlockquoteHTMLAttributes<HTMLQuoteElement>) => (
     <blockquote
       {...props}
-      className="my-2 border-l-2 border-white/15 pl-3 italic text-text-secondary"
+      className="my-2 border-l-2 border-line pl-3 italic text-text-secondary"
     />
   ),
   hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
-    <hr {...props} className="my-3 border-white/10" />
+    <hr {...props} className="my-3 border-line" />
   ),
   table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
-    <div className="my-3 overflow-x-auto rounded-lg ring-1 ring-white/[0.07]">
-      <table {...props} className="w-full text-left text-[13.5px]" />
+    <div className="my-3 overflow-x-auto rounded-lg ring-1 ring-hairline">
+      <table {...props} className="w-full text-left text-ui" />
     </div>
   ),
   thead: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <thead {...props} className="bg-white/[0.05]" />
+    <thead {...props} className="bg-fill-subtle" />
   ),
   th: (props: React.ThHTMLAttributes<HTMLTableHeaderCellElement>) => (
     <th
       {...props}
-      className="border-b border-white/[0.08] px-3 py-1.5 font-medium text-text-secondary"
+      className="border-b border-hairline px-3 py-1.5 font-medium text-text-secondary"
     />
   ),
   td: (props: React.TdHTMLAttributes<HTMLTableDataCellElement>) => (
     <td
       {...props}
-      className="border-b border-white/[0.05] px-3 py-1.5 text-text-primary last:border-b-0"
+      className="border-b border-hairline px-3 py-1.5 text-text-primary last:border-b-0"
     />
   ),
   code: (
@@ -154,7 +155,7 @@ const mdComponents = {
       return (
         <code
           {...rest}
-          className="rounded bg-white/[0.07] px-[5px] py-[1px] font-mono text-[12.5px] text-[#cfcfcf]"
+          className="rounded bg-code-bg px-[5px] py-[1px] font-mono text-meta text-code-text"
         >
           {children}
         </code>
@@ -163,7 +164,7 @@ const mdComponents = {
     return (
       <code
         {...rest}
-        className={`${className ?? ""} font-mono text-[13px]`}
+        className={`${className ?? ""} font-mono text-ui`}
       >
         {children}
       </code>
@@ -172,7 +173,7 @@ const mdComponents = {
   pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
     <pre
       {...props}
-      className="my-3 overflow-x-auto rounded-xl bg-white/[0.04] p-4 text-[13px] leading-[1.55] text-[#d8d8d8] ring-1 ring-white/[0.06]"
+      className="my-3 overflow-x-auto rounded-xl bg-fill-subtle p-4 text-ui leading-[1.55] text-code-text ring-1 ring-hairline"
     />
   ),
   del: (props: React.HTMLAttributes<HTMLModElement>) => (
@@ -224,9 +225,9 @@ function AssistantBlock({ text }: { text: string }) {
   );
 
   return (
-    <div className="markdown-body text-[15px] text-[#e8e8e8]">
+    <div className="markdown-body text-body text-text-primary">
       {text.length === 0 ? (
-        <span className="inline-block h-[14px] w-[5px] animate-pulse rounded-sm bg-[#3a3a3a] align-middle" />
+        <span className="inline-block h-[14px] w-[5px] animate-pulse rounded-sm bg-fill-strong align-middle" />
       ) : (
         rendered
       )}
@@ -240,7 +241,7 @@ function ThinkBlock({ text }: { text: string }) {
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 p-0 text-[14px] text-text-muted transition-colors hover:text-text-secondary"
+        className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
       >
         <motion.span
           animate={{ rotate: open ? 0 : -90 }}
@@ -261,7 +262,7 @@ function ThinkBlock({ text }: { text: string }) {
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-2 pl-4 text-[13.5px] leading-[1.7] text-[#888]">
+            <div className="mt-2 pl-4 text-ui leading-[1.7] text-text-muted">
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -299,7 +300,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
         type="button"
         onClick={() => !running && setOpen((v) => !v)}
         disabled={running}
-        className="flex items-center gap-1 p-0 text-[14px] text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+        className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
       >
         <span className="flex shrink-0">
           {running ? (
@@ -328,7 +329,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
           >
             <ul className="mt-1 flex flex-col gap-0.5 pl-4">
               {items.map((t) => (
-                <li key={t.id} className="text-[13.5px] leading-[1.65] text-[#666]">
+                <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
                   {toolLine(t)}
                 </li>
               ))}
@@ -342,7 +343,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
 
 function ThinkingIndicator() {
   return (
-    <p className="flex items-center gap-0.5 pl-[18px] text-[14px] font-normal text-text-secondary">
+    <p className="flex items-center gap-1 text-ui-lg font-normal text-text-muted">
       <span>Thinking</span>
       <span className="inline-flex">
         <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
@@ -381,13 +382,23 @@ export default function Timeline({
   }, [follow]);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 pt-12 pb-8">
+    <div
+      style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+      className="mx-auto w-full max-w-3xl"
+    >
+      <motion.div
+        key={generation}
+        initial={timelineReveal.initial}
+        animate={timelineReveal.animate}
+        transition={timelineReveal.transition}
+        className="flex w-full flex-col gap-4 px-6 pt-12 pb-8"
+      >
       {groups.map((g) => (
         <motion.div
           key={`${generation}-${groupKey(g)}`}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
           {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
           {g.kind === "single" && g.block.kind === "assistant" && (
@@ -395,7 +406,7 @@ export default function Timeline({
           )}
           {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
           {g.kind === "single" && g.block.kind === "error" && (
-            <p className="text-[13px] text-[#c05050]">{g.block.text}</p>
+            <p className="text-ui text-danger">{g.block.text}</p>
           )}
           {g.kind === "tools" && <ToolGroup items={g.items} />}
         </motion.div>
@@ -416,6 +427,7 @@ export default function Timeline({
       </AnimatePresence>
 
       <div ref={bottomRef} />
+      </motion.div>
     </div>
   );
 }
