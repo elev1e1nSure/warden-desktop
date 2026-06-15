@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@import "highlight.js/styles/atom-one-dark.css";
+
+html {
+  background-color: #161616;
+}
 
 @theme {
   /* ─── Surfaces ─────────────────────────────────────────────── */
@@ -86,24 +91,35 @@ body {
   overflow: hidden;
 }
 
-/* Minimal, unobtrusive scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #2a2a2a transparent;
+/* Sidebar root must NEVER animate width — the user is dragging it.
+   The aside element itself shouldn't carry CSS transitions/animations on
+   width; we set it inline via React. This rule kills the inherited
+   framer-motion will-change / transition jank on the root only. */
+aside {
+  transition: none !important;
+  animation: none !important;
+  will-change: auto;
 }
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+
+/* ─── HIDE ALL SCROLLBARS (scroll still works) ─────────────────
+   We want a clean look — no native scrollbars anywhere. The .no-scrollbar
+   utility is preserved for the few spots (e.g. model selector) that
+   already use it. The universal selector below nukes every default. */
+*,
+*::before,
+*::after {
+  scrollbar-width: none !important;          /* Firefox */
+  -ms-overflow-style: none !important;       /* legacy Edge / IE */
 }
-*::-webkit-scrollbar-thumb {
-  background-color: #2a2a2a;
-  border-radius: 9999px;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background-color: #383838;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
+*::-webkit-scrollbar,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-corner {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
 }
 
 ::selection {
@@ -160,6 +176,27 @@ summary,
   -webkit-text-fill-color: transparent;
   color: transparent;
   animation: text-shimmer 4s linear infinite;
+}
+
+/* Three bouncing dots for the Thinking indicator.
+   Each dot cycles opacity 0.2 → 1 with a staggered delay so they
+   "wave" in sequence. */
+@keyframes thinking-dot {
+  0%, 60%, 100% { opacity: 0.2; }
+  30%           { opacity: 1; }
+}
+
+.thinking-dot {
+  display: inline-block;
+  animation: thinking-dot 1.05s ease-in-out infinite;
+}
+
+/* rehype-highlight injects .hljs on <code> blocks and applies its own
+   background — we use our own wrapper background, so strip hljs's. */
+.markdown-body pre code.hljs,
+.markdown-body pre code {
+  background: transparent !important;
+  padding: 0;
 }
 
 /* Hide scrollbar in model selector */

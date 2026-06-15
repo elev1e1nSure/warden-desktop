@@ -14,7 +14,6 @@ import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StatusBar from "./components/StatusBar";
 import Timeline from "./components/Timeline";
-import TitleBar from "./components/TitleBar";
 import type { Block, Chat } from "./types";
 
 type AppView = "chat" | "skills";
@@ -381,12 +380,8 @@ function App() {
       await flushActiveChatBlocks();
       handleStop();
       await api.setModel(name);
-      commit([]);
-      setActiveChatId(null);
-      setFollowTimeline(true);
-      setGen((g) => g + 1);
+      setStatus((prev) => (prev ? { ...prev, model: name } : prev));
       await refreshStatus();
-      await loadChats();
     } catch {
       // keep the current chat intact if model switching fails
     }
@@ -413,8 +408,19 @@ function App() {
       await flushActiveChatBlocks();
       handleStop();
       const res = await api.selectChat(id);
+      const blocks = res.chat.blocks ?? [];
+      if (blocks.length === 0) {
+        await api.deleteChat(id);
+        setActiveChatId(null);
+        commit([]);
+        setFollowTimeline(true);
+        setGen((g) => g + 1);
+        await refreshStatus();
+        await loadChats();
+        return;
+      }
       setActiveChatId(res.chat.id);
-      commit(res.chat.blocks ?? []);
+      commit(blocks);
       setFollowTimeline(true);
       setGen((g) => g + 1);
       await refreshStatus();
@@ -460,13 +466,24 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
-      <TitleBar />
-      <div className="flex min-h-0 flex-1 bg-sidebar">
-        <Sidebar
+      <div className="flex min-h-0 flex-1">
+        <AnimatePresence mode="wait">
+          {view === "skills" ? (
+            <SkillsView key="skills" onClose={() => setView("chat")} />
+          ) : (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex min-h-0 flex-1"
+            >
+            <Sidebar
           chats={chats}
           activeChatId={activeChatId}
           width={sidebarWidth}
-          skillsActive={view === "skills"}
+          skillsActive={false}
           onSelectChat={(id) => {
             setView("chat");
             void handleSelectChat(id);
@@ -504,19 +521,15 @@ function App() {
           <div className="absolute inset-y-0 -left-2 -right-2" />
         </div>
 
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl border-l-2 border-t-2 border-white/[0.1] bg-bg">
-          <AnimatePresence mode="wait" initial={false}>
-            {view === "skills" ? (
-              <SkillsView key="skills" onClose={() => setView("chat")} />
-            ) : (
-              <motion.div
-                key="chat"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className="flex min-h-0 flex-1 flex-col"
-              >
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg">
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
                 <StatusBar
                   status={status}
                   connected={connected}
@@ -540,7 +553,12 @@ function App() {
                       <Timeline
                         blocks={blocks}
                         generation={gen}
-                        thinking={streaming && blocks.length > 0 && blocks.at(-1)?.kind === "user"}
+                        thinking={
+                          streaming &&
+                          (blocks.length === 0 ||
+                            blocks.at(-1)?.kind === "user" ||
+                            blocks.at(-1)?.kind === "think")
+                        }
                         follow={followTimeline}
                       />
                     </motion.div>
@@ -582,9 +600,10 @@ function App() {
                   />
                 </motion.div>
               </motion.div>
-            )}
-          </AnimatePresence>
         </main>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
