@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, AtSign, File, FileText, Paperclip, Search, Square, X } from "lucide-react";
+import { ArrowUp, AtSign, Check, File, FileText, Paperclip, Search, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
+import { saveConnection } from "../api/session";
 import type { SkillInfo } from "../api/types";
 import { pop } from "../motion";
 import ModeToggle from "./ModeToggle";
@@ -74,6 +75,7 @@ export default function InputBar({
   const [caret, setCaret] = useState(0);
   const [skills, setSkills] = useState<SkillInfo[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -146,10 +148,30 @@ export default function InputBar({
     });
   };
 
+  const handleApiCommand = async (key: string) => {
+    try {
+      await api.connect(key);
+      saveConnection({ apiKey: key });
+      const masked = key.length > 12 ? `${key.slice(0, 8)}…${key.slice(-4)}` : key;
+      setFeedback(`API key updated: ${masked}`);
+    } catch {
+      setFeedback("Failed to connect with the new key");
+    }
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
   const submit = () => {
     if (streaming || disabled) return;
     const trimmed = value.trim();
     if (!trimmed && attachedFiles.length === 0) return;
+
+    const apiKey = trimmed.match(/^\/api\s+(.+)$/)?.[1];
+    if (apiKey) {
+      handleApiCommand(apiKey);
+      setValue("");
+      return;
+    }
+
     onSend(trimmed, attachedFiles);
     for (const f of attachedFiles) {
       if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
@@ -356,6 +378,21 @@ export default function InputBar({
             ))}
           </div>
         )}
+
+        <AnimatePresence>
+          {feedback && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="mb-2 flex items-center gap-1.5 rounded-lg border border-line bg-surface-raised px-2.5 py-1.5 text-ui text-text-secondary"
+            >
+              <Check className="h-3.5 w-3.5 shrink-0 text-accent" strokeWidth={1.75} />
+              <span>{feedback}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <textarea
           ref={textareaRef}
