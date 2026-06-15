@@ -96,9 +96,7 @@ export default function InputBar({
     const q = slash?.query.toLowerCase() ?? "";
     if (!q) return skills;
     return skills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q),
+      (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
     );
   }, [skills, slash]);
 
@@ -126,12 +124,7 @@ export default function InputBar({
 
   const insertSkill = (name: string) => {
     if (!slash) return;
-    const next =
-      value.slice(0, slash.slashIndex) +
-      "/" +
-      name +
-      " " +
-      value.slice(caret);
+    const next = `${value.slice(0, slash.slashIndex)}/${name} ${value.slice(caret)}`;
     setValue(next);
     const newCaret = slash.slashIndex + 1 + name.length + 1;
     requestAnimationFrame(() => {
@@ -240,7 +233,7 @@ export default function InputBar({
     // Add a leading space if the caret isn't at a word boundary so the
     // slash command is recognised by detectSlashToken.
     const needsSpace = pos > 0 && !/\s/.test(value[pos - 1] ?? "");
-    const insert = (needsSpace ? " /" : "/");
+    const insert = needsSpace ? " /" : "/";
     const next = value.slice(0, pos) + insert + value.slice(pos);
     setValue(next);
     const newCaret = pos + insert.length;
@@ -315,7 +308,12 @@ export default function InputBar({
               </button>
             </Tooltip>
             <Tooltip content="Mention" side="top">
-              <button type="button" aria-label="Insert skill command" onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary">
+              <button
+                type="button"
+                aria-label="Insert skill command"
+                onClick={handleMention}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+              >
                 <AtSign className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </Tooltip>
@@ -368,18 +366,12 @@ export default function InputBar({
               <Search className="h-3 w-3" strokeWidth={1.75} />
               <span>Skills</span>
               {slash?.query && (
-                <span className="ml-auto font-mono text-text-secondary">
-                  /{slash.query}
-                </span>
+                <span className="ml-auto font-mono text-text-secondary">/{slash.query}</span>
               )}
             </div>
-            {skills === null && (
-              <div className="px-2.5 py-2 text-ui text-text-muted">Loading…</div>
-            )}
+            {skills === null && <div className="px-2.5 py-2 text-ui text-text-muted">Loading…</div>}
             {skills !== null && filtered.length === 0 && (
-              <div className="px-2.5 py-2 text-ui text-text-muted">
-                No skills match.
-              </div>
+              <div className="px-2.5 py-2 text-ui text-text-muted">No skills match.</div>
             )}
             {filtered.map((skill, idx) => {
               const active = idx === activeIndex;

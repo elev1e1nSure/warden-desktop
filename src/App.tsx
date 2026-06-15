@@ -395,12 +395,14 @@ function App() {
     abortRef.current = ctrl;
     const payload: { text: string; files?: string[] } = { text };
     if (fileIds.length > 0) payload.files = fileIds;
-    streamChat(payload, onEvent, ctrl.signal).finally(() => {
-      setStreaming(false);
-      abortRef.current = null;
-      refreshStatus();
-      loadChats();
-    }).catch(() => {});
+    streamChat(payload, onEvent, ctrl.signal)
+      .finally(() => {
+        setStreaming(false);
+        abortRef.current = null;
+        refreshStatus();
+        loadChats();
+      })
+      .catch(() => {});
   };
 
   const handleStop = () => {
@@ -594,7 +596,11 @@ function App() {
                 </div>
 
                 <main
-                  style={{ "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px" } as CSSProperties}
+                  style={
+                    {
+                      "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
+                    } as CSSProperties
+                  }
                   className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg"
                 >
                   <motion.div
@@ -629,9 +635,7 @@ function App() {
                             blocks={blocks}
                             generation={gen}
                             thinking={
-                              streaming &&
-                              (blocks.length === 0 ||
-                                blocks.at(-1)?.kind === "user")
+                              streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
                             }
                             follow={followTimeline}
                           />

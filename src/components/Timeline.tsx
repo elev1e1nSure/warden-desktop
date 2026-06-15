@@ -107,9 +107,7 @@ const mdComponents = {
   ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
     <ol {...props} className="my-2 list-decimal space-y-1 pl-6 marker:text-text-muted" />
   ),
-  li: (props: React.LiHTMLAttributes<HTMLLIElement>) => (
-    <li {...props} className="leading-[1.7]" />
-  ),
+  li: (props: React.LiHTMLAttributes<HTMLLIElement>) => <li {...props} className="leading-[1.7]" />,
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a
       {...props}
@@ -147,9 +145,7 @@ const mdComponents = {
       className="border-b border-hairline px-3 py-1.5 text-text-primary last:border-b-0"
     />
   ),
-  code: (
-    props: React.HTMLAttributes<HTMLElement> & { inline?: boolean },
-  ) => {
+  code: (props: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) => {
     const { className, children, inline, ...rest } = props;
     if (inline) {
       return (
@@ -162,10 +158,7 @@ const mdComponents = {
       );
     }
     return (
-      <code
-        {...rest}
-        className={`${className ?? ""} font-mono text-ui`}
-      >
+      <code {...rest} className={`${className ?? ""} font-mono text-ui`}>
         {children}
       </code>
     );
@@ -186,9 +179,7 @@ const mdComponents = {
     return (
       <span
         className={`mr-1.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
-          checked
-            ? "border-[#7ab2ff] bg-[#7ab2ff]/20"
-            : "border-white/20 bg-transparent"
+          checked ? "border-[#7ab2ff] bg-[#7ab2ff]/20" : "border-white/20 bg-transparent"
         }`}
       >
         {checked && (
@@ -308,13 +299,13 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
           {running ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-              <motion.span
-                animate={{ rotate: open ? 0 : -90 }}
-                transition={{ duration: 0.15 }}
-                className="flex"
-              >
-                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-              </motion.span>
+            <motion.span
+              animate={{ rotate: open ? 0 : -90 }}
+              transition={{ duration: 0.15 }}
+              className="flex"
+            >
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </motion.span>
           )}
         </span>
         <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
@@ -395,40 +386,40 @@ export default function Timeline({
         transition={timelineReveal.transition}
         className="flex w-full flex-col gap-4 px-6 pt-12 pb-8"
       >
-      {groups.map((g) => (
-        <motion.div
-          key={`${generation}-${groupKey(g)}`}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
-          {g.kind === "single" && g.block.kind === "assistant" && (
-            <AssistantBlock text={g.block.text} />
-          )}
-          {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
-          {g.kind === "single" && g.block.kind === "error" && (
-            <p className="text-ui text-danger">{g.block.text}</p>
-          )}
-          {g.kind === "tools" && <ToolGroup items={g.items} />}
-        </motion.div>
-      ))}
-
-      <AnimatePresence>
-        {thinking && (
+        {groups.map((g) => (
           <motion.div
-            key="thinking"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            key={`${generation}-${groupKey(g)}`}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <ThinkingIndicator />
+            {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
+            {g.kind === "single" && g.block.kind === "assistant" && (
+              <AssistantBlock text={g.block.text} />
+            )}
+            {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
+            {g.kind === "single" && g.block.kind === "error" && (
+              <p className="text-ui text-danger">{g.block.text}</p>
+            )}
+            {g.kind === "tools" && <ToolGroup items={g.items} />}
           </motion.div>
-        )}
-      </AnimatePresence>
+        ))}
 
-      <div ref={bottomRef} />
+        <AnimatePresence>
+          {thinking && (
+            <motion.div
+              key="thinking"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ThinkingIndicator />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div ref={bottomRef} />
       </motion.div>
     </div>
   );

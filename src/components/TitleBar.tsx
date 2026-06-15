@@ -51,7 +51,14 @@ export default function TitleBar() {
           </svg>
         </WinBtn>
         <WinBtn onClick={() => win.close()} close>
-          <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.1" aria-label="Close">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            aria-label="Close"
+          >
             <line x1="0" y1="0" x2="10" y2="10" />
             <line x1="10" y1="0" x2="0" y2="10" />
           </svg>

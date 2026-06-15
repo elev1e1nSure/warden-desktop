@@ -1,7 +1,15 @@
-import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, MoreHorizontal, Pencil, Plug, Sparkles, SquarePen, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  MoreHorizontal,
+  Pencil,
+  Plug,
+  Sparkles,
+  SquarePen,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { HIGHLIGHT_SPRING } from "../motion";
 import type { Chat } from "../types";
 
@@ -92,10 +100,7 @@ export default function Sidebar({
   };
 
   return (
-    <aside
-      style={{ width }}
-      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar"
-    >
+    <aside style={{ width }} className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar">
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
         <NavButton icon={<SquarePen strokeWidth={1.75} />} label="New Chat" onClick={onNewChat} />
@@ -165,7 +170,9 @@ export default function Sidebar({
                           role="button"
                           tabIndex={0}
                           onClick={() => !renaming && onSelectChat(chat.id)}
-                          onKeyDown={(e) => { if (e.key === "Enter" && !renaming) onSelectChat(chat.id); }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
+                          }}
                           className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
                             active ? "" : "hover:bg-fill-hover"
                           }`}
@@ -191,10 +198,13 @@ export default function Sidebar({
                           ) : (
                             <button
                               type="button"
-                              className="relative z-10 min-w-0 flex-1 text-left">
+                              className="relative z-10 min-w-0 flex-1 text-left"
+                            >
                               <span
                                 className={`block truncate text-ui-lg tracking-[-0.01em] ${
-                                  active ? "font-medium text-text-primary" : "font-normal text-text-secondary"
+                                  active
+                                    ? "font-medium text-text-primary"
+                                    : "font-normal text-text-secondary"
                                 }`}
                               >
                                 {chat.title}

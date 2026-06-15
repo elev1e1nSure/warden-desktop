@@ -82,7 +82,9 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
       onMouseLeave={() => setVisible(false)}
       onFocus={() => setVisible(true)}
       onBlur={() => setVisible(false)}
-      onKeyDown={(e) => { if (e.key === "Escape") setVisible(false); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setVisible(false);
+      }}
       className="relative inline-flex"
     >
       {children}

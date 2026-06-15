@@ -45,9 +45,7 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
       >
         <div className="border-b border-hairline px-5 py-4">
-          <h2 className="text-body font-semibold text-text-primary">
-            The agent needs your input
-          </h2>
+          <h2 className="text-body font-semibold text-text-primary">The agent needs your input</h2>
         </div>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
@@ -77,9 +75,7 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
                       <span
                         className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${
                           q.multiple ? "rounded" : "rounded-full"
-                        } ${
-                          selected ? "border-white bg-white text-black" : "border-white/20"
-                        }`}
+                        } ${selected ? "border-white bg-white text-black" : "border-white/20"}`}
                       >
                         {selected && <Check className="h-3 w-3" strokeWidth={2.25} />}
                       </span>

@@ -18,7 +18,9 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
   useEffect(() => {
     const saved = loadConnection();
     if (saved?.apiKey) setApiKey(saved.apiKey);
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
