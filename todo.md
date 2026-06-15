@@ -6,8 +6,8 @@
 
 | Этап | Тема                                | Статус   | Оценка   |
 | ---- | ----------------------------------- | -------- | -------- |
-| 1    | Гигиена и инструменты               | Готов    | день-два |
-| 2    | Зависимости и чистка                | Ожидает  | полдня   |
+| 1    | ~~Гигиена и инструменты~~           | ~~Готов~~    | ~~день-два~~ |
+| 2    | Зависимости и чистка                | В процессе | полдня   |
 | 3    | CI и тесты-страховка                | Ожидает  | день-два |
 | 4    | Рефакторинг `App.tsx`               | Ожидает  | 2–3 дня  |
 | 5    | Шлифовка и масштабируемость         | Ожидает  | день-два |
@@ -48,70 +48,89 @@ pnpm build:app            # backend exe + tauri bundle
 
 **Зачем.** Без линтеров, форматтеров и lockfile рефакторить страшно — невозможно отличить регрессию от стилистического шума.
 
-**Готово когда.** `pnpm typecheck`, `pnpm check`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` выходят с кодом 0.
+**Готово когда.** ~~`pnpm typecheck`, `pnpm check`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` выходят с кодом 0.~~
 
 **Принятые решения.**
 
-- Фронт-линтер: **Biome** (один тул, нулевая конфигурация).
-- Python-деп-менеджер: **uv + pyproject.toml** (lockfile, dependency groups, extras).
+- ~~Фронт-линтер: **Biome** (один тул, нулевая конфигурация).~~
+- ~~Python-деп-менеджер: **uv + pyproject.toml** (lockfile, dependency groups, extras).~~
 
 **Задачи.**
 
-- [x] Установить Biome 2.x, создать `biome.json` (space/2, lineWidth 100, double quotes, organize imports, исключить `backend/`, `dist/`, `src-tauri/target`, `*.css`).
-- [x] Добавить в `package.json` скрипты `lint`, `format`, `format:check`, `check`, `check:fix`, `typecheck`.
-- [x] Поднять `tsconfig.json`: `target` и `lib` → ES2022, включить `noUncheckedIndexedAccess`.
-- [x] Починить 13 ошибок типов от строгого индексного доступа в `App.tsx`, `InputBar.tsx`, `QuestionModal.tsx`, `SkillsView.tsx`, `Timeline.tsx`.
-- [x] Установить `@types/node`, прописать `types: ["node"]` в `tsconfig.node.json`, выкинуть `@ts-expect-error` из `vite.config.ts:5`.
-- [x] Применить `biome format --write .` (34 файла переформатированы).
-- [x] Применить `biome check --write --unsafe .` (organize imports, optional chain, templates, useExhaustiveDependencies). Починить `Tooltip.tsx` руками после optional-chain автофикса.
-- [x] Поправить `noAssignInExpressions` в `src/api/stream.ts` (вынес `nl = buffer.indexOf("\n")` из условия while).
-- [x] Создать `backend/pyproject.toml`: runtime deps, `[project.optional-dependencies]` `tools`/`build`, `[dependency-groups]` `dev`, `[tool.uv] package = false`. Перенести конфиги pytest и coverage из `pytest.ini`.
-- [x] Настроить ruff: `select = [E, F, I, B, UP, SIM, RUF]`, `target-version = py311`, `line-length = 100`.
-- [x] `uv sync` — сгенерировать `uv.lock`, поднять `.venv` (39 пакетов).
-- [x] Перенести **Pillow** из optional в runtime deps (top-level импорт в `chat.py:9` — без неё backend не стартовал).
-- [x] Применить `uv run ruff check . --fix` (328 авто-фиксов) и `uv run ruff format .` (62 файла).
-- [x] Удалить `backend/requirements.txt` и `backend/pytest.ini`.
-- [x] Перевести `scripts/dev-backend.mjs` на `uv run python -m agent.server`.
-- [x] Перевести `scripts/build-backend.ps1` на `uv sync --extra tools --extra build` + `uv run pyinstaller`.
-- [x] Обновить `.gitignore` (`.venv/`, `backend/.venv/`, `backend/dist/`, `backend/build/`).
-- [x] Обновить `docs/setup.md` (требования, установка через uv, команды линтинга).
-- [x] Обновить `CLAUDE.md` (команды, generated output, раздел Tech Debt).
-- [x] Финальные прогоны: typecheck=0, biome=0 errors (33 warnings — техдолг), ruff=0, pytest=527 passed.
+- [x] ~~Установить Biome 2.x, создать `biome.json` (space/2, lineWidth 100, double quotes, organize imports, исключить `backend/`, `dist/`, `src-tauri/target`, `*.css`).~~
+- [x] ~~Добавить в `package.json` скрипты `lint`, `format`, `format:check`, `check`, `check:fix`, `typecheck`.~~
+- [x] ~~Поднять `tsconfig.json`: `target` и `lib` → ES2022, включить `noUncheckedIndexedAccess`.~~
+- [x] ~~Починить 13 ошибок типов от строгого индексного доступа в `App.tsx`, `InputBar.tsx`, `QuestionModal.tsx`, `SkillsView.tsx`, `Timeline.tsx`.~~
+- [x] ~~Установить `@types/node`, прописать `types: ["node"]` в `tsconfig.node.json`, выкинуть `@ts-expect-error` из `vite.config.ts:5`.~~
+- [x] ~~Применить `biome format --write .` (34 файла переформатированы).~~
+- [x] ~~Применить `biome check --write --unsafe .` (organize imports, optional chain, templates, useExhaustiveDependencies). Починить `Tooltip.tsx` руками после optional-chain автофикса.~~
+- [x] ~~Поправить `noAssignInExpressions` в `src/api/stream.ts` (вынес `nl = buffer.indexOf("\n")` из условия while).~~
+- [x] ~~Создать `backend/pyproject.toml`: runtime deps, `[project.optional-dependencies]` `tools`/`build`, `[dependency-groups]` `dev`, `[tool.uv] package = false`. Перенести конфиги pytest и coverage из `pytest.ini`.~~
+- [x] ~~Настроить ruff: `select = [E, F, I, B, UP, SIM, RUF]`, `target-version = py311`, `line-length = 100`.~~
+- [x] ~~`uv sync` — сгенерировать `uv.lock`, поднять `.venv` (39 пакетов).~~
+- [x] ~~Перенести **Pillow** из optional в runtime deps (top-level импорт в `chat.py:9` — без неё backend не стартовал).~~
+- [x] ~~Применить `uv run ruff check . --fix` (328 авто-фиксов) и `uv run ruff format .` (62 файла).~~
+- [x] ~~Удалить `backend/requirements.txt` и `backend/pytest.ini`.~~
+- [x] ~~Перевести `scripts/dev-backend.mjs` на `uv run python -m agent.server`.~~
+- [x] ~~Перевести `scripts/build-backend.ps1` на `uv sync --extra tools --extra build` + `uv run pyinstaller`.~~
+- [x] ~~Обновить `.gitignore` (`.venv/`, `backend/.venv/`, `backend/dist/`, `backend/build/`).~~
+- [x] ~~Обновить `docs/setup.md` (требования, установка через uv, команды линтинга).~~
+- [x] ~~Обновить `CLAUDE.md` (команды, generated output, раздел Tech Debt).~~
+- [x] ~~Финальные прогоны: typecheck=0, biome=0 errors (33 warnings — техдолг), ruff=0, pytest=527 passed.~~
 
 **Техдолг, появившийся на этапе.**
 
-- В `biome.json` понижены до `warn`: `useButtonType` (22), `noSvgWithoutTitle` (4), `noStaticElementInteractions` (2), `noArrayIndexKey` (4). Возврат к `error` — в рамках этапа 4.
-- В `backend/pyproject.toml` в `[tool.ruff.lint] ignore` добавлены: `RUF012`, `RUF059`, `F401`, `F841`, `E741`, `SIM105/117/108`, `RUF001/005/006`, `B007/905`, `E402`. Возврат — в рамках этапа 5.
+- ~~В `biome.json` понижены до `warn`: `useButtonType` (22), `noSvgWithoutTitle` (4), `noStaticElementInteractions` (2), `noArrayIndexKey` (4). Возврат к `error` — в рамках этапа 4.~~
+- ~~В `backend/pyproject.toml` в `[tool.ruff.lint] ignore` добавлены: `RUF012`, `RUF059`, `F401`, `F841`, `E741`, `SIM105/117/108`, `RUF001/005/006`, `B007/905`, `E402`. Возврат — в рамках этапа 5.~~
 
 ---
 
-## Этап 2 — Зависимости и чистка
+## Этап 2 — Зависимости и чистка [В ПРОЦЕССЕ]
 
 **Зачем.** В deps подозрительные версии и лишние пакеты — нельзя начинать рефакторинг кода, не зная, на каком фундаменте стоим.
 
 **Готово когда.** Одна иконочная либа, `motion` вместо `framer-motion`, нет неиспользуемых deps, `pnpm audit` чист, `pnpm build` зелёный.
 
-**Задачи.**
+**Задачи — иконочные либы (приоритет 1).**
 
-- [ ] Проверить реально установленную версию `lucide-react` (`^1.18.0` в package.json — подозрительно, у lucide-react актуальная серия 0.5xx).
-  - [ ] Если это squatter/левый пакет — удалить.
-  - [ ] Найти все импорты `from "lucide-react"` в `src/` (грепом).
-  - [ ] Решить: оставить lucide или унифицировать на `@tabler/icons-react` (одну, не обе).
-- [ ] Мигрировать `framer-motion` → `motion` (Motion v12):
-  - [ ] `pnpm remove framer-motion && pnpm add motion`.
-  - [ ] Заменить все импорты `from "framer-motion"` → `from "motion/react"`.
-  - [ ] Проверить, что `AnimatePresence`, `motion.div`, `motion.button` работают без правок API.
-- [ ] Разобраться с `pnpm-workspace.yaml`:
-  - [ ] Удалить, если workspaces не используются.
-  - [ ] Либо оформить как реальный workspace (вынести фронт в `apps/desktop/`, бэк остаётся `backend/`).
-- [ ] Аудит фронт-зависимостей:
-  - [ ] `pnpm audit` — закрыть советы по безопасности.
-  - [ ] `pnpm outdated` — обновить минор-версии (React 19.1, Tauri 2.x, Tailwind 4.3 уже свежие — проверить точечно).
-- [ ] Аудит бэк-зависимостей:
-  - [ ] `uv pip list --outdated`.
-  - [ ] При желании пин нижних границ (некоторые уже стоят: aiohttp `>=3.9,<4`, openai `>=1,<2`).
-- [ ] Проверить, что `framer-motion` не остался в `pnpm-lock.yaml` после миграции на motion.
-- [ ] Прогон `pnpm build && pnpm dev:all` (sanity).
+- [ ] Проверить реально установленную версию `lucide-react` (`^1.18.0` в `package.json:24` — подозрительно, у официального lucide-react актуальная серия 0.5xx).
+  - [ ] `pnpm ls lucide-react` — что реально стоит.
+  - [ ] `grep -r "from \"lucide-react\"" src/` — где используется.
+  - [ ] Если squatter/левый пакет — `pnpm remove lucide-react`.
+  - [ ] Решить: оставить lucide ИЛИ унифицировать на `@tabler/icons-react` (одну, не обе). Если lucide не используется — удалить, оставить таблер.
+- [ ] Проверить `@tabler/icons-react` — какие иконки используются, есть ли дубли с lucide.
+
+**Задачи — Motion (приоритет 2).**
+
+- [ ] Мигрировать `framer-motion` → `motion` (Motion v12, официальный rename):
+  - [ ] `pnpm remove framer-motion && pnpm add motion@latest`
+  - [ ] Заменить все импорты: `from "framer-motion"` → `from "motion/react"` (API совместим, `motion.div`, `AnimatePresence` те же).
+  - [ ] Проверить, что `AnimatePresence`, `motion.div`, `motion.button`, `whileTap`, `initial/animate/exit` работают без правок.
+  - [ ] `pnpm typecheck && pnpm build` — sanity.
+
+**Задачи — pnpm-workspace.yaml (приоритет 3).**
+
+- [ ] Разобраться: сейчас `pnpm-workspace.yaml` есть, но workspaces в `package.json` не объявлены.
+  - [ ] Вариант А: удалить `pnpm-workspace.yaml` (проще, если монорепо не планируется).
+  - [ ] Вариант Б: оформить нормальный workspace — вынести фронт в `apps/desktop/`, оставить `backend/` как отдельный пакет (требует правок скриптов и путей).
+  - [ ] Принять решение и выполнить.
+
+**Задачи — аудит версий (приоритет 4).**
+
+- [ ] Фронт: `pnpm audit` — закрыть критичные/высокие.
+- [ ] Фронт: `pnpm outdated` — обновить минор/патч (React 19.1, Tauri 2.x, Tailwind 4.3, Vite 7.x уже свежие — проверить точечно).
+- [ ] Бэк: `uv pip list --outdated` в `backend/`.
+- [ ] Бэк: проверить, что верхние границы в `pyproject.toml` адекватны (aiohttp `<4`, openai `<2`, duckduckgo-search `<8`).
+- [ ] Убедиться, что после миграции на motion `framer-motion` не остался в `pnpm-lock.yaml`.
+
+**Задачи — финальная проверка (приоритет 5).**
+
+- [ ] `pnpm typecheck`
+- [ ] `pnpm check` (biome)
+- [ ] `pnpm build`
+- [ ] `uv run ruff check . && uv run ruff format --check .`
+- [ ] `uv run pytest` (527 passed)
+- [ ] `pnpm dev:all` — smoke test (поднять бэк + фронт, проверить что чат работает)
 
 ---
 

@@ -151,6 +151,7 @@ async def chat_new(request: web.Request) -> web.Response:
     backend.question_manager.cancel_all()
     backend._save_active_history()
     backend._new_chat(persist=True)
+    backend.chat_store.set_model(backend.chat.session_id, backend.model)
     chat = backend.chat_store.get_chat(backend.chat.session_id)
     log_request("POST", "/chats/new", 200)
     return web.json_response({"chat": chat})
@@ -325,9 +326,11 @@ async def model_set(request: web.Request) -> web.Response:
     if not model:
         return web.Response(status=400, text="model required")
     backend.model = model
-    if backend.llm is not None:
+    if backend.llm is not None and backend.chat is not None:
         backend._save_active_history()
-        backend._new_chat()
+        if backend.chat_store and backend.chat.session_id:
+            backend.chat_store.set_model(backend.chat.session_id, model)
+        backend.chat.model = model
     info(f"model changed to {model}")
     log_request("POST", "/model/set", 200)
     return web.Response(text="ok")

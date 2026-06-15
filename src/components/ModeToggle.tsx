@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, MessageSquare, Zap } from "lucide-react";
+import { Check, ChevronDown, MessageCircle, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Tooltip from "./Tooltip";
 
@@ -7,10 +7,15 @@ const MODES = [
   {
     value: "ask" as const,
     label: "Ask",
-    Icon: MessageSquare,
+    Icon: MessageCircle,
     description: "Confirms before each action",
   },
-  { value: "auto" as const, label: "Auto", Icon: Zap, description: "Runs actions without asking" },
+  {
+    value: "auto" as const,
+    label: "Auto",
+    Icon: Zap,
+    description: "Runs actions without asking",
+  },
 ];
 
 interface ModeToggleProps {
@@ -44,12 +49,12 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.97 }}
+            initial={{ opacity: 0, y: 6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.97 }}
-            transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, y: 6, scale: 0.96 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "bottom left" }}
-            className="absolute bottom-full left-0 z-50 mb-2 w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-white/[0.08]"
+            className="absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/[0.06] flex flex-col gap-0.5"
           >
             {MODES.map(({ value, label, Icon }) => {
               const active = (value === "auto") === auto;
@@ -58,19 +63,28 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
                   key={value}
                   type="button"
                   onClick={() => handleSelect(value)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left transition-colors ${
-                    active ? "" : "hover:bg-white/[0.06]"
+                  className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
+                    active ? "bg-white/[0.05]" : "hover:bg-white/[0.04]"
                   }`}
                 >
                   <Icon
-                    className={`h-3.5 w-3.5 shrink-0 ${active ? "text-text-secondary" : "text-text-muted"}`}
+                    className={`h-3.5 w-3.5 shrink-0 transition-colors ${
+                      active ? "text-text-primary" : "text-text-muted group-hover:text-text-secondary"
+                    }`}
+                    strokeWidth={active ? 2.25 : 1.75}
                   />
                   <span
-                    className={`flex-1 text-[13px] tracking-[-0.01em] ${active ? "text-text-primary" : "text-text-secondary"}`}
+                    className={`flex-1 text-[13px] tracking-[-0.01em] transition-colors ${
+                      active ? "text-text-primary" : "text-text-secondary"
+                    }`}
                   >
                     {label}
                   </span>
-                  {active && <Check className="h-3 w-3 shrink-0 text-text-muted" />}
+                  {active ? (
+                    <Check className="h-3 w-3 shrink-0 text-text-secondary" strokeWidth={2.25} />
+                  ) : (
+                    <span className="h-3 w-3 shrink-0" />
+                  )}
                 </button>
               );
             })}
@@ -83,17 +97,17 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
           type="button"
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}
-          className={`flex items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] transition-all disabled:opacity-40 ${
+          className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
             auto
-              ? "text-[#8ab8d4] hover:text-[#9fc5db]"
-              : "text-text-secondary hover:text-text-primary"
+              ? "text-[#8ab8d4] hover:bg-[#8ab8d4]/[0.08] hover:text-[#9fc5db]"
+              : "text-text-secondary hover:bg-white/[0.05] hover:text-text-primary"
           }`}
         >
-          <current.Icon className="h-3 w-3" />
+          <current.Icon className="h-3 w-3" strokeWidth={2.25} />
           {current.label}
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="flex opacity-50"
           >
             <ChevronDown className="h-3 w-3" />

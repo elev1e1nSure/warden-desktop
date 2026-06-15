@@ -11,6 +11,7 @@ export interface Chat {
   title: string;
   timestamp: string;
   messages: Message[];
+  model?: string;
 }
 
 export interface Model {

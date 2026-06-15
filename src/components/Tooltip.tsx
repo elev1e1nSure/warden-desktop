@@ -42,6 +42,23 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
       }
 
       setPosition({ top, left });
+
+      // clamp to viewport so tooltip never overflows
+      requestAnimationFrame(() => {
+        const el = tooltipRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (r.left < 8) {
+          setPosition((p) => ({ ...p, left: 8 }));
+        } else if (r.right > window.innerWidth - 8) {
+          setPosition((p) => ({ ...p, left: window.innerWidth - r.width - 8 }));
+        }
+        if (r.top < 8) {
+          setPosition((p) => ({ ...p, top: 8 }));
+        } else if (r.bottom > window.innerHeight - 8) {
+          setPosition((p) => ({ ...p, top: window.innerHeight - r.height - 8 }));
+        }
+      });
     };
 
     updatePosition();

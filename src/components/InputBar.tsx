@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { ArrowUp, AtSign, Paperclip, Square, X } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { ArrowUp, AtSign, Paperclip, Search, Square, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { api } from "../api/client";
+import type { SkillInfo } from "../api/types";
 import ModeToggle from "./ModeToggle";
 import Tooltip from "./Tooltip";
 
@@ -19,6 +21,32 @@ interface InputBarProps {
   onToggleMode?: () => void;
 }
 
+/* Find a `/`-prefixed token the user is currently editing. We only treat
+   `/` as a slash command when it's at the start of the line or right after
+   a whitespace — otherwise it's just part of a normal word. Returns the
+   query string (without the leading slash) and the absolute index of the
+   slash, or null if no command is active. */
+function detectSlashToken(
+  value: string,
+  caret: number,
+): { query: string; slashIndex: number } | null {
+  if (caret < 1) return null;
+  // Walk back from the caret to either whitespace/start or the `/`.
+  for (let i = caret - 1; i >= 0; i--) {
+    const ch = value[i];
+    if (ch === undefined) break;
+    if (ch === "/") {
+      const prev = i === 0 ? " " : value[i - 1];
+      if (prev === " " || prev === "\n" || prev === "\t" || prev === undefined) {
+        return { query: value.slice(i + 1, caret), slashIndex: i };
+      }
+      return null;
+    }
+    if (/\s/.test(ch)) return null;
+  }
+  return null;
+}
+
 export default function InputBar({
   onSend,
   onStop,
@@ -30,15 +58,78 @@ export default function InputBar({
 }: InputBarProps) {
   const [value, setValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [caret, setCaret] = useState(0);
+  const [skills, setSkills] = useState<SkillInfo[] | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, []);
+  }, [value]);
+
+  const slash = useMemo(() => detectSlashToken(value, caret), [value, caret]);
+
+  // Lazily load the skill list the first time the picker opens.
+  useEffect(() => {
+    if (!slash || skills !== null) return;
+    let cancelled = false;
+    api
+      .skills()
+      .then((res) => {
+        if (!cancelled) setSkills(res.skills ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSkills([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slash, skills]);
+
+  const filtered = useMemo(() => {
+    if (!skills) return [];
+    const q = slash?.query.toLowerCase() ?? "";
+    if (!q) return skills;
+    return skills.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q),
+    );
+  }, [skills, slash]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [slash?.query]);
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLButtonElement>(
+      `[data-skill-index="${activeIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  const pickerOpen = slash !== null;
+
+  const insertSkill = (name: string) => {
+    if (!slash) return;
+    const next =
+      value.slice(0, slash.slashIndex) +
+      "/" +
+      name +
+      " " +
+      value.slice(caret);
+    setValue(next);
+    const newCaret = slash.slashIndex + 1 + name.length + 1;
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(newCaret, newCaret);
+    });
+  };
 
   const submit = () => {
     if (streaming || disabled) return;
@@ -50,10 +141,52 @@ export default function InputBar({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (pickerOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (filtered.length > 0) {
+          setActiveIndex((i) => (i + 1) % filtered.length);
+        }
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (filtered.length > 0) {
+          setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
+        }
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        const picked = filtered[activeIndex];
+        if (picked) {
+          e.preventDefault();
+          insertSkill(picked.name);
+          return;
+        }
+      }
+      if (e.key === "Escape") {
+        // Close the picker by jumping the caret to the start of the line
+        // so the slash token is no longer "active". Easiest way without
+        // extra state: append a space and remove it via undo, but that
+        // changes the value. Simpler: just blur or let default happen.
+        // We keep Esc as a no-op so the user can still type `/`.
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setValue(e.target.value);
+    setCaret(e.target.selectionStart ?? e.target.value.length);
+  };
+
+  const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const t = e.currentTarget;
+    setCaret(t.selectionStart ?? t.value.length);
   };
 
   const handleFilePick = () => {
@@ -88,6 +221,27 @@ export default function InputBar({
 
   const canSend = (value.trim().length > 0 || attachedFiles.length > 0) && !disabled;
 
+  const handleMention = () => {
+    const el = textareaRef.current;
+    if (!el) {
+      setValue((v) => v + "/");
+      return;
+    }
+    const pos = el.selectionStart ?? value.length;
+    // Add a leading space if the caret isn't at a word boundary so the
+    // slash command is recognised by detectSlashToken.
+    const needsSpace = pos > 0 && !/\s/.test(value[pos - 1] ?? "");
+    const insert = (needsSpace ? " /" : "/");
+    const next = value.slice(0, pos) + insert + value.slice(pos);
+    setValue(next);
+    const newCaret = pos + insert.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(newCaret, newCaret);
+      setCaret(newCaret);
+    });
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl">
       <input
@@ -99,7 +253,7 @@ export default function InputBar({
         className="hidden"
       />
 
-      <div className="rounded-2xl border-2 border-white/[0.1] bg-white/[0.04] px-3 pt-3 pb-2 backdrop-blur-2xl">
+      <div className="relative rounded-2xl border-2 border-white/[0.1] bg-white/[0.04] px-3 pt-3 pb-2 backdrop-blur-2xl">
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachedFiles.map((f) => (
@@ -123,11 +277,14 @@ export default function InputBar({
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onSelect={handleSelect}
+          onClick={handleSelect}
+          onKeyUp={handleSelect}
           rows={1}
           disabled={disabled}
-          placeholder={placeholder ?? "Message warden..."}
+          placeholder={placeholder ?? "Message warden... — type / for skills"}
           className="max-h-[200px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed tracking-[-0.01em] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-60"
         />
 
@@ -142,7 +299,7 @@ export default function InputBar({
               </button>
             </Tooltip>
             <Tooltip content="Mention" side="top">
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/5 hover:text-text-secondary">
+              <button onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/5 hover:text-text-secondary">
                 <AtSign className="h-[16px] w-[16px]" strokeWidth={2.5} />
               </button>
             </Tooltip>
@@ -180,6 +337,63 @@ export default function InputBar({
             )}
           </div>
         </div>
+
+        {pickerOpen && (
+          <div
+            ref={listRef}
+            className="absolute bottom-full left-0 mb-2 max-h-72 w-80 overflow-y-auto rounded-xl border border-white/[0.08] bg-surface-raised p-1 shadow-2xl"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-text-muted">
+              <Search className="h-3 w-3" />
+              <span>Skills</span>
+              {slash && slash.query && (
+                <span className="ml-auto font-mono text-text-secondary">
+                  /{slash.query}
+                </span>
+              )}
+            </div>
+            {skills === null && (
+              <div className="px-2.5 py-2 text-[13px] text-text-muted">Loading…</div>
+            )}
+            {skills !== null && filtered.length === 0 && (
+              <div className="px-2.5 py-2 text-[13px] text-text-muted">
+                No skills match.
+              </div>
+            )}
+            {filtered.map((skill, idx) => {
+              const active = idx === activeIndex;
+              return (
+                <button
+                  key={skill.name}
+                  data-skill-index={idx}
+                  onMouseDown={(e) => {
+                    // mousedown so the textarea doesn't lose focus first
+                    e.preventDefault();
+                    insertSkill(skill.name);
+                  }}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  className={`flex w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-1.5 text-left ${
+                    active ? "bg-white/[0.09]" : ""
+                  }`}
+                >
+                  <span
+                    className={`text-[13.5px] tracking-[-0.01em] ${
+                      active ? "text-white" : "text-[#e0e0e0]"
+                    }`}
+                  >
+                    /{skill.name}
+                  </span>
+                  {skill.description && (
+                    <span className="line-clamp-2 text-[11.5px] leading-snug text-text-muted">
+                      {skill.description}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

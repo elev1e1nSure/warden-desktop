@@ -36,7 +36,8 @@ class ChatStore:
 					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 					updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 					history TEXT NOT NULL DEFAULT '[]',
-					blocks TEXT NOT NULL DEFAULT '[]'
+					blocks TEXT NOT NULL DEFAULT '[]',
+					model TEXT
 				)
 				"""
             )
@@ -50,6 +51,7 @@ class ChatStore:
                 ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
                 ("history", "TEXT NOT NULL DEFAULT '[]'"),
                 ("blocks", "TEXT NOT NULL DEFAULT '[]'"),
+                ("model", "TEXT"),
             ):
                 if name not in cols:
                     conn.execute(f"ALTER TABLE chats ADD COLUMN {name} {ddl}")
@@ -70,7 +72,8 @@ class ChatStore:
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				history TEXT NOT NULL DEFAULT '[]',
-				blocks TEXT NOT NULL DEFAULT '[]'
+				blocks TEXT NOT NULL DEFAULT '[]',
+				model TEXT
 			)
 			"""
         )
@@ -178,7 +181,7 @@ class ChatStore:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 """
-				SELECT session_id, title, title_source, created_at, updated_at, history, blocks
+				SELECT session_id, title, title_source, created_at, updated_at, history, blocks, model
 				FROM chats
 				WHERE session_id = ?
 				""",
@@ -193,7 +196,7 @@ class ChatStore:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 """
-				SELECT session_id, title, title_source, created_at, updated_at, history, blocks
+				SELECT session_id, title, title_source, created_at, updated_at, history, blocks, model
 				FROM chats
 				ORDER BY created_at DESC, session_id DESC
 				"""

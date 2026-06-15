@@ -41,6 +41,7 @@ export interface ChatSummary {
   created_at: string;
   updated_at: string;
   timestamp: string;
+  model?: string;
 }
 
 export interface ChatDetail extends ChatSummary {

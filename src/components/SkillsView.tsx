@@ -1,8 +1,9 @@
-import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
+import Tooltip from "./Tooltip";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 
@@ -54,13 +55,21 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="flex min-h-0 flex-1"
+      className="flex min-h-0 flex-1 flex-col"
     >
-      {/* Left panel — same bg as sidebar */}
+
+      <div className="flex min-h-0 flex-1">
+        {/* Left panel — same bg as sidebar */}
       <div className="flex w-64 shrink-0 flex-col bg-sidebar">
         {/* Search */}
-        <div className="px-3 py-3">
-          <div className="relative">
+        <div className="flex items-center gap-1 px-2 py-2">
+          <button
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-secondary"
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={2} />
+            </button>
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
             <input
               ref={searchRef}
@@ -86,60 +95,76 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
             </p>
           )}
           {loadState === "ok" &&
-            filtered.map((skill) => {
+            <div className="flex flex-col gap-0.5">
+              {filtered.map((skill) => {
               const active = skill.name === selectedName;
               return (
-                <button
+                <motion.button
                   key={skill.name}
                   onClick={() => setSelectedName(skill.name)}
-                  className={`flex w-full flex-col rounded-xl px-2.5 py-2 text-left ${
+                  layout
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className={`flex w-full rounded-xl px-2.5 py-1.5 text-left ${
                     active ? "bg-white/[0.09]" : "hover:bg-white/[0.05]"
                   }`}
                 >
                   <span
-                    className={`text-[13.5px] tracking-[-0.01em] ${
+                    className={`block truncate text-[14px] tracking-[-0.01em] ${
                       active ? "font-medium text-white" : "text-[#e0e0e0]"
                     }`}
                   >
                     {skill.name}
                   </span>
-                  {skill.description && (
-                    <span className="mt-0.5 line-clamp-1 text-[12px] text-text-muted">
-                      {skill.description}
-                    </span>
-                  )}
-                </button>
+                </motion.button>
               );
             })}
+            </div>}
         </div>
       </div>
 
       {/* Right panel — content area */}
       <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-        {selected ? (
-          <div className="px-8 py-7">
-            <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-text-primary">
-              {selected.name}
-            </h2>
-            {selected.description && (
-              <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
-                {selected.description}
-              </p>
-            )}
-            {selected.location && (
-              <p className="mt-3 font-mono text-[11px] text-text-muted">{selected.location}</p>
-            )}
-            {selected.content && (
-              <pre className="mt-6 whitespace-pre-wrap break-words rounded-xl bg-white/[0.04] px-4 py-4 font-mono text-[12.5px] leading-relaxed text-[#ccc]">
-                {selected.content}
-              </pre>
-            )}
-          </div>
-        ) : loadState === "ok" && skills.length > 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-[13px] text-text-muted">Select a skill</p>
-          </div>
-        ) : null}
+        <AnimatePresence mode="wait">
+          {selected ? (
+            <motion.div
+              key={selected.name}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="px-8 py-7"
+            >
+              <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-text-primary">
+                {selected.name}
+              </h2>
+              {selected.description && (
+                <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
+                  {selected.description}
+                </p>
+              )}
+              {selected.location && (
+                <p className="mt-3 font-mono text-[11px] text-text-muted">{selected.location}</p>
+              )}
+              {selected.content && (
+                <pre className="mt-6 whitespace-pre-wrap break-words rounded-xl bg-white/[0.04] px-4 py-4 font-mono text-[12.5px] leading-relaxed text-[#ccc]">
+                  {selected.content}
+                </pre>
+              )}
+            </motion.div>
+          ) : loadState === "ok" && skills.length > 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex h-full items-center justify-center"
+            >
+              <p className="text-[13px] text-text-muted">Select a skill</p>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
       </div>
     </motion.div>
   );
