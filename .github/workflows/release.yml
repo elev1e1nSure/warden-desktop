@@ -72,11 +72,11 @@ jobs:
               messages: [
                 {
                   role: "system",
-                  content: "Ты пишешь release notes на русском языке. Правила:\n- Пиши человекочитаемо, понятно пользователям\n- Без технического мусора: никаких хешей коммитов, префиксов feat/fix/chore/refactor/etc\n- Не пиши про внутренние правки, которые не влияют на пользователя\n- Группируй изменения по смыслу (новое, улучшения, исправления)\n- Формат: обычный текст\n- Без лишних вступлений и заключений"
+                  content: "You write release notes in English. Rules:\n- Write in a clear, human-readable way for end users\n- No technical noise: no commit hashes, no feat/fix/chore/refactor prefixes\n- Skip internal changes that don't affect the user\n- Group changes by theme (new features, improvements, bug fixes)\n- Plain text format\n- No unnecessary introductions or conclusions"
                 },
                 {
                   role: "user",
-                  content: "Вот список коммитов с последнего релиза. Напиши release notes на русском, понятные пользователю:\n\n\($changelog)"
+                  content: "Here are the commits since the last release. Write release notes in English that are useful for end users:\n\n\($changelog)"
                 }
               ]
             }' > request.json
