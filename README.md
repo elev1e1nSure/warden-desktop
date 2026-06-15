@@ -13,105 +13,107 @@
  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝
 ```
 
-**Desktop-оболочка для ИИ-агента с полным контролем над компьютером**
+**AI agent desktop shell with full computer control**
 
 [![Release](https://img.shields.io/github/v/release/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1&label=latest)](https://github.com/elev1e1nSure/warden-desktop/releases/latest)
 [![License](https://img.shields.io/github/license/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1)](LICENSE)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-6366f1?style=flat-square)](https://tauri.app)
 [![Python](https://img.shields.io/badge/backend-Python-6366f1?style=flat-square)](https://python.org)
 
-[**Скачать**](https://github.com/elev1e1nSure/warden-desktop/releases/latest) · [**Документация**](docs/README.md) · [**Сообщить о баге**](https://github.com/elev1e1nSure/warden-desktop/issues)
+[**Download**](https://github.com/elev1e1nSure/warden-desktop/releases/latest) · [**Docs**](docs/README.md) · [**Report bug**](https://github.com/elev1e1nSure/warden-desktop/issues)
 
 </div>
 
 ---
 
-## Что это
+## What it does
 
-Warden даёт ИИ-агенту руки. Он читает и пишет файлы, запускает команды, делает скриншоты, управляет браузером, кликает мышкой — всё через обычный чат. Работает через [OpenRouter](https://openrouter.ai) — подключай любую модель: GPT, Claude, DeepSeek, Gemini.
+Warden gives an AI agent hands. It reads and writes files, runs shell commands, takes screenshots, controls the browser, clicks the mouse, and manages windows — all through a chat interface.
+
+Works with [OpenRouter](https://openrouter.ai) — bring any model: GPT, Claude, DeepSeek, Gemini.
 
 ---
 
-## Возможности
+## Capabilities
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Файлы      чтение · запись · поиск · архивы · патчи       │
-│  Shell      PowerShell · Bash · политика по уровню риска   │
-│  Браузер    URL · скриншоты · клики · формы · YouTube       │
-│  Экран      OCR · поиск изображений · мышь · клавиатура     │
-│  Система    процессы · окна · уведомления · буфер обмена    │
-│  Память     долговременная · извлечение · агрегация         │
-│  Сеть       HTTP · веб-парсинг                              │
-│  Код        LSP · todo-лист сессии                          │
+│  Files       read · write · search · archives · patches    │
+│  Shell       PowerShell · Bash · risk-based security        │
+│  Browser     URLs · screenshots · clicks · forms · YouTube  │
+│  Screen      OCR · image search · mouse · keyboard          │
+│  System      processes · windows · notifications · clipboard│
+│  Memory      long-term · retrieval · aggregation             │
+│  Network     HTTP · web scraping                             │
+│  Code        LSP · session todo-list                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Режимы работы
+### Modes
 
-| Режим | Поведение |
-|-------|-----------|
-| **Ask** | Агент спрашивает подтверждение перед каждым действием |
-| **Auto** | Выполняет без подтверждения, опасные операции — с модальным окном |
+| Mode | Behavior |
+|------|----------|
+| **Ask** | Agent asks for confirmation before every action |
+| **Auto** | Executes without confirmation; dangerous operations show a modal |
 
 ---
 
-## Быстрый старт
+## Quick Start
 
-### Скачать готовый инсталлер
+### Download installer
 
-Перейди в [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest) и скачай:
+Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest) and grab:
 
-- `warden-desktop_x64-setup.exe` — NSIS инсталлер
-- `warden-desktop_x64_en-US.msi` — MSI пакет
+- `warden-desktop_x64-setup.exe` — NSIS installer
+- `warden-desktop_x64_en-US.msi` — MSI package
 
-### Собрать из исходников
+### Build from source
 
 ```powershell
-# Установить зависимости
+# Install dependencies
 pnpm install
 
-# Запустить в режиме разработки
+# Run in development mode
 pnpm dev:all
 
-# Собрать инсталлер
+# Build installer
 pnpm build:app
 ```
 
-> Требуется: Node.js 22+, pnpm, Python 3.11+, Rust toolchain
+> Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain
 
 ---
 
-## Структура проекта
+## Project structure
 
 ```
 warden-desktop/
 ├── backend/       # Python: agent runtime, tools, memory, skills
 ├── src/           # React UI
 ├── src-tauri/     # Tauri shell, desktop packaging
-├── scripts/       # build и dev helpers
-├── public/        # статика
-└── docs/          # документация и архитектура
+├── scripts/       # build & dev helpers
+├── public/        # static assets
+└── docs/          # documentation & architecture
 ```
 
-Подробная архитектура, поток сообщений и карта исходников — в [docs/README.md](docs/README.md).
+Architecture, data flow, and source map → see [docs/README.md](docs/README.md).
 
 ---
 
-## Стек
+## Stack
 
-| Слой | Технологии |
-|------|-----------|
+| Layer | Technologies |
+|-------|-------------|
 | Frontend | React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion |
 | Desktop | Tauri 2 (Rust) |
 | Backend | Python · aiohttp · uv |
-| LLM | OpenRouter (OpenAI-совместимый API) |
-| Сборка | pnpm · PyInstaller · NSIS/MSI |
+| LLM | OpenRouter (OpenAI-compatible API) |
+| Build | pnpm · PyInstaller · NSIS/MSI |
 
 ---
 
 <div align="center">
 
-сделано в одиночку · open source · [MIT License](LICENSE)
+Built solo · open source · [MIT License](LICENSE)
 
 </div>
