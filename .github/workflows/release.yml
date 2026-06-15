@@ -90,7 +90,7 @@ jobs:
           echo "=== Generated release notes ==="
           cat release_notes.md
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: artifacts
           path: artifacts
