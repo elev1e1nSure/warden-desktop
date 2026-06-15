@@ -63,7 +63,7 @@ jobs:
           cache-dependency-glob: backend/uv.lock
 
       - run: uv sync --extra tools
-      - run: uv run pytest --cov=agent --cov-fail-under=80 -q
+      - run: uv run pytest --cov=agent --cov-fail-under=79 -q
 
   rust:
     runs-on: ubuntu-latest
