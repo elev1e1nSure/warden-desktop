@@ -341,7 +341,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                 transformOrigin: "top right",
                 zIndex: 9999,
               }}
-              className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-hairline"
+              className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl"
             >
               <button
                 type="button"

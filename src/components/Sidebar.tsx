@@ -4,6 +4,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plug,
+  Settings,
   Sparkles,
   SquarePen,
   Trash2,
@@ -23,6 +24,7 @@ interface SidebarProps {
   onOpenSkills: () => void;
   onRenameChat: (id: string, title: string) => void;
   onDeleteChat: (id: string) => void;
+  onOpenSettings?: () => void;
 }
 
 interface NavButtonProps {
@@ -62,6 +64,7 @@ export default function Sidebar({
   onOpenSkills,
   onRenameChat,
   onDeleteChat,
+  onOpenSettings,
 }: SidebarProps) {
   const [chatsOpen, setChatsOpen] = useState(true);
   const [menuChatId, setMenuChatId] = useState<string | null>(null);
@@ -241,6 +244,15 @@ export default function Sidebar({
         </motion.div>
       </div>
 
+      {/* Settings pinned to bottom */}
+      <div className="px-2 pb-2">
+        <NavButton
+          icon={<Settings strokeWidth={1.75} />}
+          label="Settings"
+          onClick={onOpenSettings}
+        />
+      </div>
+
       {createPortal(
         <AnimatePresence>
           {menuChatId && menuPos
@@ -262,7 +274,7 @@ export default function Sidebar({
                       transformOrigin: "top right",
                       zIndex: 9999,
                     }}
-                    className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-hairline"
+                    className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl"
                   >
                     <button
                       type="button"

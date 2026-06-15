@@ -47,7 +47,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "top left" }}
-            className="absolute left-0 top-full z-50 mt-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 ring-1 ring-hairline"
+            className="absolute left-0 top-full z-50 mt-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40"
           >
             <div className="flex items-center gap-2 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" strokeWidth={1.75} />

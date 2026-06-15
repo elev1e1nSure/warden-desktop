@@ -478,7 +478,7 @@ export default function InputBar({
               exit={pop.exit}
               transition={pop.transition}
               style={{ transformOrigin: "bottom left" }}
-              className="absolute bottom-full left-0 mb-2 max-h-72 w-64 overflow-y-auto rounded-xl border border-hairline bg-surface-raised p-1 shadow-2xl"
+              className="absolute bottom-full left-0 mb-2 max-h-72 w-64 overflow-y-auto rounded-xl bg-surface-raised p-1 shadow-2xl"
             >
               <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
                 <Search className="h-3 w-3" strokeWidth={1.75} />

@@ -55,7 +55,7 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "bottom left" }}
-            className="absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 ring-1 ring-hairline flex flex-col gap-0.5"
+            className="absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 flex flex-col gap-0.5"
           >
             {MODES.map(({ value, label, Icon }) => {
               const active = (value === "auto") === auto;
