@@ -1,7 +1,5 @@
 # Warden Desktop
 
-![CI](https://github.com/anomalyco/warden-desktop/actions/workflows/ci.yml/badge.svg)
-
 Desktop UI for the Warden agent.
 
 The app is a Tauri + React shell around a local Python backend. The backend exposes HTTP and NDJSON streaming endpoints on `http://localhost:8765`; the frontend renders chats, model selection, confirmations, questions, skills, and memory controls.
