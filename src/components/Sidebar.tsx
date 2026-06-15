@@ -1,8 +1,8 @@
-import { IconApps, IconChevronDown, IconEdit, IconSparkles } from "@tabler/icons-react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Pencil, Plug, Sparkles, SquarePen, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { HIGHLIGHT_SPRING } from "../motion";
 import type { Chat } from "../types";
 
 interface SidebarProps {
@@ -31,12 +31,12 @@ function NavButton({ icon, label, onClick, disabled }: NavButtonProps) {
       onClick={disabled ? undefined : onClick}
       className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
         disabled
-          ? "cursor-default text-[#404040]"
-          : "text-[#d4d4d4] hover:bg-white/[0.06] hover:text-white"
+          ? "cursor-default text-text-faint"
+          : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
       }`}
     >
-      <span className="shrink-0 [&>svg]:h-[15px] [&>svg]:w-[15px]">{icon}</span>
-      <span className="truncate text-[13.5px] font-medium tracking-[-0.01em] whitespace-nowrap">
+      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
+      <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
         {label}
       </span>
     </button>
@@ -97,23 +97,23 @@ export default function Sidebar({
     >
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
-        <NavButton icon={<IconEdit />} label="New Chat" onClick={onNewChat} />
+        <NavButton icon={<SquarePen strokeWidth={1.75} />} label="New Chat" onClick={onNewChat} />
         <button
           onClick={onOpenSkills}
           className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
             skillsActive
-              ? "bg-white/[0.09] text-white"
-              : "text-[#d4d4d4] hover:bg-white/[0.06] hover:text-white"
+              ? "bg-fill-active text-text-primary"
+              : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}
         >
-          <span className="shrink-0 [&>svg]:h-[15px] [&>svg]:w-[15px]">
-            <IconSparkles />
+          <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+            <Sparkles strokeWidth={1.75} />
           </span>
-          <span className="truncate text-[13.5px] font-medium tracking-[-0.01em] whitespace-nowrap">
+          <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
             Skills
           </span>
         </button>
-        <NavButton icon={<IconApps />} label="MCPs" disabled />
+        <NavButton icon={<Plug strokeWidth={1.75} />} label="MCPs" disabled />
       </nav>
 
       {/* Chats section */}
@@ -127,7 +127,7 @@ export default function Sidebar({
         >
           <button
             onClick={() => setChatsOpen((v) => !v)}
-            className="flex w-full items-center gap-1 px-2 py-1.5 text-[13px] font-semibold text-[#606060] hover:text-[#909090]"
+            className="flex w-full items-center gap-1 px-2 py-1.5 text-ui font-semibold text-text-muted hover:text-text-secondary"
           >
             Chats
             <motion.span
@@ -135,38 +135,41 @@ export default function Sidebar({
               transition={{ duration: 0.15 }}
               className="flex shrink-0"
             >
-              <IconChevronDown className="h-3.5 w-3.5" />
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
             </motion.span>
           </button>
 
           <AnimatePresence initial={false}>
             {chatsOpen && (
               <motion.div
-                initial={{ opacity: 0, maxHeight: 0 }}
-                animate={{ opacity: 1, maxHeight: 500 }}
-                exit={{ opacity: 0, maxHeight: 0 }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-visible overflow-x-hidden"
+                className="overflow-hidden"
               >
                 <div className="sidebar-scroll overflow-y-auto overflow-x-hidden">
-                  <motion.div className="flex flex-col gap-0.5 pt-1 pb-2">
+                  <div className="flex flex-col gap-0.5 pt-1 pb-2">
                     {chats.map((chat) => {
                       const active = chat.id === activeChatId;
                       const menuOpen = menuChatId === chat.id;
                       const renaming = renamingId === chat.id;
 
                       return (
-                        <motion.div
+                        <div
                           key={chat.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -40 }}
-                          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                           onClick={() => !renaming && onSelectChat(chat.id)}
                           className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
-                            active ? "bg-white/[0.09]" : "hover:bg-white/[0.05]"
+                            active ? "" : "hover:bg-fill-hover"
                           }`}
                         >
+                          {active && (
+                            <motion.div
+                              layoutId="chat-active"
+                              transition={HIGHLIGHT_SPRING}
+                              className="absolute inset-0 rounded-xl bg-fill-active"
+                            />
+                          )}
                           {renaming ? (
                             <input
                               value={renameValue}
@@ -176,13 +179,13 @@ export default function Sidebar({
                                 if (e.key === "Escape") setRenamingId(null);
                               }}
                               onBlur={() => commitRename(chat.id)}
-                              className="min-w-0 flex-1 bg-transparent text-[14px] font-medium tracking-[-0.01em] text-white outline-none"
+                              className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
                             />
                           ) : (
-                            <button className="min-w-0 flex-1 text-left">
+                            <button className="relative z-10 min-w-0 flex-1 text-left">
                               <span
-                                className={`block truncate text-[14px] tracking-[-0.01em] ${
-                                  active ? "font-medium text-white" : "font-normal text-[#e0e0e0]"
+                                className={`block truncate text-ui-lg tracking-[-0.01em] ${
+                                  active ? "font-medium text-text-primary" : "font-normal text-text-secondary"
                                 }`}
                               >
                                 {chat.title}
@@ -193,6 +196,7 @@ export default function Sidebar({
                           {/* Three-dots trigger */}
                           {!renaming && (
                             <button
+                              aria-label="Chat options"
                               ref={(el) => {
                                 menuTriggerRef.current[chat.id] = el;
                               }}
@@ -200,21 +204,21 @@ export default function Sidebar({
                                 e.stopPropagation();
                                 setMenuChatId(menuOpen ? null : chat.id);
                               }}
-                              className={`ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
+                              className={`relative z-10 ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
                                 menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                               }`}
                             >
-                              <MoreHorizontal className="h-3.5 w-3.5" />
+                              <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
                             </button>
                           )}
 
                           {/* Dropdown is rendered into document.body via portal
                               so the scroll container / aside / motion nodes
                               can never clip it. */}
-                        </motion.div>
+                        </div>
                       );
                     })}
-                  </motion.div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -243,7 +247,7 @@ export default function Sidebar({
                       transformOrigin: "top right",
                       zIndex: 9999,
                     }}
-                    className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-white/[0.08]"
+                    className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-hairline"
                   >
                     <button
                       onClick={() => {
@@ -251,9 +255,9 @@ export default function Sidebar({
                         setRenameValue(chat.title);
                         setMenuChatId(null);
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] tracking-[-0.01em] text-text-secondary transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
                     >
-                      <Pencil className="h-3.5 w-3.5 shrink-0" />
+                      <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       Rename
                     </button>
                     <button
@@ -261,9 +265,9 @@ export default function Sidebar({
                         onDeleteChat(chat.id);
                         setMenuChatId(null);
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] tracking-[-0.01em] text-[#e05555] transition-colors hover:bg-white/[0.06] hover:text-[#e86666]"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
                     >
-                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                      <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       Delete
                     </button>
                   </motion.div>
