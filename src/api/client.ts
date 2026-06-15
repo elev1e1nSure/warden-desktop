@@ -84,6 +84,14 @@ export const api = {
 
   skills: () => getJSON<{ skills: SkillInfo[] }>("/skills"),
 
+  createSkill: (name: string, description: string, content: string) =>
+    postJSON<{ skill: SkillInfo }>("/skills/create", { name, description, content }),
+
+  updateSkill: (name: string, description?: string, content?: string) =>
+    postJSON<{ skill: SkillInfo }>("/skills/update", { name, description, content }),
+
+  deleteSkill: (name: string) => postJSON<{ ok: boolean }>("/skills/delete", { name }),
+
   memoryState: () => getJSON<MemoryState>("/memory/state"),
 
   setMemory: (enabled: boolean) => postJSON("/memory/state", { enabled }),

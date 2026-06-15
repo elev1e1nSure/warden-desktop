@@ -1,14 +1,26 @@
-import { motion } from "framer-motion";
-import { ArrowUp, AtSign, Paperclip, Search, Square, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUp, AtSign, File, FileText, Paperclip, Search, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
+import { pop } from "../motion";
 import ModeToggle from "./ModeToggle";
 import Tooltip from "./Tooltip";
 
 export interface AttachedFile {
   file: File;
   id: string;
+  previewUrl?: string;
+}
+
+function isImage(file: File) {
+  return file.type.startsWith("image/");
+}
+
+function isTextLike(name: string) {
+  return /\.(txt|py|js|ts|jsx|tsx|json|md|html|css|csv|xml|yaml|yml|log|env|cfg|ini|toml|rs|go|java|c|cpp|h|hpp)$/i.test(
+    name,
+  );
 }
 
 interface InputBarProps {
@@ -58,6 +70,7 @@ export default function InputBar({
 }: InputBarProps) {
   const [value, setValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const [caret, setCaret] = useState(0);
   const [skills, setSkills] = useState<SkillInfo[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -138,6 +151,9 @@ export default function InputBar({
     const trimmed = value.trim();
     if (!trimmed && attachedFiles.length === 0) return;
     onSend(trimmed, attachedFiles);
+    for (const f of attachedFiles) {
+      if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+    }
     setValue("");
     setAttachedFiles([]);
   };
@@ -195,24 +211,57 @@ export default function InputBar({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const addFiles = (files: FileList | File[]) => {
     const newFiles: AttachedFile[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file) continue;
-      newFiles.push({
+      const f: AttachedFile = {
         file,
         id: `${file.name}-${Date.now()}-${i}`,
-      });
+      };
+      if (isImage(file)) {
+        f.previewUrl = URL.createObjectURL(file);
+      }
+      newFiles.push(f);
     }
     setAttachedFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      addFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    addFiles(files);
     e.target.value = "";
   };
 
   const removeFile = (id: string) => {
-    setAttachedFiles((prev) => prev.filter((f) => f.id !== id));
+    setAttachedFiles((prev) => {
+      const item = prev.find((f) => f.id === id);
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((f) => f.id !== id);
+    });
   };
 
   const fileSize = (bytes: number) => {
@@ -258,23 +307,50 @@ export default function InputBar({
         className="hidden"
       />
 
-      <div className="relative rounded-2xl border-2 border-line bg-fill-subtle px-3 pt-3 pb-2 backdrop-blur-2xl">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-drop container needs no explicit role */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative rounded-2xl border-2 bg-fill-subtle px-3 pt-3 pb-2 backdrop-blur-2xl transition-colors ${
+          dragOver ? "border-accent" : "border-line"
+        }`}
+      >
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachedFiles.map((f) => (
               <div
                 key={f.id}
-                className="flex items-center gap-1.5 rounded-lg border border-line bg-fill-subtle px-2.5 py-1 text-meta text-text-secondary"
+                className="group relative flex items-center gap-2 rounded-lg border border-line bg-fill-subtle pl-2 pr-2 py-1.5"
               >
-                <span className="max-w-[120px] truncate">{f.file.name}</span>
-                <span className="text-text-muted">({fileSize(f.file.size)})</span>
+                {f.previewUrl ? (
+                  <img
+                    src={f.previewUrl}
+                    alt={f.file.name}
+                    className="h-10 w-10 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-fill-hover text-text-muted">
+                    {isTextLike(f.file.name) ? (
+                      <FileText className="h-5 w-5" strokeWidth={1.5} />
+                    ) : (
+                      <File className="h-5 w-5" strokeWidth={1.5} />
+                    )}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <span className="block max-w-[120px] truncate text-ui leading-tight text-text-secondary">
+                    {f.file.name}
+                  </span>
+                  <span className="text-meta text-text-muted">{fileSize(f.file.size)}</span>
+                </div>
                 <button
                   type="button"
                   aria-label="Remove file"
                   onClick={() => removeFile(f.id)}
-                  className="ml-0.5 flex h-4 w-4 items-center justify-center rounded hover:bg-fill-strong hover:text-text-primary"
+                  className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-muted opacity-0 transition-opacity hover:bg-fill-strong hover:text-text-primary group-hover:opacity-100"
                 >
-                  <X className="h-3 w-3" strokeWidth={1.75} />
+                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </button>
               </div>
             ))}
@@ -302,7 +378,7 @@ export default function InputBar({
                 type="button"
                 aria-label="Attach file"
                 onClick={handleFilePick}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
               >
                 <Paperclip className="h-4 w-4" strokeWidth={1.75} />
               </button>
@@ -312,7 +388,7 @@ export default function InputBar({
                 type="button"
                 aria-label="Insert skill command"
                 onClick={handleMention}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
               >
                 <AtSign className="h-4 w-4" strokeWidth={1.75} />
               </button>
@@ -356,51 +432,58 @@ export default function InputBar({
           </div>
         </div>
 
-        {pickerOpen && (
-          <div
-            ref={listRef}
-            className="absolute bottom-full left-0 mb-2 max-h-72 w-64 overflow-y-auto rounded-xl border border-hairline bg-surface-raised p-1 shadow-2xl"
-            style={{ scrollbarWidth: "none" }}
-          >
-            <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
-              <Search className="h-3 w-3" strokeWidth={1.75} />
-              <span>Skills</span>
-              {slash?.query && (
-                <span className="ml-auto font-mono text-text-secondary">/{slash.query}</span>
+        <AnimatePresence>
+          {pickerOpen && (
+            <motion.div
+              ref={listRef}
+              initial={pop.initial}
+              animate={pop.animate}
+              exit={pop.exit}
+              transition={pop.transition}
+              style={{ transformOrigin: "bottom left" }}
+              className="absolute bottom-full left-0 mb-2 max-h-72 w-64 overflow-y-auto rounded-xl border border-hairline bg-surface-raised p-1 shadow-2xl"
+            >
+              <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
+                <Search className="h-3 w-3" strokeWidth={1.75} />
+                <span>Skills</span>
+                {slash?.query && (
+                  <span className="ml-auto font-mono text-text-secondary">/{slash.query}</span>
+                )}
+              </div>
+              {skills === null && (
+                <div className="px-2.5 py-2 text-ui text-text-muted">Loading…</div>
               )}
-            </div>
-            {skills === null && <div className="px-2.5 py-2 text-ui text-text-muted">Loading…</div>}
-            {skills !== null && filtered.length === 0 && (
-              <div className="px-2.5 py-2 text-ui text-text-muted">No skills match.</div>
-            )}
-            {filtered.map((skill, idx) => {
-              const active = idx === activeIndex;
-              return (
-                <button
-                  type="button"
-                  key={skill.name}
-                  data-skill-index={idx}
-                  onMouseDown={(e) => {
-                    // mousedown so the textarea doesn't lose focus first
-                    e.preventDefault();
-                    insertSkill(skill.name);
-                  }}
-                  className={`flex w-full items-center rounded-lg px-2.5 py-1 text-left transition-colors ${
-                    active ? "bg-fill-active" : "hover:bg-fill-hover"
-                  }`}
-                >
-                  <span
-                    className={`truncate text-ui tracking-[-0.01em] ${
-                      active ? "text-text-primary" : "text-text-secondary"
+              {skills !== null && filtered.length === 0 && (
+                <div className="px-2.5 py-2 text-ui text-text-muted">No skills match.</div>
+              )}
+              {filtered.map((skill, idx) => {
+                const active = idx === activeIndex;
+                return (
+                  <button
+                    type="button"
+                    key={skill.name}
+                    data-skill-index={idx}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insertSkill(skill.name);
+                    }}
+                    className={`flex w-full items-center rounded-lg px-2.5 py-1 text-left transition-colors ${
+                      active ? "bg-fill-active" : "hover:bg-fill-hover"
                     }`}
                   >
-                    /{skill.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                    <span
+                      className={`truncate text-ui tracking-[-0.01em] ${
+                        active ? "text-text-primary" : "text-text-secondary"
+                      }`}
+                    >
+                      /{skill.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

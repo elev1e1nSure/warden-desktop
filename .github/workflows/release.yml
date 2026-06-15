@@ -45,6 +45,51 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changelog since previous tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            git log --pretty=format:"%s" --reverse > changelog.txt
+          else
+            echo "Previous tag: $PREV_TAG"
+            git log --pretty=format:"%s" --reverse "$PREV_TAG..HEAD" > changelog.txt
+          fi
+
+      - name: Generate release notes via OpenRouter
+        id: ai_notes
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          jq -n \
+            --arg model "deepseek/deepseek-v4-flash" \
+            --rawfile changelog changelog.txt \
+            '{
+              model: $model,
+              messages: [
+                {
+                  role: "system",
+                  content: "Ты пишешь release notes на русском языке. Правила:\n- Пиши человекочитаемо, понятно пользователям\n- Без технического мусора: никаких хешей коммитов, префиксов feat/fix/chore/refactor/etc\n- Не пиши про внутренние правки, которые не влияют на пользователя\n- Группируй изменения по смыслу (новое, улучшения, исправления)\n- Формат: обычный текст\n- Без лишних вступлений и заключений"
+                },
+                {
+                  role: "user",
+                  content: "Вот список коммитов с последнего релиза. Напиши release notes на русском, понятные пользователю:\n\n\($changelog)"
+                }
+              ]
+            }' > request.json
+
+          curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @request.json \
+            | jq -r '.choices[0].message.content' > release_notes.md
+
+          echo "=== Generated release notes ==="
+          cat release_notes.md
+
       - uses: actions/download-artifact@v4
         with:
           name: artifacts
@@ -53,4 +98,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**
-          generate_release_notes: true
+          body_path: release_notes.md

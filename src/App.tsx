@@ -376,18 +376,27 @@ function App() {
       return;
     }
 
-    if (files.length > 0) {
-      commit([
-        ...blocksRef.current,
-        {
+    const next = [...blocksRef.current];
+
+    for (const f of files) {
+      if (f.file.type.startsWith("image/") && f.previewUrl) {
+        next.push({
           id: genId(),
-          kind: "user",
-          text: text || `[${files.length} file(s) attached]`,
-        },
-      ]);
-    } else {
-      commit([...blocksRef.current, { id: genId(), kind: "user", text }]);
+          kind: "image",
+          name: f.file.name,
+          url: f.previewUrl,
+        });
+      }
     }
+
+    if (text || next.length === blocksRef.current.length) {
+      const displayText = text || (files.length > 0 ? `[${files.length} file(s) attached]` : "");
+      if (displayText) {
+        next.push({ id: genId(), kind: "user", text: displayText });
+      }
+    }
+
+    commit(next);
 
     setFollowTimeline(true);
     setStreaming(true);

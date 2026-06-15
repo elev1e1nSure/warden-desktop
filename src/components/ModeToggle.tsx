@@ -100,20 +100,20 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
           type="button"
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}
-          className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 text-ui font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
             auto
               ? "text-text-primary hover:bg-fill-hover"
               : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}
         >
-          <current.Icon className="h-3 w-3" strokeWidth={2.25} />
+          <current.Icon className="h-4 w-4" strokeWidth={2.25} />
           {current.label}
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="flex opacity-50"
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3.5 w-3.5" />
           </motion.span>
         </button>
       </Tooltip>

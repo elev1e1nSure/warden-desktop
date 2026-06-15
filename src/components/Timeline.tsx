@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -68,6 +68,63 @@ function UserBlock({ text }: { text: string }) {
         {text}
       </div>
     </div>
+  );
+}
+
+function ImageBlock({ url, name, onExpand }: { url: string; name: string; onExpand: () => void }) {
+  return (
+    <div className="flex justify-end">
+      <button
+        type="button"
+        onClick={onExpand}
+        className="group relative max-w-[78%] overflow-hidden rounded-2xl rounded-br-md ring-1 ring-hairline"
+      >
+        <img src={url} alt={name} className="max-h-80 w-auto object-contain" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+          <span className="rounded-lg bg-black/50 px-3 py-1.5 text-meta font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+            View
+          </span>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function Lightbox({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8 backdrop-blur-sm"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <X className="h-5 w-5" strokeWidth={1.5} />
+      </button>
+      <img
+        src={url}
+        alt={name}
+        className="max-h-full max-w-full rounded-xl object-contain"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" || e.key === "Enter") onClose();
+        }}
+      />
+    </motion.div>
   );
 }
 
@@ -368,6 +425,7 @@ export default function Timeline({
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const groups = groupBlocks(blocks);
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!follow) return;
@@ -394,6 +452,18 @@ export default function Timeline({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
+            {g.kind === "single" &&
+              g.block.kind === "image" &&
+              (() => {
+                const b = g.block;
+                return (
+                  <ImageBlock
+                    url={b.url}
+                    name={b.name}
+                    onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                  />
+                );
+              })()}
             {g.kind === "single" && g.block.kind === "assistant" && (
               <AssistantBlock text={g.block.text} />
             )}
@@ -421,6 +491,12 @@ export default function Timeline({
 
         <div ref={bottomRef} />
       </motion.div>
+
+      <AnimatePresence>
+        {lightbox && (
+          <Lightbox url={lightbox.url} name={lightbox.name} onClose={() => setLightbox(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -106,7 +106,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex max-w-[240px] items-center gap-1.5 rounded-md px-1 py-0.5 text-ui font-medium tracking-[-0.01em] transition-colors hover:bg-fill-hover ${
+        className={`flex max-w-[240px] items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors hover:bg-fill-hover ${
           open ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
         }`}
       >
@@ -116,7 +116,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="flex shrink-0 opacity-50"
         >
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3.5 w-3.5" />
         </motion.span>
       </button>
     </div>

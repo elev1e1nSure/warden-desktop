@@ -150,95 +150,90 @@ export default function Sidebar({
           <AnimatePresence initial={false}>
             {chatsOpen && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
+                initial={{ maxHeight: 0, opacity: 0 }}
+                animate={{ maxHeight: 800, opacity: 1 }}
+                exit={{ maxHeight: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="min-h-0 flex-1 overflow-y-auto"
               >
-                <div className="sidebar-scroll overflow-y-auto overflow-x-hidden">
-                  <div className="flex flex-col gap-0.5 pt-1 pb-2">
-                    {chats.map((chat) => {
-                      const active = chat.id === activeChatId;
-                      const menuOpen = menuChatId === chat.id;
-                      const renaming = renamingId === chat.id;
+                <div className="flex flex-col gap-0.5 pt-1 pb-2">
+                  {chats.map((chat) => {
+                    const active = chat.id === activeChatId;
+                    const menuOpen = menuChatId === chat.id;
+                    const renaming = renamingId === chat.id;
 
-                      return (
-                        // biome-ignore lint/a11y/useSemanticElements: div[role="button"] needed to contain input+button children
-                        <div
-                          key={chat.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => !renaming && onSelectChat(chat.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
-                          }}
-                          className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
-                            active ? "" : "hover:bg-fill-hover"
-                          }`}
-                        >
-                          {active && (
-                            <motion.div
-                              layoutId="chat-active"
-                              transition={HIGHLIGHT_SPRING}
-                              className="absolute inset-0 rounded-xl bg-fill-active"
-                            />
-                          )}
-                          {renaming ? (
-                            <input
-                              value={renameValue}
-                              onChange={(e) => setRenameValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") commitRename(chat.id);
-                                if (e.key === "Escape") setRenamingId(null);
-                              }}
-                              onBlur={() => commitRename(chat.id)}
-                              className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              className="relative z-10 min-w-0 flex-1 text-left"
-                            >
-                              <span
-                                className={`block truncate text-ui-lg tracking-[-0.01em] ${
-                                  active
-                                    ? "font-medium text-text-primary"
-                                    : "font-normal text-text-secondary"
-                                }`}
-                              >
-                                {chat.title}
-                              </span>
-                            </button>
-                          )}
-
-                          {/* Three-dots trigger */}
-                          {!renaming && (
-                            <button
-                              type="button"
-                              aria-label="Chat options"
-                              ref={(el) => {
-                                menuTriggerRef.current[chat.id] = el;
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuChatId(menuOpen ? null : chat.id);
-                              }}
-                              className={`relative z-10 ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
-                                menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    return (
+                      // biome-ignore lint/a11y/useSemanticElements: div[role="button"] needed to contain input+button children
+                      <div
+                        key={chat.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => !renaming && onSelectChat(chat.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
+                        }}
+                        className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
+                          active ? "" : "hover:bg-fill-hover"
+                        }`}
+                      >
+                        {active && (
+                          <motion.div
+                            layoutId="chat-active"
+                            transition={HIGHLIGHT_SPRING}
+                            className="absolute inset-0 rounded-xl bg-fill-active"
+                          />
+                        )}
+                        {renaming ? (
+                          <input
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitRename(chat.id);
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                            onBlur={() => commitRename(chat.id)}
+                            className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
+                          />
+                        ) : (
+                          <button type="button" className="relative z-10 min-w-0 flex-1 text-left">
+                            <span
+                              className={`block truncate text-ui-lg tracking-[-0.01em] ${
+                                active
+                                  ? "font-medium text-text-primary"
+                                  : "font-normal text-text-secondary"
                               }`}
                             >
-                              <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
-                            </button>
-                          )}
+                              {chat.title}
+                            </span>
+                          </button>
+                        )}
 
-                          {/* Dropdown is rendered into document.body via portal
+                        {/* Three-dots trigger */}
+                        {!renaming && (
+                          <button
+                            type="button"
+                            aria-label="Chat options"
+                            ref={(el) => {
+                              menuTriggerRef.current[chat.id] = el;
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuChatId(menuOpen ? null : chat.id);
+                            }}
+                            className={`relative z-10 ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
+                              menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            }`}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </button>
+                        )}
+
+                        {/* Dropdown is rendered into document.body via portal
                               so the scroll container / aside / motion nodes
                               can never clip it. */}
-                        </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
