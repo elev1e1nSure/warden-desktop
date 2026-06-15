@@ -21,7 +21,7 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 
 - Keep changes scoped to the layer that owns the behavior.
 - If backend routes, stream events, launch flow, or packaging change, update the related code and docs together.
-- If project structure changes, update [docs/README.md](docs/README.md) and [docs/architecture.md](docs/architecture.md).
+- If project structure changes, update [docs/README.md](docs/README.md) and [docs/architecture.1.md](docs/architecture.md).
 - If setup, dev, or build commands change, update [docs/setup.md](docs/setup.md).
 - If product scope changes, update [docs/project.md](docs/project.md).
 - Prefer existing patterns over new abstractions.
