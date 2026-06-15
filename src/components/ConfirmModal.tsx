@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
+import { useEffect } from "react";
 import type { ConfirmEvent } from "../api/types";
 
 interface ConfirmModalProps {
@@ -13,6 +14,14 @@ const RISK_LABEL: Record<string, string> = {
 };
 
 export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onResolve(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onResolve]);
+
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm">
       <motion.div
@@ -49,8 +58,8 @@ export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) 
           {request.details?.length > 0 && (
             <div className="rounded-lg bg-fill-subtle p-3">
               <ul className="space-y-1.5 text-ui-lg text-text-secondary">
-                {request.details.map((d, i) => (
-                  <li key={i}>{d}</li>
+                {request.details.map((d) => (
+                  <li key={d}>{d}</li>
                 ))}
               </ul>
             </div>
@@ -65,12 +74,14 @@ export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) 
 
         <div className="flex justify-end gap-2 border-t border-hairline px-5 py-3">
           <button
+            type="button"
             onClick={() => onResolve(false)}
             className="rounded-lg px-4 py-2 text-ui-lg font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => onResolve(true)}
             className="rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90"
           >

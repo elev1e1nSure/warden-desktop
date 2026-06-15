@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { QuestionEvent } from "../api/types";
 
 interface QuestionModalProps {
@@ -10,6 +10,14 @@ interface QuestionModalProps {
 
 export default function QuestionModal({ request, onSubmit }: QuestionModalProps) {
   const [answers, setAnswers] = useState<string[][]>(request.questions.map(() => []));
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onSubmit(answers);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onSubmit, answers]);
 
   const toggle = (qi: number, label: string, multiple: boolean) => {
     setAnswers((prev) => {
@@ -44,7 +52,7 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
           {request.questions.map((q, qi) => (
-            <div key={qi} className="space-y-2">
+            <div key={q.question} className="space-y-2">
               {q.header && (
                 <p className="text-meta font-medium uppercase tracking-wide text-text-muted">
                   {q.header}
@@ -58,6 +66,7 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
                   return (
                     <button
                       key={opt.label}
+                      type="button"
                       onClick={() => toggle(qi, opt.label, Boolean(q.multiple))}
                       className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
                         selected
@@ -90,6 +99,7 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
 
         <div className="flex justify-end border-t border-hairline px-5 py-3">
           <button
+            type="button"
             onClick={() => onSubmit(answers)}
             className="rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90"
           >

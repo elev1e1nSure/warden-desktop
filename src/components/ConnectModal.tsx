@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
 
@@ -13,11 +13,21 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     const saved = loadConnection();
     if (saved?.apiKey) setApiKey(saved.apiKey);
+    return () => { mountedRef.current = false; };
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && onClose) onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   const submit = async () => {
     setError("");
@@ -28,16 +38,18 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
     setBusy(true);
     try {
       const res = await api.connect(apiKey.trim());
+      if (!mountedRef.current) return;
       if (res.ok) {
         saveConnection({ apiKey: apiKey.trim() });
         onConnected();
       } else {
         setError(res.error || "connection failed");
       }
-    } catch (e) {
+    } catch (e: unknown) {
+      if (!mountedRef.current) return;
       setError(`could not reach backend: ${String(e)}`);
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   };
 
@@ -76,6 +88,7 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
         <div className="flex justify-end gap-2 border-t border-hairline px-5 py-3">
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               className="rounded-lg px-4 py-2 text-ui-lg font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
             >
@@ -83,6 +96,7 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
             </button>
           )}
           <button
+            type="button"
             onClick={submit}
             disabled={busy}
             className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90 disabled:opacity-60"

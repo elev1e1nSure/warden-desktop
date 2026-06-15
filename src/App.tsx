@@ -238,7 +238,11 @@ function App() {
     } else {
       const id = genId();
       slot.current = id;
-      commit([...list, { id, kind, text } as Block]);
+      if (kind === "assistant") {
+        commit([...list, { id, kind, text }]);
+      } else {
+        commit([...list, { id, kind, text }]);
+      }
     }
   };
 
@@ -396,7 +400,7 @@ function App() {
       abortRef.current = null;
       refreshStatus();
       loadChats();
-    });
+    }).catch(() => {});
   };
 
   const handleStop = () => {
@@ -533,6 +537,8 @@ function App() {
     }
   };
 
+  const handleCloseSkills = useCallback(() => setView("chat"), []);
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
@@ -540,7 +546,7 @@ function App() {
           <AnimatePresence mode="wait" initial={false}>
             {view === "skills" ? (
               <motion.div key="skills" {...panelFromRight} className="flex min-h-0 flex-1">
-                <SkillsView onClose={() => setView("chat")} />
+                <SkillsView onClose={handleCloseSkills} />
               </motion.div>
             ) : (
               <motion.div key="chat" {...panelFromLeft} className="flex min-h-0 flex-1">
@@ -567,6 +573,7 @@ function App() {
                 />
 
                 {/* Resize handle — sits on top of main's border-l */}
+                {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
                 <div
                   onMouseDown={(e) => {
                     e.preventDefault();

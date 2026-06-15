@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowUp, AtSign, Paperclip, Search, Square, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
 import ModeToggle from "./ModeToggle";
@@ -70,7 +70,7 @@ export default function InputBar({
     if (!el) return;
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, [value]);
+  });
 
   const slash = useMemo(() => detectSlashToken(value, caret), [value, caret]);
 
@@ -102,16 +102,25 @@ export default function InputBar({
     );
   }, [skills, slash]);
 
+  useLayoutEffect(() => {
+    if (activeIndex >= filtered.length) setActiveIndex(0);
+  }, [filtered.length, activeIndex]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resets selection when query changes; deps rule ignores the functional intent
   useEffect(() => {
     setActiveIndex(0);
   }, [slash?.query]);
 
-  useEffect(() => {
+  const scrollActiveIntoView = useCallback(() => {
     const el = listRef.current?.querySelector<HTMLButtonElement>(
       `[data-skill-index="${activeIndex}"]`,
     );
     el?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
+
+  useEffect(() => {
+    scrollActiveIntoView();
+  }, [scrollActiveIntoView]);
 
   const pickerOpen = slash !== null;
 
@@ -224,7 +233,7 @@ export default function InputBar({
   const handleMention = () => {
     const el = textareaRef.current;
     if (!el) {
-      setValue((v) => v + "/");
+      setValue((v) => `${v}/`);
       return;
     }
     const pos = el.selectionStart ?? value.length;
@@ -267,6 +276,7 @@ export default function InputBar({
                 <span className="max-w-[120px] truncate">{f.file.name}</span>
                 <span className="text-text-muted">({fileSize(f.file.size)})</span>
                 <button
+                  type="button"
                   aria-label="Remove file"
                   onClick={() => removeFile(f.id)}
                   className="ml-0.5 flex h-4 w-4 items-center justify-center rounded hover:bg-fill-strong hover:text-text-primary"
@@ -296,6 +306,7 @@ export default function InputBar({
           <div className="flex items-center gap-0.5">
             <Tooltip content="Attach file" side="top">
               <button
+                type="button"
                 aria-label="Attach file"
                 onClick={handleFilePick}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
@@ -304,7 +315,7 @@ export default function InputBar({
               </button>
             </Tooltip>
             <Tooltip content="Mention" side="top">
-              <button aria-label="Insert skill command" onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary">
+              <button type="button" aria-label="Insert skill command" onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary">
                 <AtSign className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </Tooltip>
@@ -318,6 +329,7 @@ export default function InputBar({
           <div className="flex items-center gap-2">
             {streaming ? (
               <motion.button
+                type="button"
                 onClick={onStop}
                 whileTap={{ scale: 0.9 }}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition-colors duration-200 hover:bg-white/90"
@@ -328,6 +340,7 @@ export default function InputBar({
               </motion.button>
             ) : (
               <motion.button
+                type="button"
                 onClick={submit}
                 disabled={!canSend}
                 whileTap={canSend ? { scale: 0.9 } : undefined}
@@ -354,7 +367,7 @@ export default function InputBar({
             <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
               <Search className="h-3 w-3" strokeWidth={1.75} />
               <span>Skills</span>
-              {slash && slash.query && (
+              {slash?.query && (
                 <span className="ml-auto font-mono text-text-secondary">
                   /{slash.query}
                 </span>
@@ -372,6 +385,7 @@ export default function InputBar({
               const active = idx === activeIndex;
               return (
                 <button
+                  type="button"
                   key={skill.name}
                   data-skill-index={idx}
                   onMouseDown={(e) => {

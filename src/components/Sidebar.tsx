@@ -27,6 +27,7 @@ interface NavButtonProps {
 function NavButton({ icon, label, onClick, disabled }: NavButtonProps) {
   return (
     <button
+      type="button"
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
       className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
@@ -99,6 +100,7 @@ export default function Sidebar({
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
         <NavButton icon={<SquarePen strokeWidth={1.75} />} label="New Chat" onClick={onNewChat} />
         <button
+          type="button"
           onClick={onOpenSkills}
           className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
             skillsActive
@@ -126,6 +128,7 @@ export default function Sidebar({
           className="flex min-h-0 flex-1 flex-col"
         >
           <button
+            type="button"
             onClick={() => setChatsOpen((v) => !v)}
             className="flex w-full items-center gap-1 px-2 py-1.5 text-ui font-semibold text-text-muted hover:text-text-secondary"
           >
@@ -156,9 +159,13 @@ export default function Sidebar({
                       const renaming = renamingId === chat.id;
 
                       return (
+                        // biome-ignore lint/a11y/useSemanticElements: div[role="button"] needed to contain input+button children
                         <div
                           key={chat.id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => !renaming && onSelectChat(chat.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter" && !renaming) onSelectChat(chat.id); }}
                           className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
                             active ? "" : "hover:bg-fill-hover"
                           }`}
@@ -182,7 +189,9 @@ export default function Sidebar({
                               className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
                             />
                           ) : (
-                            <button className="relative z-10 min-w-0 flex-1 text-left">
+                            <button
+                              type="button"
+                              className="relative z-10 min-w-0 flex-1 text-left">
                               <span
                                 className={`block truncate text-ui-lg tracking-[-0.01em] ${
                                   active ? "font-medium text-text-primary" : "font-normal text-text-secondary"
@@ -196,6 +205,7 @@ export default function Sidebar({
                           {/* Three-dots trigger */}
                           {!renaming && (
                             <button
+                              type="button"
                               aria-label="Chat options"
                               ref={(el) => {
                                 menuTriggerRef.current[chat.id] = el;
@@ -250,6 +260,7 @@ export default function Sidebar({
                     className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-hairline"
                   >
                     <button
+                      type="button"
                       onClick={() => {
                         setRenamingId(chat.id);
                         setRenameValue(chat.title);
@@ -261,6 +272,7 @@ export default function Sidebar({
                       Rename
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         onDeleteChat(chat.id);
                         setMenuChatId(null);

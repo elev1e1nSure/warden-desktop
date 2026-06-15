@@ -42,7 +42,8 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
     setOpen(false);
   };
 
-  const current = MODES.find((m) => m.value === (auto ? "auto" : "ask"))!;
+  const current = MODES.find((m) => m.value === (auto ? "auto" : "ask"));
+  if (!current) return null;
 
   return (
     <div ref={ref} className="relative">

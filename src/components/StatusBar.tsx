@@ -38,6 +38,7 @@ export default function StatusBar({
         />
       ) : (
         <button
+          type="button"
           onClick={onOpenConnect}
           className="rounded-full border border-line bg-fill-subtle px-3 py-1 text-meta font-medium text-text-secondary transition-colors hover:border-fill-strong hover:text-text-primary"
         >

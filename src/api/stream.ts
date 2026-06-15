@@ -4,8 +4,6 @@ import type { ChatEvent } from "./types";
 
 export interface ChatPayload {
   text: string;
-  skill?: string;
-  args?: string;
   files?: string[];
 }
 
@@ -29,7 +27,7 @@ export async function streamChat(
       signal,
     });
   } catch (err) {
-    if ((err as Error)?.name === "AbortError") return;
+    if (err instanceof Error && err.name === "AbortError") return;
     onEvent({ type: "error", text: `network error: ${String(err)}` });
     onEvent({ type: "done", token_count: 0, token_limit: 0 });
     return;
@@ -69,9 +67,8 @@ export async function streamChat(
     }
     flushLine(buffer);
   } catch (err) {
-    if ((err as Error)?.name !== "AbortError") {
-      onEvent({ type: "error", text: String(err) });
-      onEvent({ type: "done", token_count: 0, token_limit: 0 });
-    }
+    if (err instanceof Error && err.name === "AbortError") return;
+    onEvent({ type: "error", text: String(err) });
+    onEvent({ type: "done", token_count: 0, token_limit: 0 });
   }
 }

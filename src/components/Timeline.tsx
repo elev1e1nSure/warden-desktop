@@ -198,6 +198,7 @@ const mdComponents = {
             fill="none"
             stroke="currentColor"
             strokeWidth="1.5"
+            aria-label="Checked"
           >
             <path d="M1 4 L3 6 L7 1" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -240,6 +241,7 @@ function ThinkBlock({ text }: { text: string }) {
   return (
     <div>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
       >
@@ -248,7 +250,7 @@ function ThinkBlock({ text }: { text: string }) {
           transition={{ duration: 0.15 }}
           className="flex shrink-0"
         >
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
         </motion.span>
         Thought
       </button>
@@ -306,13 +308,13 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
           {running ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <motion.span
-              animate={{ rotate: open ? 0 : -90 }}
-              transition={{ duration: 0.15 }}
-              className="flex"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </motion.span>
+              <motion.span
+                animate={{ rotate: open ? 0 : -90 }}
+                transition={{ duration: 0.15 }}
+                className="flex"
+              >
+                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </motion.span>
           )}
         </span>
         <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>

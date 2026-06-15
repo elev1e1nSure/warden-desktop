@@ -16,6 +16,8 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
   useEffect(() => {
     if (!visible || !triggerRef.current || !tooltipRef.current) return;
 
+    let rafId: number;
+
     const updatePosition = () => {
       const triggerRect = triggerRef.current?.getBoundingClientRect();
       const tooltipRect = tooltipRef.current?.getBoundingClientRect();
@@ -43,8 +45,7 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
 
       setPosition({ top, left });
 
-      // clamp to viewport so tooltip never overflows
-      requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         const el = tooltipRef.current;
         if (!el) return;
         const r = el.getBoundingClientRect();
@@ -65,16 +66,23 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [visible, side]);
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: div[role="button"] wraps children that are often buttons; changing to <button> would nest interactive elements
     <div
       ref={triggerRef}
+      role="button"
+      tabIndex={0}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
+      onFocus={() => setVisible(true)}
+      onBlur={() => setVisible(false)}
+      onKeyDown={(e) => { if (e.key === "Escape") setVisible(false); }}
       className="relative inline-flex"
     >
       {children}

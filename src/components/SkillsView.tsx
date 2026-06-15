@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
-import { HIGHLIGHT_SPRING, skillDetail } from "../motion";
 import type { SkillInfo } from "../api/types";
+import { HIGHLIGHT_SPRING, skillDetail } from "../motion";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 
@@ -29,11 +29,11 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -48,6 +48,8 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
   }, [skills, query]);
 
   const selected = skills.find((s) => s.name === selectedName) ?? null;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -57,6 +59,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
         {/* Search */}
         <div className="flex items-center gap-1 px-2 py-2">
           <button
+              type="button"
               onClick={onClose}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
             >
@@ -93,6 +96,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
               const active = skill.name === selectedName;
               return (
                 <button
+                  type="button"
                   key={skill.name}
                   onClick={() => setSelectedName(skill.name)}
                   className={`relative flex w-full rounded-xl px-2.5 py-1.5 text-left ${
