@@ -34,10 +34,10 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.97 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-surface-raised shadow-2xl"
+        className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
       >
-        <div className="border-b border-white/[0.07] px-5 py-4">
-          <h2 className="text-[15px] font-semibold text-text-primary">
+        <div className="border-b border-hairline px-5 py-4">
+          <h2 className="text-body font-semibold text-text-primary">
             The agent needs your input
           </h2>
         </div>
@@ -46,12 +46,12 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
           {request.questions.map((q, qi) => (
             <div key={qi} className="space-y-2">
               {q.header && (
-                <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
+                <p className="text-meta font-medium uppercase tracking-wide text-text-muted">
                   {q.header}
                 </p>
               )}
-              <p className="text-sm text-text-primary">{q.question}</p>
-              {q.multiple && <p className="text-xs text-text-muted">Select all that apply</p>}
+              <p className="text-ui-lg text-text-primary">{q.question}</p>
+              {q.multiple && <p className="text-meta text-text-muted">Select all that apply</p>}
               <div className="flex flex-col gap-1.5">
                 {q.options.map((opt) => {
                   const selected = answers[qi]?.includes(opt.label) ?? false;
@@ -61,23 +61,23 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
                       onClick={() => toggle(qi, opt.label, Boolean(q.multiple))}
                       className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
                         selected
-                          ? "border-[#8AB89A]/60 bg-[#8AB89A]/10"
-                          : "border-white/[0.08] hover:bg-white/[0.05]"
+                          ? "border-fill-strong bg-fill-active"
+                          : "border-line hover:bg-fill-hover"
                       }`}
                     >
                       <span
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded ${
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${
                           q.multiple ? "rounded" : "rounded-full"
-                        } border ${
-                          selected ? "border-[#8AB89A] bg-[#8AB89A] text-black" : "border-white/20"
+                        } ${
+                          selected ? "border-white bg-white text-black" : "border-white/20"
                         }`}
                       >
-                        {selected && <Check className="h-3 w-3" />}
+                        {selected && <Check className="h-3 w-3" strokeWidth={2.25} />}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-sm text-text-primary">{opt.label}</span>
+                        <span className="block text-ui-lg text-text-primary">{opt.label}</span>
                         {opt.description && (
-                          <span className="block text-xs text-text-muted">{opt.description}</span>
+                          <span className="block text-meta text-text-muted">{opt.description}</span>
                         )}
                       </span>
                     </button>
@@ -88,10 +88,10 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
           ))}
         </div>
 
-        <div className="flex justify-end border-t border-white/[0.07] px-5 py-3">
+        <div className="flex justify-end border-t border-hairline px-5 py-3">
           <button
             onClick={() => onSubmit(answers)}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+            className="rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90"
           >
             Submit
           </button>

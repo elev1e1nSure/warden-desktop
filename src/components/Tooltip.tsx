@@ -91,7 +91,7 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
               top: position.top,
               left: position.left,
             }}
-            className="pointer-events-none z-50 whitespace-nowrap rounded-md bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-text-primary shadow-lg border border-white/[0.08]"
+            className="pointer-events-none z-50 whitespace-nowrap rounded-md bg-surface-raised px-2.5 py-1.5 text-meta font-medium text-text-primary shadow-lg border border-hairline"
           >
             {content}
           </motion.div>

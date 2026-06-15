@@ -243,7 +243,10 @@ export default function InputBar({
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div
+      style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+      className="mx-auto w-full max-w-3xl"
+    >
       <input
         ref={fileInputRef}
         type="file"
@@ -253,21 +256,22 @@ export default function InputBar({
         className="hidden"
       />
 
-      <div className="relative rounded-2xl border-2 border-white/[0.1] bg-white/[0.04] px-3 pt-3 pb-2 backdrop-blur-2xl">
+      <div className="relative rounded-2xl border-2 border-line bg-fill-subtle px-3 pt-3 pb-2 backdrop-blur-2xl">
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachedFiles.map((f) => (
               <div
                 key={f.id}
-                className="flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-xs text-text-secondary"
+                className="flex items-center gap-1.5 rounded-lg border border-line bg-fill-subtle px-2.5 py-1 text-meta text-text-secondary"
               >
                 <span className="max-w-[120px] truncate">{f.file.name}</span>
                 <span className="text-text-muted">({fileSize(f.file.size)})</span>
                 <button
+                  aria-label="Remove file"
                   onClick={() => removeFile(f.id)}
-                  className="ml-0.5 flex h-4 w-4 items-center justify-center rounded hover:bg-white/[0.1] hover:text-white"
+                  className="ml-0.5 flex h-4 w-4 items-center justify-center rounded hover:bg-fill-strong hover:text-text-primary"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-3 w-3" strokeWidth={1.75} />
                 </button>
               </div>
             ))}
@@ -285,22 +289,23 @@ export default function InputBar({
           rows={1}
           disabled={disabled}
           placeholder={placeholder ?? "Message warden... — type / for skills"}
-          className="max-h-[200px] w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed tracking-[-0.01em] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-60"
+          className="max-h-[200px] w-full resize-none bg-transparent px-1 text-body tracking-[-0.01em] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-60"
         />
 
         <div className="mt-1 flex items-center justify-between">
           <div className="flex items-center gap-0.5">
             <Tooltip content="Attach file" side="top">
               <button
+                aria-label="Attach file"
                 onClick={handleFilePick}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/5 hover:text-text-secondary"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
               >
-                <Paperclip className="h-[16px] w-[16px]" strokeWidth={2.5} />
+                <Paperclip className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </Tooltip>
             <Tooltip content="Mention" side="top">
-              <button onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/5 hover:text-text-secondary">
-                <AtSign className="h-[16px] w-[16px]" strokeWidth={2.5} />
+              <button aria-label="Insert skill command" onClick={handleMention} className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary">
+                <AtSign className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </Tooltip>
             {onToggleMode !== undefined && (
@@ -317,6 +322,7 @@ export default function InputBar({
                 whileTap={{ scale: 0.9 }}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition-colors duration-200 hover:bg-white/90"
                 title="Stop"
+                aria-label="Stop"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
               </motion.button>
@@ -328,11 +334,12 @@ export default function InputBar({
                 className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 ${
                   canSend
                     ? "bg-white text-black hover:bg-white/90"
-                    : "bg-white/[0.06] text-text-muted"
+                    : "bg-fill-hover text-text-muted"
                 }`}
                 title="Send"
+                aria-label="Send"
               >
-                <ArrowUp className="h-[18px] w-[18px]" />
+                <ArrowUp className="h-[18px] w-[18px]" strokeWidth={1.75} />
               </motion.button>
             )}
           </div>
@@ -341,11 +348,11 @@ export default function InputBar({
         {pickerOpen && (
           <div
             ref={listRef}
-            className="absolute bottom-full left-0 mb-2 max-h-72 w-80 overflow-y-auto rounded-xl border border-white/[0.08] bg-surface-raised p-1 shadow-2xl"
+            className="absolute bottom-full left-0 mb-2 max-h-72 w-64 overflow-y-auto rounded-xl border border-hairline bg-surface-raised p-1 shadow-2xl"
             style={{ scrollbarWidth: "none" }}
           >
-            <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-text-muted">
-              <Search className="h-3 w-3" />
+            <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
+              <Search className="h-3 w-3" strokeWidth={1.75} />
               <span>Skills</span>
               {slash && slash.query && (
                 <span className="ml-auto font-mono text-text-secondary">
@@ -354,10 +361,10 @@ export default function InputBar({
               )}
             </div>
             {skills === null && (
-              <div className="px-2.5 py-2 text-[13px] text-text-muted">Loading…</div>
+              <div className="px-2.5 py-2 text-ui text-text-muted">Loading…</div>
             )}
             {skills !== null && filtered.length === 0 && (
-              <div className="px-2.5 py-2 text-[13px] text-text-muted">
+              <div className="px-2.5 py-2 text-ui text-text-muted">
                 No skills match.
               </div>
             )}
@@ -372,23 +379,17 @@ export default function InputBar({
                     e.preventDefault();
                     insertSkill(skill.name);
                   }}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  className={`flex w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-1.5 text-left ${
-                    active ? "bg-white/[0.09]" : ""
+                  className={`flex w-full items-center rounded-lg px-2.5 py-1 text-left transition-colors ${
+                    active ? "bg-fill-active" : "hover:bg-fill-hover"
                   }`}
                 >
                   <span
-                    className={`text-[13.5px] tracking-[-0.01em] ${
-                      active ? "text-white" : "text-[#e0e0e0]"
+                    className={`truncate text-ui tracking-[-0.01em] ${
+                      active ? "text-text-primary" : "text-text-secondary"
                     }`}
                   >
                     /{skill.name}
                   </span>
-                  {skill.description && (
-                    <span className="line-clamp-2 text-[11.5px] leading-snug text-text-muted">
-                      {skill.description}
-                    </span>
-                  )}
                 </button>
               );
             })}

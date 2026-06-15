@@ -17,7 +17,7 @@ function WinBtn({
       className={`flex h-full w-[46px] items-center justify-center text-[15px] text-text-secondary/70 transition-colors ${
         close
           ? "hover:bg-[#c42b1c] hover:text-white"
-          : "hover:bg-white/[0.08] hover:text-text-primary"
+          : "hover:bg-fill-active hover:text-text-primary"
       }`}
     >
       {children}

@@ -48,36 +48,36 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.97 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-surface-raised shadow-2xl"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
       >
-        <div className="border-b border-white/[0.07] px-5 py-4">
-          <h2 className="text-[15px] font-semibold text-text-primary">Connect OpenRouter</h2>
-          <p className="mt-0.5 text-xs text-text-muted">
+        <div className="border-b border-hairline px-5 py-4">
+          <h2 className="text-body font-semibold text-text-primary">Connect OpenRouter</h2>
+          <p className="mt-0.5 text-meta text-text-muted">
             Enter API key. Pick model from status bar after connect.
           </p>
         </div>
 
         <div className="space-y-4 px-5 py-4">
           <label className="block">
-            <span className="mb-1 block text-xs text-text-muted">API key</span>
+            <span className="mb-1 block text-meta text-text-muted">API key</span>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder="sk-or-v1-..."
-              className="w-full rounded-lg border border-white/[0.1] bg-black/20 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-white/25 focus:outline-none"
+              className="w-full rounded-lg border border-line bg-black/20 px-3 py-2 text-ui-lg text-text-primary placeholder:text-text-muted focus:border-white/25 focus:outline-none"
             />
           </label>
 
-          {error && <p className="text-sm text-[#ff6b6b]">{error}</p>}
+          {error && <p className="text-ui-lg text-danger">{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-white/[0.07] px-5 py-3">
+        <div className="flex justify-end gap-2 border-t border-hairline px-5 py-3">
           {onClose && (
             <button
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+              className="rounded-lg px-4 py-2 text-ui-lg font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
             >
               Cancel
             </button>
@@ -85,7 +85,7 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
           <button
             onClick={submit}
             disabled={busy}
-            className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             {busy ? "Connecting..." : "Connect"}

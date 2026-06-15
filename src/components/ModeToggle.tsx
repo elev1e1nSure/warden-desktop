@@ -54,7 +54,7 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "bottom left" }}
-            className="absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/[0.06] flex flex-col gap-0.5"
+            className="absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-2xl bg-surface-raised p-1.5 shadow-2xl shadow-black/40 ring-1 ring-hairline flex flex-col gap-0.5"
           >
             {MODES.map(({ value, label, Icon }) => {
               const active = (value === "auto") === auto;
@@ -64,17 +64,19 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
                   type="button"
                   onClick={() => handleSelect(value)}
                   className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
-                    active ? "bg-white/[0.05]" : "hover:bg-white/[0.04]"
+                    active ? "bg-fill-active" : "hover:bg-fill-hover"
                   }`}
                 >
                   <Icon
                     className={`h-3.5 w-3.5 shrink-0 transition-colors ${
-                      active ? "text-text-primary" : "text-text-muted group-hover:text-text-secondary"
+                      active
+                        ? "text-text-primary"
+                        : "text-text-muted group-hover:text-text-secondary"
                     }`}
                     strokeWidth={active ? 2.25 : 1.75}
                   />
                   <span
-                    className={`flex-1 text-[13px] tracking-[-0.01em] transition-colors ${
+                    className={`flex-1 text-ui tracking-[-0.01em] transition-colors ${
                       active ? "text-text-primary" : "text-text-secondary"
                     }`}
                   >
@@ -97,10 +99,10 @@ export default function ModeToggle({ auto, disabled, onToggle }: ModeToggleProps
           type="button"
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}
-          className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
+          className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 text-ui font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
             auto
-              ? "text-[#8ab8d4] hover:bg-[#8ab8d4]/[0.08] hover:text-[#9fc5db]"
-              : "text-text-secondary hover:bg-white/[0.05] hover:text-text-primary"
+              ? "text-text-primary hover:bg-fill-hover"
+              : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}
         >
           <current.Icon className="h-3 w-3" strokeWidth={2.25} />

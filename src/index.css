@@ -153,6 +153,15 @@ summary,
   -webkit-user-select: none;
 }
 
+/* Placeholder text must not be selectable — otherwise the empty input
+   "selects" its own placeholder on click in some browsers, which reads
+   like a visual glitch next to the real input. */
+textarea::placeholder,
+input::placeholder {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Shimmer text animation */
 @keyframes text-shimmer {
   from { background-position: 200% center; }
