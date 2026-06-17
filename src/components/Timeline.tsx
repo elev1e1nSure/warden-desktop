@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Loader2, X } from "lucide-react";
+import { BookOpen, BookPlus, ChevronDown, Layers, Loader2, Minus, X } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -49,7 +49,10 @@ function useThrottledValue(value: string, ms: number, enabled: boolean): string 
 
 type ToolBlock = Extract<Block, { kind: "tool" }>;
 
-type Group = { kind: "single"; block: Block } | { kind: "tools"; items: ToolBlock[] };
+type Group =
+  | { kind: "single"; block: Block }
+  | { kind: "tools"; items: ToolBlock[] }
+  | { kind: "memory"; block: ToolBlock };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -60,14 +63,19 @@ function groupBlocks(blocks: Block[]): Group[] {
     const b = blocks[i];
     if (!b) break;
     if (b.kind === "tool") {
-      const run: ToolBlock[] = [];
-      while (i < blocks.length) {
-        const next = blocks[i];
-        if (next?.kind !== "tool") break;
-        run.push(next);
+      if (b.name === "memory") {
+        out.push({ kind: "memory", block: b });
         i++;
+      } else {
+        const run: ToolBlock[] = [];
+        while (i < blocks.length) {
+          const next = blocks[i];
+          if (next?.kind !== "tool" || next.name === "memory") break;
+          run.push(next);
+          i++;
+        }
+        if (run.length > 0) out.push({ kind: "tools", items: run });
       }
-      out.push({ kind: "tools", items: run });
     } else {
       out.push({ kind: "single", block: b });
       i++;
@@ -75,6 +83,8 @@ function groupBlocks(blocks: Block[]): Group[] {
   }
   return out;
 }
+
+const cut = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max)}…` : s);
 
 function toolDescription(b: ToolBlock): string {
   let args: Record<string, unknown> = {};
@@ -85,7 +95,6 @@ function toolDescription(b: ToolBlock): string {
   }
 
   const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
-  const cut = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max)}…` : s);
   const base = (p: string) => p.split(/[\\/]/).pop() || p;
 
   switch (b.name) {
@@ -260,11 +269,13 @@ function toolDescription(b: ToolBlock): string {
 
     case "memory": {
       const action = str("action");
+      const key = str("key");
       const map: Record<string, string> = {
-        save: "Saved to memory",
-        recall: "Recalled from memory",
-        delete: "Deleted from memory",
-        list: "Listed memories",
+        set: key ? `Saved "${cut(key, 36)}"` : "Saved to memory",
+        get: key ? `Read "${cut(key, 36)}"` : "Read all memory",
+        delete: key ? `Removed "${cut(key, 36)}"` : "Removed from memory",
+        list: "Listed memory",
+        clear: "Cleared memory",
       };
       return map[action] ?? "Memory operation";
     }
@@ -296,7 +307,8 @@ function toolDescription(b: ToolBlock): string {
 }
 
 function groupKey(g: Group): string {
-  return g.kind === "tools" ? (g.items[0]?.id ?? "") : g.block.id;
+  if (g.kind === "tools") return g.items[0]?.id ?? "";
+  return g.block.id;
 }
 
 // ─── blocks ──────────────────────────────────────────────────────────────────
@@ -647,6 +659,91 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
   );
 });
 
+// ─── memory row ─────────────────────────────────────────────────────────────
+
+type MemoryAction = "set" | "get" | "delete" | "list" | "clear";
+
+const MEMORY_META: Record<
+  MemoryAction,
+  { icon: React.ReactNode; running: string; done: (key?: string) => string }
+> = {
+  set: {
+    icon: <BookPlus className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Remembering…",
+    done: (key) => (key ? `Remembered "${cut(key, 36)}"` : "Saved to memory"),
+  },
+  get: {
+    icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Reading memory…",
+    done: (key) => (key ? `Read "${cut(key, 36)}"` : "Read memory"),
+  },
+  delete: {
+    icon: <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Forgetting…",
+    done: (key) => (key ? `Forgot "${cut(key, 36)}"` : "Removed from memory"),
+  },
+  list: {
+    icon: <Layers className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Reading memory…",
+    done: () => "Listed memory",
+  },
+  clear: {
+    icon: <X className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Clearing memory…",
+    done: () => "Cleared memory",
+  },
+};
+
+const MemoryRow = memo(function MemoryRow({ block }: { block: ToolBlock }) {
+  let args: Record<string, unknown> = {};
+  try {
+    args = JSON.parse(block.args);
+  } catch {}
+  const action = (String(args.action ?? "")).trim().toLowerCase() as MemoryAction;
+  const key = String(args.key ?? "").trim();
+  const running = block.status === "running";
+
+  const meta = MEMORY_META[action] ?? {
+    icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />,
+    running: "Memory…",
+    done: () => "Memory operation",
+  };
+
+  const minWidth = running ? "min-w-[128px]" : "min-w-[96px]";
+
+  return (
+    <div className="py-0.5">
+      <div className="flex items-center gap-1.5 text-ui-lg text-text-muted">
+        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-text-faint">
+          {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : meta.icon}
+        </span>
+
+        <span className={`relative inline-flex h-[18px] ${minWidth} items-center`}>
+          <AnimatePresence initial={false}>
+            {running ? (
+              <motion.span
+                key="running"
+                {...labelFade}
+                className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
+              >
+                {meta.running}
+              </motion.span>
+            ) : (
+              <motion.span
+                key="done"
+                {...labelFade}
+                className="absolute inset-0 flex items-center whitespace-nowrap"
+              >
+                {meta.done(key || undefined)}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
+      </div>
+    </div>
+  );
+});
+
 const ToolGroup = memo(
   function ToolGroup({ items }: { items: ToolBlock[] }) {
     const [open, setOpen] = useState(false);
@@ -786,6 +883,7 @@ function Timeline({
                 <p className="text-ui text-danger">{g.block.text}</p>
               )}
               {g.kind === "tools" && <ToolGroup items={g.items} />}
+              {g.kind === "memory" && <MemoryRow block={g.block} />}
             </motion.div>
           ))}
         </AnimatePresence>
