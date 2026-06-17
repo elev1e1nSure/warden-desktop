@@ -527,40 +527,44 @@ const ThinkBlock = memo(function ThinkBlock({
             </motion.span>
           )}
         </div>
-        <AnimatePresence mode="popLayout">
-          {active ? (
-            <motion.span
-              key="thinking-label"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              Thinking
-              <span className="inline-flex ml-1">
-                <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
-                  .
+        <span className="relative inline-flex items-center h-[18px] min-w-[60px]">
+          <AnimatePresence>
+            {active ? (
+              <motion.span
+                key="thinking-label"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 flex items-center whitespace-nowrap"
+              >
+                Thinking
+                <span className="inline-flex ml-1">
+                  <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
+                    .
+                  </span>
+                  <span className="thinking-dot" style={{ animationDelay: "140ms" }}>
+                    .
+                  </span>
+                  <span className="thinking-dot" style={{ animationDelay: "280ms" }}>
+                    .
+                  </span>
                 </span>
-                <span className="thinking-dot" style={{ animationDelay: "140ms" }}>
-                  .
-                </span>
-                <span className="thinking-dot" style={{ animationDelay: "280ms" }}>
-                  .
-                </span>
-              </span>
-            </motion.span>
-          ) : (
-            <motion.span
-              key="thought-label"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              Thought
-            </motion.span>
-          )}
-        </AnimatePresence>
+              </motion.span>
+            ) : (
+              <motion.span
+                key="thought-label"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 flex items-center"
+              >
+                Thought
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
       </button>
 
       <AnimatePresence>
@@ -683,8 +687,6 @@ function Timeline({
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
   const renderGroups = useMemo(() => {
-    if (!thinking) return groups;
-
     const lastUserIdx = (() => {
       for (let i = groups.length - 1; i >= 0; i--) {
         const g = groups[i];
@@ -693,16 +695,24 @@ function Timeline({
       return -1;
     })();
 
-    const hasCurrentThink = groups
-      .slice(lastUserIdx + 1)
-      .some((g) => g.kind === "single" && g.block.kind === "think");
+    const currentThinkIdx = groups.findIndex(
+      (g, i) => i > lastUserIdx && g.kind === "single" && g.block.kind === "think",
+    );
 
-    if (hasCurrentThink) return groups;
+    if (currentThinkIdx === -1 && !thinking) return groups;
 
-    const result = [...groups];
+    const result = groups.filter(
+      (g, i) => !(i > lastUserIdx && g.kind === "single" && g.block.kind === "think"),
+    );
+
+    const thinkText =
+      currentThinkIdx >= 0 && groups[currentThinkIdx]?.kind === "single"
+        ? groups[currentThinkIdx].block.text
+        : "";
+
     result.splice(lastUserIdx + 1, 0, {
       kind: "single",
-      block: { id: "think-slot", kind: "think", text: "" },
+      block: { id: "think-slot", kind: "think", text: thinkText },
     } as Group);
     return result;
   }, [groups, thinking]);
@@ -720,10 +730,10 @@ function Timeline({
               return (
                 <motion.div
                   key={isSlot ? "think-slot" : `${generation}-${groupKey(g)}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                 >
                   <ThinkBlock text={isSlot ? "" : g.block.text} streaming={isSlot} />
                 </motion.div>
@@ -732,10 +742,10 @@ function Timeline({
             return (
               <motion.div
                 key={`${generation}-${groupKey(g)}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 {g.kind === "single" && g.block.kind === "user" && (
                   <UserBlock text={g.block.text} />
