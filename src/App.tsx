@@ -1,4 +1,4 @@
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 import { type CSSProperties, type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api/client";
 import { loadConnection } from "./api/session";
@@ -14,7 +14,6 @@ import SkillsView from "./components/SkillsView";
 import StatusBar from "./components/StatusBar";
 import Timeline from "./components/Timeline";
 import Toaster from "./components/Toaster";
-import { headingPop } from "./motion";
 import type { Block, Chat } from "./types";
 
 type AppView = "chat" | "skills" | "settings";
@@ -674,52 +673,43 @@ function App() {
                 />
 
                 {/* Timeline */}
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {(hasBlocks || streaming) && (
-                    <motion.div
-                      key="timeline"
-                      onScroll={handleTimelineScroll}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
-                    >
-                      <Timeline
-                        blocks={blocks}
-                        generation={gen}
-                        thinking={
-                          streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
-                        }
-                        follow={followTimeline}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {(hasBlocks || streaming) && (
+                  <div
+                    onScroll={handleTimelineScroll}
+                    className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
+                  >
+                    <Timeline
+                      blocks={blocks}
+                      generation={gen}
+                      thinking={
+                        streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
+                      }
+                      follow={followTimeline}
+                    />
+                  </div>
+                )}
 
-                {/* Input zone */}
-                <motion.div
-                  layout="position"
+                {/* Input zone — no layout animation; position switches instantly to
+                    avoid the input flying through the middle on send / chat switch. */}
+                <div
                   className={
                     hasBlocks || streaming
                       ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-transparent pointer-events-none"
                       : "flex flex-1 flex-col items-center justify-center px-6 w-full"
                   }
                 >
-                  <AnimatePresence mode="popLayout">
-                    {!(hasBlocks || streaming) && (
-                      <motion.div {...headingPop} className="mb-7 select-none">
-                        <div
-                          style={{ transform: "translateX(var(--chat-shift, 0px))" }}
-                          className="text-center"
-                        >
-                          <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
-                            {connected ? "Where should we begin?" : "warden"}
-                          </h1>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {!(hasBlocks || streaming) && (
+                    <div className="mb-7 select-none">
+                      <div
+                        style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+                        className="text-center"
+                      >
+                        <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
+                          {connected ? "Where should we begin?" : "warden"}
+                        </h1>
+                      </div>
+                    </div>
+                  )}
 
                   <div
                     className={
@@ -738,7 +728,7 @@ function App() {
                       onToggleMode={connected ? handleToggleMode : undefined}
                     />
                   </div>
-                </motion.div>
+                </div>
               </div>
             </main>
           </div>
