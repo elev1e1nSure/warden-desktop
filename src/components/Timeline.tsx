@@ -625,7 +625,8 @@ const ToolGroup = memo(
 
 function ThinkingIndicator() {
   return (
-    <p className="flex items-center gap-1 text-ui-lg font-normal text-text-muted">
+    <p className="relative flex items-center gap-1 p-0 text-ui-lg font-normal text-text-muted">
+      <span className="absolute right-full mr-1.5 h-3.5 w-3.5" />
       <span>Thinking</span>
       <span className="inline-flex">
         <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
@@ -663,40 +664,49 @@ function Timeline({
     >
       <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
         <AnimatePresence initial={false}>
-          {groups.map((g) => (
-            <motion.div
-              key={`${generation}-${groupKey(g)}`}
-              layout
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
-            >
-              {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
-              {g.kind === "single" &&
-                g.block.kind === "image" &&
-                (() => {
-                  const b = g.block;
-                  return (
-                    <ImageBlock
-                      url={b.url}
-                      name={b.name}
-                      onExpand={() => setLightbox({ url: b.url, name: b.name })}
-                    />
-                  );
-                })()}
-              {g.kind === "single" && g.block.kind === "assistant" && (
-                <AssistantBlock text={g.block.text} />
-              )}
-              {g.kind === "single" && g.block.kind === "think" && (
-                <ThinkBlock text={g.block.text} />
-              )}
-              {g.kind === "single" && g.block.kind === "error" && (
-                <p className="text-ui text-danger">{g.block.text}</p>
-              )}
-              {g.kind === "tools" && <ToolGroup items={g.items} />}
-            </motion.div>
-          ))}
+          {groups.map((g) => {
+            const isThought = g.kind === "single" && g.block.kind === "think";
+            return (
+              <motion.div
+                key={`${generation}-${groupKey(g)}`}
+                layout
+                initial={isThought ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={isThought ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+                transition={
+                  isThought
+                    ? { duration: 0.12, ease: [0.22, 1, 0.36, 1] }
+                    : { type: "spring", stiffness: 350, damping: 30 }
+                }
+              >
+                {g.kind === "single" && g.block.kind === "user" && (
+                  <UserBlock text={g.block.text} />
+                )}
+                {g.kind === "single" &&
+                  g.block.kind === "image" &&
+                  (() => {
+                    const b = g.block;
+                    return (
+                      <ImageBlock
+                        url={b.url}
+                        name={b.name}
+                        onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                      />
+                    );
+                  })()}
+                {g.kind === "single" && g.block.kind === "assistant" && (
+                  <AssistantBlock text={g.block.text} />
+                )}
+                {g.kind === "single" && g.block.kind === "think" && (
+                  <ThinkBlock text={g.block.text} />
+                )}
+                {g.kind === "single" && g.block.kind === "error" && (
+                  <p className="text-ui text-danger">{g.block.text}</p>
+                )}
+                {g.kind === "tools" && <ToolGroup items={g.items} />}
+              </motion.div>
+            );
+          })}
 
           {thinking && (
             <motion.div
