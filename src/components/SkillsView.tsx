@@ -17,7 +17,6 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
-import { pop } from "../motion";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 type RightPanel = "detail" | "create" | "edit";
@@ -225,33 +224,40 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
       <div className="flex min-h-0 flex-1">
         {/* Left panel — same bg as sidebar */}
         <div style={{ width: skillsSidebarWidth }} className="flex shrink-0 flex-col bg-sidebar">
-          {/* Search */}
-          <div className="flex items-center gap-1 px-2 py-2">
+          <nav className="flex flex-col px-2 pt-2">
+            {/* Back — full nav item, same as Settings */}
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+              className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
             >
-              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
+              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+              <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
             </button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search…"
-                className="w-full rounded-xl bg-fill-hover py-1.5 pl-8 pr-3 text-ui text-text-primary placeholder:text-text-muted focus:outline-none"
-              />
+
+            <div className="mx-1 my-2 h-px bg-hairline" />
+
+            {/* Search + New */}
+            <div className="flex items-center gap-1 pb-1">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search…"
+                  className="w-full rounded-xl bg-fill-hover py-1.5 pl-8 pr-3 text-ui text-text-primary placeholder:text-text-muted focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-text-muted transition-none hover:bg-fill-hover hover:text-text-secondary"
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.75} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
-            >
-              <Plus className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </button>
-          </div>
+          </nav>
 
           {/* List */}
           <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-2 pb-3">
@@ -369,9 +375,9 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
               );
             })()
           ) : selected ? (
-            <div key={selected.name} className="px-8 py-7">
+            <div key={selected.name} className="px-8 py-8">
               <div className="flex items-center gap-2">
-                <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
+                <h2 className="flex-1 text-2xl font-semibold tracking-[-0.03em] text-text-primary">
                   {selected.name}
                 </h2>
               </div>
@@ -415,10 +421,10 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
           {menuSkillName && menuPos ? (
             <motion.div
               ref={menuRef}
-              initial={pop.initial}
-              animate={pop.animate}
-              exit={pop.exit}
-              transition={pop.transition}
+              initial={{ opacity: 0, scale: 0.97, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: -4 }}
+              transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 position: "fixed",
                 top: menuPos.top,
@@ -426,8 +432,10 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                 transform: "translateX(-100%)",
                 transformOrigin: "top right",
                 zIndex: 9999,
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
               }}
-              className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl"
+              className="w-36 overflow-hidden rounded-xl border border-white/15 bg-[rgba(26,26,26,0.75)] p-1 shadow-2xl"
             >
               <button
                 type="button"
