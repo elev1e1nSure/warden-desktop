@@ -1,6 +1,6 @@
-import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import ConnectModal from "../components/ConnectModal";
 

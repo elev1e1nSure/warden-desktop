@@ -9,7 +9,7 @@ import {
   SquarePen,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState, memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Chat } from "../types";
 
@@ -295,7 +295,10 @@ function Sidebar({
                         }}
                         className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-text-secondary hover:text-text-primary"
                       >
-                        <Pencil className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary" strokeWidth={1.75} />
+                        <Pencil
+                          className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
+                          strokeWidth={1.75}
+                        />
                         <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
                           Rename
                         </span>
@@ -308,7 +311,10 @@ function Sidebar({
                         }}
                         className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-danger hover:text-danger-hover"
                       >
-                        <Trash2 className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100" strokeWidth={1.75} />
+                        <Trash2
+                          className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
+                          strokeWidth={1.75}
+                        />
                         <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
                           Delete
                         </span>

@@ -117,9 +117,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
                     >
                       <Star
                         className={`h-3.5 w-3.5 transition-colors ${
-                          isFav
-                            ? "fill-white text-white"
-                            : "text-white/40"
+                          isFav ? "fill-white text-white" : "text-white/40"
                         }`}
                         strokeWidth={1.5}
                       />

@@ -229,7 +229,10 @@ export default function SkillsView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1">
         {/* Left panel — same bg as sidebar */}
-        <div style={{ width: sidebarWidth }} className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]">
+        <div
+          style={{ width: sidebarWidth }}
+          className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
+        >
           <nav className="flex flex-col px-2 pt-2">
             {/* Back — full nav item, same as Settings */}
             <button
@@ -452,7 +455,10 @@ export default function SkillsView({
                 onClick={() => handleEdit(menuSkillName)}
                 className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-text-secondary hover:text-text-primary"
               >
-                <Pencil className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary" strokeWidth={1.75} />
+                <Pencil
+                  className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
+                  strokeWidth={1.75}
+                />
                 <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
                   Edit
                 </span>
@@ -462,7 +468,10 @@ export default function SkillsView({
                 onClick={() => handleDelete(menuSkillName)}
                 className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-danger hover:text-danger-hover"
               >
-                <Trash2 className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100" strokeWidth={1.75} />
+                <Trash2
+                  className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
+                  strokeWidth={1.75}
+                />
                 <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
                   Delete
                 </span>

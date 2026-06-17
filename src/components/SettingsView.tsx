@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Bot,
@@ -10,7 +11,6 @@ import {
   SlidersHorizontal,
   Wifi,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
@@ -67,7 +67,10 @@ export default function SettingsView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1">
         {/* Left panel — section nav */}
-        <div style={{ width: sidebarWidth }} className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]">
+        <div
+          style={{ width: sidebarWidth }}
+          className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
+        >
           <nav className="flex flex-col px-2 pt-2">
             <button
               type="button"
@@ -89,9 +92,7 @@ export default function SettingsView({
                     type="button"
                     onClick={() => setSection(s.id)}
                     className={`group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none hover:bg-fill-hover ${
-                      active
-                        ? "text-text-primary"
-                        : "text-text-secondary hover:text-text-primary"
+                      active ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
                     }`}
                     style={{ isolation: "isolate" }}
                   >
@@ -232,10 +233,7 @@ function GeneralSection({ status }: { status: StatusResult | null }) {
 
       <FieldGroup>
         <Field label="Working directory" description="Where the agent reads and writes files.">
-          <span
-            className="max-w-[280px] truncate text-ui text-text-secondary"
-            title={status?.cwd}
-          >
+          <span className="max-w-[280px] truncate text-ui text-text-secondary" title={status?.cwd}>
             {status?.cwd || "—"}
           </span>
         </Field>

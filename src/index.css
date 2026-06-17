@@ -279,10 +279,61 @@ input::placeholder {
   animation: ambient-drift-3 28s ease-in-out infinite;
 }
 
+/* ─── Empty-state starfield ───────────────────────────────────
+   React generates the star coordinates; CSS only owns the motion and
+   atmosphere. The backdrop is scoped to the empty chat screen. */
+@keyframes starfield-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, -2000px, 0); }
+}
+
+.starfield-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+}
+
+.starfield-layer {
+  position: absolute;
+  inset: -10% 0 0 0;
+  animation-name: starfield-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.starfield-layer-sm {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.22));
+}
+
+.starfield-layer-md {
+  filter: drop-shadow(0 0 4px rgba(210, 220, 255, 0.24));
+}
+
+.starfield-layer-lg {
+  filter: drop-shadow(0 0 7px rgba(255, 230, 255, 0.2));
+}
+
+.starfield-sprite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.starfield-sprite-copy {
+  top: 2000px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ambient-orb-1,
   .ambient-orb-2,
-  .ambient-orb-3 {
+  .ambient-orb-3,
+  .starfield-layer {
     animation: none !important;
   }
 }

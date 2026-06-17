@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useState, memo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -194,7 +194,10 @@ function toolDescription(b: ToolBlock): string {
 
     case "bash":
     case "powershell": {
-      const cmd = str("command").replace(/\s*\n\s*/g, "; ").replace(/\s+/g, " ").trim();
+      const cmd = str("command")
+        .replace(/\s*\n\s*/g, "; ")
+        .replace(/\s+/g, " ")
+        .trim();
       return `Ran \`${cut(cmd, 52)}\``;
     }
 
@@ -203,7 +206,9 @@ function toolDescription(b: ToolBlock): string {
 
     case "archive": {
       const action = str("action");
-      return action ? `${action.charAt(0).toUpperCase()}${action.slice(1)} archive` : "Archive operation";
+      return action
+        ? `${action.charAt(0).toUpperCase()}${action.slice(1)} archive`
+        : "Archive operation";
     }
 
     case "system_info":
@@ -268,7 +273,15 @@ const UserBlock = memo(function UserBlock({ text }: { text: string }) {
 });
 
 const ImageBlock = memo(
-  function ImageBlock({ url, name, onExpand }: { url: string; name: string; onExpand: () => void }) {
+  function ImageBlock({
+    url,
+    name,
+    onExpand,
+  }: {
+    url: string;
+    name: string;
+    onExpand: () => void;
+  }) {
     return (
       <div className="flex justify-end">
         <button
@@ -286,7 +299,7 @@ const ImageBlock = memo(
       </div>
     );
   },
-  (prev, next) => prev.url === next.url && prev.name === next.name
+  (prev, next) => prev.url === next.url && prev.name === next.name,
 );
 
 function Lightbox({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
@@ -607,7 +620,7 @@ const ToolGroup = memo(
         item.args === nextItem.args
       );
     });
-  }
+  },
 );
 
 function ThinkingIndicator() {
@@ -675,7 +688,9 @@ function Timeline({
               {g.kind === "single" && g.block.kind === "assistant" && (
                 <AssistantBlock text={g.block.text} />
               )}
-              {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
+              {g.kind === "single" && g.block.kind === "think" && (
+                <ThinkBlock text={g.block.text} />
+              )}
               {g.kind === "single" && g.block.kind === "error" && (
                 <p className="text-ui text-danger">{g.block.text}</p>
               )}
