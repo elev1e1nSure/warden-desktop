@@ -65,46 +65,49 @@ export default function SettingsView({
       <div className="flex min-h-0 flex-1">
         {/* Left panel — section nav */}
         <div className="flex w-[260px] shrink-0 flex-col bg-sidebar">
-          <div className="flex items-center gap-1 px-2 py-2">
+          <nav className="flex flex-col px-2 pt-2">
+            {/* Back as a full nav item */}
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+              className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
             >
-              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
+              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+              <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
             </button>
-            <span className="text-ui-lg font-semibold tracking-[-0.01em] text-text-primary">
-              Settings
-            </span>
-          </div>
 
-          <nav className="flex flex-col gap-0.5 px-2 pt-1">
-            {SECTIONS.map((s) => {
-              const active = s.id === section;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSection(s.id)}
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
-                    active
-                      ? "bg-fill-active text-text-primary"
-                      : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
-                  }`}
-                >
-                  <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{s.icon}</span>
-                  <span className="truncate text-ui-lg font-medium tracking-[-0.01em]">
-                    {s.label}
-                  </span>
-                </button>
-              );
-            })}
+            {/* Divider */}
+            <div className="mx-1 my-2 h-px bg-hairline" />
+
+            {/* Section links */}
+            <div className="flex flex-col gap-0.5">
+              {SECTIONS.map((s) => {
+                const active = s.id === section;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSection(s.id)}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
+                      active
+                        ? "bg-fill-active text-text-primary"
+                        : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
+                    }`}
+                  >
+                    <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{s.icon}</span>
+                    <span className="truncate text-ui-lg font-medium tracking-[-0.01em]">
+                      {s.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
         </div>
 
         {/* Right panel — content */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-          <div className="mx-auto max-w-2xl px-8 py-7">
+          <div className="mx-auto max-w-2xl px-8 py-8">
             {section === "general" && <GeneralSection status={status} />}
             {section === "connection" && (
               <ConnectionSection
@@ -126,11 +129,22 @@ export default function SettingsView({
   );
 }
 
-function SectionHeader({ title, hint }: { title: string; hint?: string }) {
+function SectionHeader({ title }: { title: string }) {
   return (
-    <div className="mb-6">
-      <h2 className="text-title font-semibold tracking-[-0.02em] text-text-primary">{title}</h2>
-      {hint && <p className="mt-1 text-ui-lg text-text-muted">{hint}</p>}
+    <h2 className="mb-6 text-2xl font-semibold tracking-[-0.03em] text-text-primary">{title}</h2>
+  );
+}
+
+/** A group of Field rows rendered as a bordered card with optional category label. */
+function FieldGroup({ label, children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-5">
+      {label && (
+        <p className="mb-2 px-0.5 text-[11px] font-medium uppercase tracking-[0.07em] text-text-muted">
+          {label}
+        </p>
+      )}
+      <div className="overflow-hidden rounded-xl border border-hairline">{children}</div>
     </div>
   );
 }
@@ -146,7 +160,7 @@ function Field({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 border-b border-hairline py-3.5 last:border-b-0">
+    <div className="flex items-center gap-4 border-b border-hairline px-4 py-3.5 last:border-b-0">
       <div className="min-w-0 flex-1">
         <p className="text-ui-lg font-medium tracking-[-0.01em] text-text-primary">{label}</p>
         {description && <p className="mt-0.5 text-ui text-text-muted">{description}</p>}
@@ -196,17 +210,22 @@ function Toggle({
 function GeneralSection({ status }: { status: StatusResult | null }) {
   return (
     <>
-      <SectionHeader title="General" hint="Workspace and appearance." />
+      <SectionHeader title="General" />
 
-      <Field label="Working directory" description="Where the agent reads and writes files.">
-        <span className="max-w-[280px] truncate text-ui text-text-secondary" title={status?.cwd}>
-          {status?.cwd || "—"}
-        </span>
-      </Field>
+      <FieldGroup>
+        <Field label="Working directory" description="Where the agent reads and writes files.">
+          <span
+            className="max-w-[280px] truncate text-ui text-text-secondary"
+            title={status?.cwd}
+          >
+            {status?.cwd || "—"}
+          </span>
+        </Field>
 
-      <Field label="Theme" description="Light theme is coming later.">
-        <span className="text-ui text-text-muted">Dark</span>
-      </Field>
+        <Field label="Theme" description="Light theme is coming later.">
+          <span className="text-ui text-text-muted">Dark</span>
+        </Field>
+      </FieldGroup>
     </>
   );
 }
@@ -266,84 +285,85 @@ function ConnectionSection({
 
   return (
     <>
-      <SectionHeader title="Provider" hint="OpenRouter connection and default model." />
+      <SectionHeader title="Provider" />
 
-      <Field
-        label="Status"
-        description={connected ? "Backend is connected to the provider." : "Not connected."}
-      >
-        <span className="flex items-center gap-2 text-ui text-text-secondary">
-          <StatusDot ok={connected} />
-          {connected ? "Connected" : "Disconnected"}
-        </span>
-      </Field>
+      <FieldGroup>
+        <Field
+          label="Status"
+          description={connected ? "Backend is connected to the provider." : "Not connected."}
+        >
+          <span className="flex items-center gap-2 text-ui text-text-secondary">
+            <StatusDot ok={connected} />
+            {connected ? "Connected" : "Disconnected"}
+          </span>
+        </Field>
 
-      <Field label="Provider">
-        <span className="text-ui text-text-secondary">{status?.provider || "—"}</span>
-      </Field>
+        <Field label="Provider">
+          <span className="text-ui text-text-secondary">{status?.provider || "—"}</span>
+        </Field>
 
-      <Field label="Default model" description="Used for new chats. Mirrors the status bar.">
-        {connected ? (
-          <ModelSelector
-            models={modelList}
-            selected={selectedModel}
-            onSelect={(m) => onSelectModel(m.id)}
-          />
-        ) : (
-          <span className="text-ui text-text-muted">—</span>
-        )}
-      </Field>
-
-      <div className="mt-6">
-        <label htmlFor="settings-api-key" className="block text-ui font-medium text-text-secondary">
-          API key
-        </label>
-        <div className="mt-1.5 flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              id="settings-api-key"
-              type={reveal ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setSavedOk(false);
-                setError("");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && connect()}
-              placeholder="sk-or-v1-…"
-              className="w-full rounded-xl border-2 border-line bg-fill-subtle py-2 pl-3 pr-10 text-ui text-text-primary placeholder:text-text-muted outline-none focus:border-fill-strong"
+        <Field label="Default model" description="Used for new chats. Mirrors the status bar.">
+          {connected ? (
+            <ModelSelector
+              models={modelList}
+              selected={selectedModel}
+              onSelect={(m) => onSelectModel(m.id)}
             />
+          ) : (
+            <span className="text-ui text-text-muted">—</span>
+          )}
+        </Field>
+      </FieldGroup>
+
+      <FieldGroup label="API Key">
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="settings-api-key"
+                type={reveal ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  setSavedOk(false);
+                  setError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && connect()}
+                placeholder="sk-or-v1-…"
+                className="w-full rounded-xl border-2 border-line bg-fill-subtle py-2 pl-3 pr-10 text-ui text-text-primary placeholder:text-text-muted outline-none focus:border-fill-strong"
+              />
+              <button
+                type="button"
+                onClick={() => setReveal((v) => !v)}
+                aria-label={reveal ? "Hide API key" : "Show API key"}
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+              >
+                {reveal ? (
+                  <EyeOff className="h-4 w-4" strokeWidth={1.75} />
+                ) : (
+                  <Eye className="h-4 w-4" strokeWidth={1.75} />
+                )}
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setReveal((v) => !v)}
-              aria-label={reveal ? "Hide API key" : "Show API key"}
-              className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+              onClick={connect}
+              disabled={busy}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
             >
-              {reveal ? (
-                <EyeOff className="h-4 w-4" strokeWidth={1.75} />
-              ) : (
-                <Eye className="h-4 w-4" strokeWidth={1.75} />
-              )}
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {busy ? "Connecting…" : connected ? "Reconnect" : "Connect"}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={connect}
-            disabled={busy}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy ? "Connecting…" : connected ? "Reconnect" : "Connect"}
-          </button>
+          {error && <p className="mt-2 text-ui text-danger">{error}</p>}
+          {savedOk && !error && (
+            <p className="mt-2 flex items-center gap-1.5 text-ui text-emerald-400">
+              <Check className="h-3.5 w-3.5" strokeWidth={2} />
+              Connected and saved.
+            </p>
+          )}
         </div>
-        {error && <p className="mt-2 text-ui text-danger">{error}</p>}
-        {savedOk && !error && (
-          <p className="mt-2 flex items-center gap-1.5 text-ui text-emerald-400">
-            <Check className="h-3.5 w-3.5" strokeWidth={2} />
-            Connected and saved.
-          </p>
-        )}
-      </div>
+      </FieldGroup>
     </>
   );
 }
@@ -379,26 +399,28 @@ function AgentSection({
 
   return (
     <>
-      <SectionHeader title="Agent" hint="Execution behavior and context window." />
+      <SectionHeader title="Agent" />
 
-      <Field
-        label="Auto mode"
-        description="Run tools without asking for confirmation. Off = ask before risky actions."
-      >
-        <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
-      </Field>
+      <FieldGroup label="Behavior">
+        <Field
+          label="Auto mode"
+          description="Run tools without asking for confirmation. Off = ask before risky actions."
+        >
+          <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
+        </Field>
 
-      <Field
-        label="Context usage"
-        description={
-          limit > 0 ? `${used.toLocaleString()} / ${limit.toLocaleString()} tokens` : "—"
-        }
-      >
-        <span className="text-ui tabular-nums text-text-secondary">{pct}%</span>
-      </Field>
+        <Field
+          label="Context usage"
+          description={
+            limit > 0 ? `${used.toLocaleString()} / ${limit.toLocaleString()} tokens` : "—"
+          }
+        >
+          <span className="text-ui tabular-nums text-text-secondary">{pct}%</span>
+        </Field>
+      </FieldGroup>
 
-      <div className="mt-6">
-        <div className="flex items-center justify-between gap-4">
+      <FieldGroup label="Actions">
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
           <div className="min-w-0">
             <p className="text-ui-lg font-medium tracking-[-0.01em] text-text-primary">
               Compact context
@@ -417,8 +439,12 @@ function AgentSection({
             {compacting ? "Compacting…" : "Compact"}
           </button>
         </div>
-        {compactMsg && <p className="mt-2 text-ui text-text-muted">{compactMsg}</p>}
-      </div>
+        {compactMsg && (
+          <p className="border-t border-hairline px-4 py-2.5 text-ui text-text-muted">
+            {compactMsg}
+          </p>
+        )}
+      </FieldGroup>
     </>
   );
 }
@@ -487,76 +513,84 @@ function MemorySection() {
 
   return (
     <>
-      <SectionHeader title="Memory" hint="Long-term memory the agent keeps across chats." />
+      <SectionHeader title="Memory" />
 
-      <Field
-        label="Enable memory"
-        description="Let the agent remember facts and recall them in future chats."
-      >
-        <Toggle
-          checked={Boolean(state?.enabled)}
-          onChange={toggle}
-          label="Toggle long-term memory"
-        />
-      </Field>
-
-      <Field label="Stored entries">
-        <span className="text-ui tabular-nums text-text-secondary">{state?.entries ?? "—"}</span>
-      </Field>
-
-      <Field label="Snapshots">
-        <span className="text-ui tabular-nums text-text-secondary">{state?.snapshots ?? "—"}</span>
-      </Field>
-
-      <Field label="Database size">
-        <span className="text-ui tabular-nums text-text-secondary">
-          {state ? formatBytes(state.db_size) : "—"}
-        </span>
-      </Field>
-
-      <div className="mt-6 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={viewSnapshot}
-          disabled={snapLoading}
-          className="flex items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
+      <FieldGroup label="Storage">
+        <Field
+          label="Enable memory"
+          description="Let the agent remember facts and recall them in future chats."
         >
-          {snapLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          View latest snapshot
-        </button>
-        {!confirmClear ? (
+          <Toggle
+            checked={Boolean(state?.enabled)}
+            onChange={toggle}
+            label="Toggle long-term memory"
+          />
+        </Field>
+
+        <Field label="Stored entries">
+          <span className="text-ui tabular-nums text-text-secondary">
+            {state?.entries ?? "—"}
+          </span>
+        </Field>
+
+        <Field label="Snapshots">
+          <span className="text-ui tabular-nums text-text-secondary">
+            {state?.snapshots ?? "—"}
+          </span>
+        </Field>
+
+        <Field label="Database size">
+          <span className="text-ui tabular-nums text-text-secondary">
+            {state ? formatBytes(state.db_size) : "—"}
+          </span>
+        </Field>
+      </FieldGroup>
+
+      <FieldGroup label="Data">
+        <div className="flex items-center gap-2 px-4 py-3.5">
           <button
             type="button"
-            onClick={() => setConfirmClear(true)}
-            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover"
+            onClick={viewSnapshot}
+            disabled={snapLoading}
+            className="flex items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
           >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Clear memory
+            {snapLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            View latest snapshot
           </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-ui text-text-secondary">Clear all memory?</span>
+          {!confirmClear ? (
             <button
               type="button"
-              onClick={clear}
-              disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
+              onClick={() => setConfirmClear(true)}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover"
             >
-              Yes
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Clear memory
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirmClear(false)}
-              className="rounded-lg px-3 py-1.5 text-ui text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-            >
-              No
-            </button>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-ui text-text-secondary">Clear all memory?</span>
+              <button
+                type="button"
+                onClick={clear}
+                disabled={busy}
+                className="rounded-lg px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmClear(false)}
+                className="rounded-lg px-3 py-1.5 text-ui text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+              >
+                No
+              </button>
+            </div>
+          )}
+        </div>
+      </FieldGroup>
 
       {snapshot !== null && (
-        <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-fill-subtle p-4 font-mono text-[12px] leading-relaxed text-code-text ring-1 ring-hairline">
+        <pre className="mt-1 max-h-80 overflow-auto rounded-xl bg-fill-subtle p-4 font-mono text-[12px] leading-relaxed text-code-text ring-1 ring-hairline">
           {snapshot}
         </pre>
       )}
@@ -586,33 +620,37 @@ function AboutSection({
 
   return (
     <>
-      <SectionHeader title="About" hint="Version and backend." />
+      <SectionHeader title="About" />
 
-      <Field label="Version">
-        <span className="text-ui tabular-nums text-text-secondary">{APP_VERSION}</span>
-      </Field>
+      <FieldGroup>
+        <Field label="Version">
+          <span className="text-ui tabular-nums text-text-secondary">{APP_VERSION}</span>
+        </Field>
 
-      <Field label="Backend" description="Local agent server on http://localhost:8765.">
-        <span className="flex items-center gap-2 text-ui text-text-secondary">
-          <StatusDot ok={connected} />
-          {connected ? "Running" : "Unavailable"}
-        </span>
-      </Field>
+        <Field label="Backend" description="Local agent server on http://localhost:8765.">
+          <span className="flex items-center gap-2 text-ui text-text-secondary">
+            <StatusDot ok={connected} />
+            {connected ? "Running" : "Unavailable"}
+          </span>
+        </Field>
 
-      <Field label="Skills" description="Create and manage agent skills.">
-        <button
-          type="button"
-          onClick={onOpenSkills}
-          className="rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
-        >
-          Manage skills
-        </button>
-      </Field>
+        <Field label="Skills" description="Create and manage agent skills.">
+          <button
+            type="button"
+            onClick={onOpenSkills}
+            className="rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
+          >
+            Manage skills
+          </button>
+        </Field>
+      </FieldGroup>
 
-      <div className="mt-6">
-        <div className="flex items-center justify-between gap-4">
+      <FieldGroup label="Danger Zone">
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
           <div className="min-w-0">
-            <p className="text-ui-lg font-medium tracking-[-0.01em] text-danger">Restart backend</p>
+            <p className="text-ui-lg font-medium tracking-[-0.01em] text-danger">
+              Restart backend
+            </p>
             <p className="mt-0.5 text-ui text-text-muted">
               Shut down the agent server. The app relaunches it on next start.
             </p>
@@ -627,7 +665,7 @@ function AboutSection({
             Shut down
           </button>
         </div>
-      </div>
+      </FieldGroup>
     </>
   );
 }
