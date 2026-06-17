@@ -106,6 +106,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm build:backend
+
+      - uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-tauri-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-
+
       - run: pnpm build:app
 
       - uses: actions/upload-artifact@v4
