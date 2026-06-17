@@ -374,14 +374,6 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                 <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
                   {selected.name}
                 </h2>
-                <button
-                  type="button"
-                  onClick={() => handleEdit(selected.name)}
-                  className="flex items-center gap-1.5 rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
-                >
-                  <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Edit
-                </button>
               </div>
               {selected.description && (
                 <p className="mt-2 text-ui-lg leading-relaxed text-text-secondary">
