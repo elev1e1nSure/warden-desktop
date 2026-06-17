@@ -735,15 +735,32 @@ function App() {
                         : "w-full max-w-3xl"
                     }
                   >
-                    <InputBar
-                      onSend={handleSend}
-                      onStop={handleStop}
-                      streaming={streaming}
-                      disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
-                      placeholder={connected ? "Message warden..." : "Connect a model first"}
-                      auto={status?.mode === "auto"}
-                      onToggleMode={connected ? handleToggleMode : undefined}
-                    />
+                    <AnimatePresence mode="wait">
+                      {confirmReq ? (
+                        <ConfirmModal
+                          key="confirm"
+                          request={confirmReq}
+                          onResolve={handleConfirm}
+                        />
+                      ) : questionReq ? (
+                        <QuestionModal
+                          key="question"
+                          request={questionReq}
+                          onSubmit={handleAnswer}
+                        />
+                      ) : (
+                        <InputBar
+                          key="input"
+                          onSend={handleSend}
+                          onStop={handleStop}
+                          streaming={streaming}
+                          disabled={!connected}
+                          placeholder={connected ? "Message warden..." : "Connect a model first"}
+                          auto={status?.mode === "auto"}
+                          onToggleMode={connected ? handleToggleMode : undefined}
+                        />
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>
@@ -751,12 +768,6 @@ function App() {
           </div>
         </div>
 
-        <AnimatePresence>
-          {confirmReq && <ConfirmModal request={confirmReq} onResolve={handleConfirm} />}
-        </AnimatePresence>
-        <AnimatePresence>
-          {questionReq && <QuestionModal request={questionReq} onSubmit={handleAnswer} />}
-        </AnimatePresence>
         <AnimatePresence>
           {showConnect && (
             <ConnectModal
