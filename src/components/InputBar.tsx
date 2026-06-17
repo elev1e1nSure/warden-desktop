@@ -368,7 +368,7 @@ export default function InputBar({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative rounded-2xl border-2 bg-[rgba(22,22,22,0.88)] px-3 pt-3 pb-2 transition-colors ${
+        className={`relative rounded-2xl border-2 bg-[#161616] px-3 pt-3 pb-2 transition-colors ${
           dragOver ? "border-accent" : "border-line"
         }`}
       >

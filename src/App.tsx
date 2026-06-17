@@ -49,6 +49,10 @@ function App() {
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const persistTimerRef = useRef<number | null>(null);
+  // True when blocks have been modified by user actions and need to be saved.
+  // False after loading blocks from DB or resetting — prevents startup from
+  // wiping saved blocks by writing an empty array before content is loaded.
+  const blocksDirtyRef = useRef(false);
   const assistantIdRef = useRef<string | null>(null);
   const thinkIdRef = useRef<string | null>(null);
   const toolIdRef = useRef<string | null>(null);
@@ -59,7 +63,15 @@ function App() {
   const connected = Boolean(status?.connected);
   const hasBlocks = blocks.length > 0;
 
+  // commit: marks blocks as dirty (needs saving). Use for user actions / stream events.
   const commit = (next: Block[]) => {
+    blocksDirtyRef.current = true;
+    blocksRef.current = next;
+    setBlocks(next);
+  };
+  // loadBlocks: replaces blocks WITHOUT marking dirty. Use when loading from DB.
+  const loadBlocks = (next: Block[]) => {
+    blocksDirtyRef.current = false;
     blocksRef.current = next;
     setBlocks(next);
   };
@@ -119,12 +131,13 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!activeChatId) return;
+    if (!activeChatId || !blocksDirtyRef.current) return;
     if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
     const id = activeChatId;
     const snapshot = blocks;
     persistTimerRef.current = window.setTimeout(() => {
       persistTimerRef.current = null;
+      blocksDirtyRef.current = false;
       void api.saveChatBlocks(id, snapshot).catch(() => {});
     }, 300);
     return () => {
@@ -135,11 +148,12 @@ function App() {
 
   const flushActiveChatBlocks = useCallback(async () => {
     const id = activeChatId;
-    if (!id) return;
+    if (!id || !blocksDirtyRef.current) return;
     if (persistTimerRef.current) {
       window.clearTimeout(persistTimerRef.current);
       persistTimerRef.current = null;
     }
+    blocksDirtyRef.current = false;
     await api.saveChatBlocks(id, blocksRef.current);
   }, [activeChatId]);
 
@@ -493,7 +507,7 @@ function App() {
       handleStop();
       await api.reset();
       setActiveChatId(null);
-      commit([]);
+      loadBlocks([]);
       setFollowTimeline(true);
       setGen((g) => g + 1);
       await loadChats();
@@ -512,7 +526,7 @@ function App() {
       if (blocks.length === 0) {
         await api.deleteChat(id);
         setActiveChatId(null);
-        commit([]);
+        loadBlocks([]);
         setFollowTimeline(true);
         setGen((g) => g + 1);
         await refreshStatus();
@@ -520,7 +534,7 @@ function App() {
         return;
       }
       setActiveChatId(res.chat.id);
-      commit(blocks);
+      loadBlocks(blocks);
       setFollowTimeline(true);
       setGen((g) => g + 1);
       await refreshStatus();
@@ -544,7 +558,7 @@ function App() {
       await api.deleteChat(id);
       if (id === activeChatId) {
         setActiveChatId(null);
-        commit([]);
+        loadBlocks([]);
         setGen((g) => g + 1);
       }
       await loadChats();
@@ -711,7 +725,7 @@ function App() {
                 <div
                   className={
                     hasBlocks || streaming
-                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-20 bg-gradient-to-t from-bg via-bg/90 to-bg/20 pointer-events-none"
+                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-10 bg-gradient-to-t from-bg via-bg/95 to-transparent pointer-events-none"
                       : "flex flex-1 flex-col items-center justify-center px-6 w-full"
                   }
                 >
