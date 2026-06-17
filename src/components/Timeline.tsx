@@ -682,30 +682,30 @@ function Timeline({
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
-  const thinkGroup = groups.find((g) => g.kind === "single" && g.block.kind === "think");
-  const thinkText = thinkGroup && thinkGroup.kind === "single" ? thinkGroup.block.text : "";
-  const thinkActive = thinking && !thinkText;
-  const restGroups = groups.filter((g) => !(g.kind === "single" && g.block.kind === "think"));
-
   const renderGroups = useMemo(() => {
-    if (!thinkActive && !thinkGroup) return restGroups;
-    const result = [...restGroups];
-    const targetIdx = result.findIndex(
-      (g) => g.kind === "single" && (g.block.kind === "assistant" || g.block.kind === "tool"),
-    );
-    if (targetIdx >= 0) {
-      result.splice(targetIdx, 0, {
-        kind: "single",
-        block: { id: "think-slot", kind: "think", text: thinkText },
-      } as Group);
-    } else {
-      result.push({
-        kind: "single",
-        block: { id: "think-slot", kind: "think", text: thinkText },
-      } as Group);
-    }
+    if (!thinking) return groups;
+
+    const lastUserIdx = (() => {
+      for (let i = groups.length - 1; i >= 0; i--) {
+        const g = groups[i];
+        if (g && g.kind === "single" && g.block.kind === "user") return i;
+      }
+      return -1;
+    })();
+
+    const hasCurrentThink = groups
+      .slice(lastUserIdx + 1)
+      .some((g) => g.kind === "single" && g.block.kind === "think");
+
+    if (hasCurrentThink) return groups;
+
+    const result = [...groups];
+    result.splice(lastUserIdx + 1, 0, {
+      kind: "single",
+      block: { id: "think-slot", kind: "think", text: "" },
+    } as Group);
     return result;
-  }, [restGroups, thinkActive, thinkGroup, thinkText]);
+  }, [groups, thinking]);
 
   return (
     <div
@@ -716,19 +716,16 @@ function Timeline({
         <AnimatePresence mode="popLayout">
           {renderGroups.map((g) => {
             if (g.kind === "single" && g.block.kind === "think") {
-              const isSynthetic = g.block.id === "think-slot";
+              const isSlot = g.block.id === "think-slot";
               return (
                 <motion.div
-                  key="think-slot"
+                  key={isSlot ? "think-slot" : `${generation}-${groupKey(g)}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
                 >
-                  <ThinkBlock
-                    text={isSynthetic ? "" : g.block.text}
-                    streaming={isSynthetic && thinkActive}
-                  />
+                  <ThinkBlock text={isSlot ? "" : g.block.text} streaming={isSlot} />
                 </motion.div>
               );
             }
