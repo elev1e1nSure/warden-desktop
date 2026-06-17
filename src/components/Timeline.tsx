@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -257,7 +257,7 @@ function groupKey(g: Group): string {
 
 // ─── blocks ──────────────────────────────────────────────────────────────────
 
-function UserBlock({ text }: { text: string }) {
+const UserBlock = memo(function UserBlock({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-fill-active px-4 py-3 text-body leading-relaxed text-text-primary">
@@ -265,26 +265,29 @@ function UserBlock({ text }: { text: string }) {
       </div>
     </div>
   );
-}
+});
 
-function ImageBlock({ url, name, onExpand }: { url: string; name: string; onExpand: () => void }) {
-  return (
-    <div className="flex justify-end">
-      <button
-        type="button"
-        onClick={onExpand}
-        className="group relative max-w-[78%] overflow-hidden rounded-2xl rounded-br-md ring-1 ring-hairline"
-      >
-        <img src={url} alt={name} className="max-h-80 w-auto object-contain" />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-          <span className="rounded-lg bg-black/50 px-3 py-1.5 text-meta font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-            View
-          </span>
-        </div>
-      </button>
-    </div>
-  );
-}
+const ImageBlock = memo(
+  function ImageBlock({ url, name, onExpand }: { url: string; name: string; onExpand: () => void }) {
+    return (
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onExpand}
+          className="group relative max-w-[78%] overflow-hidden rounded-2xl rounded-br-md ring-1 ring-hairline"
+        >
+          <img src={url} alt={name} className="max-h-80 w-auto object-contain" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+            <span className="rounded-lg bg-black/50 px-3 py-1.5 text-meta font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+              View
+            </span>
+          </div>
+        </button>
+      </div>
+    );
+  },
+  (prev, next) => prev.url === next.url && prev.name === next.name
+);
 
 function Lightbox({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
   useEffect(() => {
@@ -452,7 +455,7 @@ const mdComponents = {
   },
 };
 
-function AssistantBlock({ text }: { text: string }) {
+const AssistantBlock = memo(function AssistantBlock({ text }: { text: string }) {
   // Memoising the markdown render isn't free, but for a chat block it's
   // negligible and lets streaming chunks reuse the same virtual DOM when
   // the text hasn't crossed a markdown boundary.
@@ -478,9 +481,9 @@ function AssistantBlock({ text }: { text: string }) {
       )}
     </div>
   );
-}
+});
 
-function ThinkBlock({ text }: { text: string }) {
+const ThinkBlock = memo(function ThinkBlock({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div>
@@ -534,60 +537,76 @@ function ThinkBlock({ text }: { text: string }) {
       </AnimatePresence>
     </div>
   );
-}
+});
 
-function ToolGroup({ items }: { items: ToolBlock[] }) {
-  const [open, setOpen] = useState(false);
-  const running = items.some((t) => t.status === "running");
-  const n = items.length;
+const ToolGroup = memo(
+  function ToolGroup({ items }: { items: ToolBlock[] }) {
+    const [open, setOpen] = useState(false);
+    const running = items.some((t) => t.status === "running");
+    const n = items.length;
 
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => !running && setOpen((v) => !v)}
-        disabled={running}
-        className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
-      >
-        <span className="flex shrink-0">
-          {running ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <motion.span
-              initial={false}
-              animate={{ rotate: open ? 0 : -90 }}
-              transition={{ duration: 0.15 }}
-              className="flex"
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => !running && setOpen((v) => !v)}
+          disabled={running}
+          className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+        >
+          <span className="flex shrink-0">
+            {running ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <motion.span
+                initial={false}
+                animate={{ rotate: open ? 0 : -90 }}
+                transition={{ duration: 0.15 }}
+                className="flex"
+              >
+                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </motion.span>
+            )}
+          </span>
+          <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
             >
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </motion.span>
+              <ul className="mt-1 flex flex-col gap-0.5 pl-4">
+                {items.map((t) => (
+                  <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
+                    {toolDescription(t)}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
           )}
-        </span>
-        <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <ul className="mt-1 flex flex-col gap-0.5 pl-4">
-              {items.map((t) => (
-                <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
-                  {toolDescription(t)}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+        </AnimatePresence>
+      </div>
+    );
+  },
+  (prev, next) => {
+    if (prev.items.length !== next.items.length) return false;
+    return prev.items.every((item, i) => {
+      const nextItem = next.items[i];
+      return (
+        nextItem &&
+        item.id === nextItem.id &&
+        item.status === nextItem.status &&
+        item.result === nextItem.result &&
+        item.diff === nextItem.diff &&
+        item.args === nextItem.args
+      );
+    });
+  }
+);
 
 function ThinkingIndicator() {
   return (
@@ -610,7 +629,7 @@ function ThinkingIndicator() {
 
 // ─── main ────────────────────────────────────────────────────────────────────
 
-export default function Timeline({
+function Timeline({
   blocks,
   generation = 0,
   thinking = false,
@@ -677,3 +696,5 @@ export default function Timeline({
     </div>
   );
 }
+
+export default memo(Timeline);

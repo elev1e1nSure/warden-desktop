@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { StatusResult } from "../api/types";
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
@@ -10,23 +11,24 @@ interface StatusBarProps {
   onOpenConnect: () => void;
 }
 
-export default function StatusBar({
+function StatusBar({
   status,
   connected,
   models,
   onSelectModel,
   onOpenConnect,
 }: StatusBarProps) {
-  const modelList: Model[] = models.map((m) => ({
+  const modelList: Model[] = useMemo(() => models.map((m) => ({
     id: m,
     name: m,
     description: "",
-  }));
-  const selected: Model = {
+  })), [models]);
+
+  const selected: Model = useMemo(() => ({
     id: status?.model ?? "",
     name: status?.model || "No model",
     description: "",
-  };
+  }), [status?.model]);
 
   return (
     <div className="flex items-center border-t border-hairline px-4 py-2.5">
@@ -48,3 +50,5 @@ export default function StatusBar({
     </div>
   );
 }
+
+export default memo(StatusBar);
