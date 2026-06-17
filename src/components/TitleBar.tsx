@@ -15,11 +15,10 @@ function WinBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-full w-[46px] items-center justify-center text-[15px] text-text-secondary/70 transition-colors ${
-        close
+      className={`flex h-full w-[46px] items-center justify-center text-[15px] text-text-secondary/70 transition-colors ${close
           ? "hover:bg-[#c42b1c] hover:text-white"
           : "hover:bg-fill-active hover:text-text-primary"
-      }`}
+        }`}
     >
       {children}
     </button>
