@@ -23,8 +23,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const nowTimestamp = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+const SIDEBAR_WIDTH_KEY = "warden.sidebarWidth";
+const loadSidebarWidth = (): number => {
+  const raw = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  return Number.isFinite(raw) && raw >= 180 && raw <= 400 ? raw : 272;
+};
+
 function App() {
-  const [sidebarWidth, setSidebarWidth] = useState(272);
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const [status, setStatus] = useState<StatusResult | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -59,6 +65,15 @@ function App() {
     setBlocks(next);
   };
   const genId = () => `b${++idRef.current}`;
+
+  // Persist the sidebar width so it survives restarts.
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+    } catch {
+      // storage unavailable — non-fatal
+    }
+  }, [sidebarWidth]);
 
   const loadModels = useCallback(async () => {
     try {

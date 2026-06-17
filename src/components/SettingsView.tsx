@@ -13,6 +13,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
 import type { MemoryState, StatusResult } from "../api/types";
@@ -118,7 +119,7 @@ export default function SettingsView({
             {section === "agent" && <AgentSection status={status} onToggleMode={onToggleMode} />}
             {section === "memory" && <MemorySection />}
             {section === "about" && (
-              <AboutSection status={status} connected={connected} onOpenSkills={onOpenSkills} />
+              <AboutSection connected={connected} onOpenSkills={onOpenSkills} />
             )}
           </motion.div>
         </div>
@@ -198,7 +199,16 @@ function GeneralSection({ status }: { status: StatusResult | null }) {
   return (
     <>
       <SectionHeader title="General" hint="Workspace and appearance." />
-      <p className="text-ui-lg text-text-muted">cwd: {status?.cwd ?? "—"}</p>
+
+      <Field label="Working directory" description="Where the agent reads and writes files.">
+        <span className="max-w-[280px] truncate text-ui text-text-secondary" title={status?.cwd}>
+          {status?.cwd || "—"}
+        </span>
+      </Field>
+
+      <Field label="Theme" description="Light theme is coming later.">
+        <span className="text-ui text-text-muted">Dark</span>
+      </Field>
     </>
   );
 }
@@ -557,26 +567,69 @@ function MemorySection() {
 }
 
 function AboutSection({
-  status,
   connected,
   onOpenSkills,
 }: {
-  status: StatusResult | null;
   connected: boolean;
   onOpenSkills: () => void;
 }) {
-  void status;
-  void connected;
+  const [restarting, setRestarting] = useState(false);
+
+  const restart = async () => {
+    setRestarting(true);
+    try {
+      await api.shutdown();
+    } catch {
+      // shutdown closes the connection — errors here are expected.
+    } finally {
+      setRestarting(false);
+    }
+  };
+
   return (
     <>
       <SectionHeader title="About" hint="Version and backend." />
-      <button
-        type="button"
-        onClick={onOpenSkills}
-        className="rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
-      >
-        Manage skills
-      </button>
+
+      <Field label="Version">
+        <span className="text-ui tabular-nums text-text-secondary">{APP_VERSION}</span>
+      </Field>
+
+      <Field label="Backend" description="Local agent server on http://localhost:8765.">
+        <span className="flex items-center gap-2 text-ui text-text-secondary">
+          <StatusDot ok={connected} />
+          {connected ? "Running" : "Unavailable"}
+        </span>
+      </Field>
+
+      <Field label="Skills" description="Create and manage agent skills.">
+        <button
+          type="button"
+          onClick={onOpenSkills}
+          className="rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
+        >
+          Manage skills
+        </button>
+      </Field>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-ui-lg font-medium tracking-[-0.01em] text-danger">Restart backend</p>
+            <p className="mt-0.5 text-ui text-text-muted">
+              Shut down the agent server. The app relaunches it on next start.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={restart}
+            disabled={restarting}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
+          >
+            {restarting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Shut down
+          </button>
+        </div>
+      </div>
     </>
   );
 }
