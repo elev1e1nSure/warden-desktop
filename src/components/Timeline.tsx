@@ -496,26 +496,71 @@ const AssistantBlock = memo(function AssistantBlock({ text }: { text: string }) 
   );
 });
 
-const ThinkBlock = memo(function ThinkBlock({ text }: { text: string }) {
+const ThinkBlock = memo(function ThinkBlock({
+  text,
+  streaming,
+}: {
+  text: string;
+  streaming?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const active = streaming && !text;
+  const hasContent = text.length > 0;
   return (
     <div>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => hasContent && setOpen((v) => !v)}
         className="relative flex items-center p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
       >
         <div className="absolute right-full mr-1.5 flex shrink-0 items-center justify-center">
-          <motion.span
-            initial={false}
-            animate={{ rotate: open ? 0 : -90 }}
-            transition={{ duration: 0.15 }}
-            className="flex"
-          >
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-          </motion.span>
+          {active ? (
+            <span className="h-3.5 w-3.5" />
+          ) : (
+            <motion.span
+              initial={false}
+              animate={{ rotate: open ? 0 : -90 }}
+              transition={{ duration: 0.15 }}
+              className="flex"
+            >
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+            </motion.span>
+          )}
         </div>
-        Thought
+        <AnimatePresence mode="popLayout">
+          {active ? (
+            <motion.span
+              key="thinking-label"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              Thinking
+              <span className="inline-flex ml-1">
+                <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
+                  .
+                </span>
+                <span className="thinking-dot" style={{ animationDelay: "140ms" }}>
+                  .
+                </span>
+                <span className="thinking-dot" style={{ animationDelay: "280ms" }}>
+                  .
+                </span>
+              </span>
+            </motion.span>
+          ) : (
+            <motion.span
+              key="thought-label"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              Thought
+            </motion.span>
+          )}
+        </AnimatePresence>
       </button>
 
       <AnimatePresence>
@@ -623,26 +668,6 @@ const ToolGroup = memo(
   },
 );
 
-function ThinkingIndicator() {
-  return (
-    <p className="relative flex items-center gap-1 p-0 text-ui-lg font-normal text-text-muted">
-      <span className="absolute right-full mr-1.5 h-3.5 w-3.5" />
-      <span>Thinking</span>
-      <span className="inline-flex">
-        <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
-          .
-        </span>
-        <span className="thinking-dot" style={{ animationDelay: "140ms" }}>
-          .
-        </span>
-        <span className="thinking-dot" style={{ animationDelay: "280ms" }}>
-          .
-        </span>
-      </span>
-    </p>
-  );
-}
-
 // ─── main ────────────────────────────────────────────────────────────────────
 
 function Timeline({
@@ -657,6 +682,11 @@ function Timeline({
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
+  const thinkGroup = groups.find((g) => g.kind === "single" && g.block.kind === "think");
+  const thinkText = thinkGroup && thinkGroup.kind === "single" ? thinkGroup.block.text : "";
+  const thinkActive = thinking && !thinkText;
+  const visibleGroups = groups.filter((g) => !(g.kind === "single" && g.block.kind === "think"));
+
   return (
     <div
       style={{ transform: "translateX(var(--chat-shift, 0px))" }}
@@ -664,54 +694,46 @@ function Timeline({
     >
       <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
         <AnimatePresence mode="popLayout">
-          {groups.map((g) => {
-            const isThought = g.kind === "single" && g.block.kind === "think";
-            return (
-              <motion.div
-                key={`${generation}-${groupKey(g)}`}
-                initial={isThought ? { opacity: 0 } : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-              >
-                {g.kind === "single" && g.block.kind === "user" && (
-                  <UserBlock text={g.block.text} />
-                )}
-                {g.kind === "single" &&
-                  g.block.kind === "image" &&
-                  (() => {
-                    const b = g.block;
-                    return (
-                      <ImageBlock
-                        url={b.url}
-                        name={b.name}
-                        onExpand={() => setLightbox({ url: b.url, name: b.name })}
-                      />
-                    );
-                  })()}
-                {g.kind === "single" && g.block.kind === "assistant" && (
-                  <AssistantBlock text={g.block.text} />
-                )}
-                {g.kind === "single" && g.block.kind === "think" && (
-                  <ThinkBlock text={g.block.text} />
-                )}
-                {g.kind === "single" && g.block.kind === "error" && (
-                  <p className="text-ui text-danger">{g.block.text}</p>
-                )}
-                {g.kind === "tools" && <ToolGroup items={g.items} />}
-              </motion.div>
-            );
-          })}
-
-          {thinking && (
+          {visibleGroups.map((g) => (
             <motion.div
-              key="thinking"
+              key={`${generation}-${groupKey(g)}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
             >
-              <ThinkingIndicator />
+              {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
+              {g.kind === "single" &&
+                g.block.kind === "image" &&
+                (() => {
+                  const b = g.block;
+                  return (
+                    <ImageBlock
+                      url={b.url}
+                      name={b.name}
+                      onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                    />
+                  );
+                })()}
+              {g.kind === "single" && g.block.kind === "assistant" && (
+                <AssistantBlock text={g.block.text} />
+              )}
+              {g.kind === "single" && g.block.kind === "error" && (
+                <p className="text-ui text-danger">{g.block.text}</p>
+              )}
+              {g.kind === "tools" && <ToolGroup items={g.items} />}
+            </motion.div>
+          ))}
+
+          {(thinkActive || thinkText) && (
+            <motion.div
+              key="think-slot"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <ThinkBlock text={thinkText} streaming={thinkActive} />
             </motion.div>
           )}
         </AnimatePresence>
