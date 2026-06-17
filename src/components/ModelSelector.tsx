@@ -76,7 +76,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "bottom left" }}
-            className="accelerate-scale absolute left-0 bottom-full z-50 mb-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
+            className="accelerate-scale absolute left-0 bottom-full z-50 mb-2 flex max-h-80 w-96 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
           >
             <div className="flex items-center gap-2 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" strokeWidth={1.75} />
@@ -161,7 +161,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex max-w-[240px] items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors hover:bg-fill-hover ${
+        className={`flex max-w-[360px] items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors hover:bg-fill-hover ${
           open ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
         }`}
       >

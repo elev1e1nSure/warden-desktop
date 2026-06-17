@@ -259,11 +259,11 @@ function groupKey(g: Group): string {
 
 const UserBlock = memo(function UserBlock({ text }: { text: string }) {
   return (
-    <div className="flex justify-end">
+    <motion.div layout className="flex justify-end pt-3 pb-1">
       <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-fill-active px-4 py-3 text-body leading-relaxed text-text-primary">
         {text}
       </div>
-    </div>
+    </motion.div>
   );
 });
 
@@ -473,13 +473,13 @@ const AssistantBlock = memo(function AssistantBlock({ text }: { text: string }) 
   );
 
   return (
-    <div className="markdown-body text-body text-text-primary">
+    <motion.div layout className="markdown-body text-body text-text-primary">
       {text.length === 0 ? (
         <span className="inline-block h-[14px] w-[5px] animate-pulse rounded-sm bg-fill-strong align-middle" />
       ) : (
         rendered
       )}
-    </div>
+    </motion.div>
   );
 });
 
@@ -490,16 +490,18 @@ const ThinkBlock = memo(function ThinkBlock({ text }: { text: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
+        className="relative flex items-center p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
       >
-        <motion.span
-          initial={false}
-          animate={{ rotate: open ? 0 : -90 }}
-          transition={{ duration: 0.15 }}
-          className="flex shrink-0"
-        >
-          <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </motion.span>
+        <div className="absolute right-full mr-1.5 flex shrink-0 items-center justify-center">
+          <motion.span
+            initial={false}
+            animate={{ rotate: open ? 0 : -90 }}
+            transition={{ duration: 0.15 }}
+            className="flex"
+          >
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </motion.span>
+        </div>
         Thought
       </button>
 
@@ -512,7 +514,7 @@ const ThinkBlock = memo(function ThinkBlock({ text }: { text: string }) {
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-2 pl-4 text-ui leading-[1.7] text-text-muted">
+            <div className="mt-2 text-ui leading-[1.7] text-text-muted">
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -551,9 +553,9 @@ const ToolGroup = memo(
           type="button"
           onClick={() => !running && setOpen((v) => !v)}
           disabled={running}
-          className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+          className="relative flex items-center p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
         >
-          <span className="flex shrink-0">
+          <div className="absolute right-full mr-1.5 flex shrink-0 items-center justify-center">
             {running ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
@@ -566,7 +568,7 @@ const ToolGroup = memo(
                 <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
               </motion.span>
             )}
-          </span>
+          </div>
           <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
         </button>
 
@@ -579,7 +581,7 @@ const ToolGroup = memo(
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <ul className="mt-1 flex flex-col gap-0.5 pl-4">
+              <ul className="mt-1 flex flex-col gap-0.5">
                 {items.map((t) => (
                   <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
                     {toolDescription(t)}
@@ -646,41 +648,49 @@ function Timeline({
       style={{ transform: "translateX(var(--chat-shift, 0px))" }}
       className="mx-auto w-full max-w-3xl"
     >
-      <div className="flex w-full flex-col gap-4 px-6 pt-12 pb-32">
-        {groups.map((g) => (
-          <div key={`${generation}-${groupKey(g)}`}>
-            {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
-            {g.kind === "single" &&
-              g.block.kind === "image" &&
-              (() => {
-                const b = g.block;
-                return (
-                  <ImageBlock
-                    url={b.url}
-                    name={b.name}
-                    onExpand={() => setLightbox({ url: b.url, name: b.name })}
-                  />
-                );
-              })()}
-            {g.kind === "single" && g.block.kind === "assistant" && (
-              <AssistantBlock text={g.block.text} />
-            )}
-            {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
-            {g.kind === "single" && g.block.kind === "error" && (
-              <p className="text-ui text-danger">{g.block.text}</p>
-            )}
-            {g.kind === "tools" && <ToolGroup items={g.items} />}
-          </div>
-        ))}
+      <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
+        <AnimatePresence initial={false}>
+          {groups.map((g) => (
+            <motion.div
+              key={`${generation}-${groupKey(g)}`}
+              layout
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+            >
+              {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
+              {g.kind === "single" &&
+                g.block.kind === "image" &&
+                (() => {
+                  const b = g.block;
+                  return (
+                    <ImageBlock
+                      url={b.url}
+                      name={b.name}
+                      onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                    />
+                  );
+                })()}
+              {g.kind === "single" && g.block.kind === "assistant" && (
+                <AssistantBlock text={g.block.text} />
+              )}
+              {g.kind === "single" && g.block.kind === "think" && <ThinkBlock text={g.block.text} />}
+              {g.kind === "single" && g.block.kind === "error" && (
+                <p className="text-ui text-danger">{g.block.text}</p>
+              )}
+              {g.kind === "tools" && <ToolGroup items={g.items} />}
+            </motion.div>
+          ))}
 
-        <AnimatePresence>
           {thinking && (
             <motion.div
               key="thinking"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              layout
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
             >
               <ThinkingIndicator />
             </motion.div>
