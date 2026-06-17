@@ -377,24 +377,6 @@ function InputBar({
         className="hidden"
       />
 
-      <div className="mb-2 flex items-center justify-between">
-        {connected ? (
-          <ModelSelector
-            models={models}
-            selected={selectedModel}
-            onSelect={(m) => onSelectModel(m.id)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenConnect}
-            className="rounded-full border border-line bg-fill-subtle px-3 py-1 text-meta font-medium text-text-secondary transition-colors hover:border-fill-strong hover:text-text-primary"
-          >
-            Connect a model
-          </button>
-        )}
-      </div>
-
       {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-drop container needs no explicit role */}
       <div
         onDragOver={handleDragOver}
@@ -499,6 +481,21 @@ function InputBar({
           </div>
 
           <div className="flex items-center gap-2">
+            {connected ? (
+              <ModelSelector
+                models={models}
+                selected={selectedModel}
+                onSelect={(m) => onSelectModel(m.id)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenConnect}
+                className="rounded-full border border-line bg-fill-subtle px-3 py-1 text-meta font-medium text-text-secondary transition-colors hover:border-fill-strong hover:text-text-primary"
+              >
+                Connect a model
+              </button>
+            )}
             {streaming ? (
               <motion.button
                 type="button"

@@ -75,8 +75,8 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: "bottom left" }}
-            className="accelerate-scale absolute left-0 bottom-full z-50 mb-2 flex max-h-80 w-96 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
+            style={{ transformOrigin: "bottom right" }}
+            className="accelerate-scale absolute right-0 bottom-full z-50 mb-2 flex max-h-80 w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
           >
             <div className="flex items-center gap-2 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" strokeWidth={1.75} />

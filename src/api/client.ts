@@ -21,20 +21,22 @@ export function setAuthToken(token: string): void {
   authToken = token;
 }
 
+export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return authToken ? { ...extra, "X-Warden-Token": authToken } : extra;
+}
+
 async function getJSON<T>(path: string): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (authToken) headers["X-Warden-Token"] = authToken;
-  const res = await fetch(API_BASE + path, { headers });
+  const res = await fetch(API_BASE + path, {
+    headers: authHeaders({ "Content-Type": "application/json" }),
+  });
   if (!res.ok) throw new Error(`GET ${path} -> ${res.status}`);
   return (await res.json()) as T;
 }
 
 async function postJSON<T = unknown>(path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (authToken) headers["X-Warden-Token"] = authToken;
   const res = await fetch(API_BASE + path, {
     method: "POST",
-    headers,
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -114,11 +116,9 @@ export const api = {
   async uploadFile(file: File): Promise<string> {
     const form = new FormData();
     form.append("files", file);
-    const headers: Record<string, string> = {};
-    if (authToken) headers["X-Warden-Token"] = authToken;
     const res = await fetch(`${API_BASE}/upload`, {
       method: "POST",
-      headers,
+      headers: authHeaders(),
       body: form,
     });
     if (!res.ok) throw new Error(`upload failed: ${res.status}`);
