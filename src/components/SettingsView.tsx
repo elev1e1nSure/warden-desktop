@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Bot,
@@ -17,7 +16,6 @@ import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
 import type { MemoryState, StatusResult } from "../api/types";
-import { skillDetailDown } from "../motion";
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
 
@@ -106,7 +104,7 @@ export default function SettingsView({
 
         {/* Right panel — content */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-          <motion.div key={section} {...skillDetailDown} className="mx-auto max-w-2xl px-8 py-7">
+          <div className="mx-auto max-w-2xl px-8 py-7">
             {section === "general" && <GeneralSection status={status} />}
             {section === "connection" && (
               <ConnectionSection
@@ -121,7 +119,7 @@ export default function SettingsView({
             {section === "about" && (
               <AboutSection connected={connected} onOpenSkills={onOpenSkills} />
             )}
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

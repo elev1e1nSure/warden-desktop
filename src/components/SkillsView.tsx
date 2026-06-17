@@ -17,7 +17,7 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
-import { pop, skillDetailDown } from "../motion";
+import { pop } from "../motion";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 type RightPanel = "detail" | "create" | "edit";
@@ -369,7 +369,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
               );
             })()
           ) : selected ? (
-            <motion.div key={selected.name} {...skillDetailDown} className="px-8 py-7">
+            <div key={selected.name} className="px-8 py-7">
               <div className="flex items-center gap-2">
                 <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
                   {selected.name}
@@ -394,7 +394,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                   </Markdown>
                 </div>
               )}
-            </motion.div>
+            </div>
           ) : loadState === "ok" && skills.length > 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3">
               <Sparkles className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
