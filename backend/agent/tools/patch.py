@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from typing import Any
 
+from agent.safety._filesystem import is_path_within_workspace
 from agent.tools.base import Tool, ToolResult
 
 _PATCH_HEADER = re.compile(r"^--- (?:\S+)")
@@ -149,6 +151,15 @@ class ApplyPatchTool(Tool):
 
         path = pathlib.Path(f["path"]).resolve()
         abspath = str(path)
+
+        # Defence-in-depth: refuse any file path that escapes the workspace.
+        # The safety layer already gates apply_patch as a whole, but a
+        # malicious prompt could still try to write to a Startup folder or
+        # delete a system file; block it at the tool too.
+        if not _path_within_workspace(f["path"]):
+            return f"blocked: {f['path']} — outside workspace"
+        if f["is_rename"] and not _path_within_workspace(f["old_path"]):
+            return f"blocked: {f['old_path']} — outside workspace"
 
         if f["is_delete"]:
             if not path.exists():
@@ -386,6 +397,13 @@ class ApplyPatchTool(Tool):
         path = pathlib.Path(f["path"]).resolve()
         abspath = str(path)
 
+        # Defence-in-depth: every file touched by an opencode-format patch
+        # must stay inside the workspace, including the move target.
+        if not _path_within_workspace(f["path"]):
+            return f"blocked: {f['path']} — outside workspace", 0, 0
+        if f.get("move_to") and not _path_within_workspace(f["move_to"]):
+            return f"blocked: {f['move_to']} — outside workspace", 0, 0
+
         added = removed = 0
 
         if f["kind"] == "delete":
@@ -486,3 +504,15 @@ def _normalize_path(p: str) -> str:
     if re.match(r"^[a-zA-Z]:[\\/]", p):
         return p
     return p
+
+
+def _workspace_root() -> Path:
+    return Path.cwd().resolve()
+
+
+def _path_within_workspace(path_str: str) -> bool:
+    try:
+        resolved = Path(path_str).resolve()
+    except (OSError, ValueError):
+        return False
+    return is_path_within_workspace(resolved, _workspace_root())

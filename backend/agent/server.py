@@ -4,6 +4,8 @@ import asyncio
 import base64
 import json
 import os
+import re
+import secrets
 import uuid
 from pathlib import Path
 
@@ -19,6 +21,55 @@ from agent.logger import request as log_request
 from agent.memory.aggregator import MemoryAggregator
 from agent.memory.store import MemoryStore
 from agent.tools import _cleanup_old_screenshots, _get_screenshot_dir
+
+# Origins allowed to call the backend from a browser context. The Tauri
+# shell uses `tauri://localhost` (or `http://tauri.localhost` on Windows);
+# the Vite dev server lives on port 1420. Any other origin is rejected so a
+# random web page cannot drive the agent via http://localhost:8765.
+_ALLOWED_ORIGINS = frozenset(
+    {
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "http://localhost:1420",
+        "http://127.0.0.1:1420",
+    }
+)
+
+# File IDs accepted by /chat must match the format produced by /upload:
+# `<32 hex chars>_<basename>`. Anything else is rejected before touching disk.
+_FILE_ID_RE = re.compile(r"^[a-f0-9]{32}_[^/\\]+$")
+
+# Basename characters that are safe to keep from an uploaded filename. Everything
+# else (path separators, wildcards, control chars) is stripped so the saved
+# filename can never escape the upload directory via traversal.
+_SAFE_FILENAME_RE = re.compile(r"[\\/:*?\"<>|\x00-\x1f]")
+
+
+def _warden_data_dir() -> Path:
+    base = os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or str(Path.home())
+    p = Path(base) / "warden"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _auth_token_path() -> Path:
+    return _warden_data_dir() / ".token"
+
+
+def _generate_auth_token() -> str:
+    """Generate a fresh shared secret and persist it so the Tauri shell can
+    read it and sign requests. The file is rewritten on every backend start,
+    so a stolen token from a previous session is useless."""
+    token = secrets.token_hex(32)
+    try:
+        _auth_token_path().write_text(token, encoding="utf-8")
+    except OSError as e:
+        warn(f"could not persist auth token: {e}")
+    return token
+
+
+def _is_dev_mode() -> bool:
+    return os.environ.get("WARDEN_DEV") == "1"
 
 
 class Backend:
@@ -522,22 +573,55 @@ def _fallback_title(text: str) -> str:
 
 @web.middleware
 async def _cors_middleware(request: web.Request, handler):
-    # short-circuit preflight before routing so any path is allowed
+    # Preflight: only answer when the origin is allowlisted. Any foreign
+    # page trying to probe the API gets a 403 and no CORS headers.
     if request.method == "OPTIONS":
-        return web.Response(status=200)
+        origin = request.headers.get("Origin", "")
+        if origin and origin in _ALLOWED_ORIGINS:
+            resp = web.Response(status=204)
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Warden-Token"
+            resp.headers["Vary"] = "Origin"
+            return resp
+        return web.Response(status=403, text="origin not allowed")
     return await handler(request)
 
 
+@web.middleware
+async def _auth_middleware(request: web.Request, handler):
+    # /health is the only unauthenticated endpoint — the Tauri shell and the
+    # dev probe use it to wait for the backend. Everything else needs either
+    # a dev-mode opt-out (WARDEN_DEV=1) or a valid X-Warden-Token header.
+    if request.path == "/health":
+        return await handler(request)
+    if _is_dev_mode():
+        return await handler(request)
+    expected = request.app.get("auth_token")
+    if not expected:
+        return await handler(request)
+    supplied = request.headers.get("X-Warden-Token", "")
+    if secrets.compare_digest(supplied, expected):
+        return await handler(request)
+    log_request(request.method, request.path, 403)
+    return web.Response(status=403, text="forbidden")
+
+
 async def _cors_headers(request: web.Request, response: web.StreamResponse) -> None:
-    # runs right before headers flush — works for streamed NDJSON responses too
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    # Echo the specific allowlisted origin back instead of `*`. Without a
+    # matching Origin header we send nothing, so a cross-origin fetch from a
+    # random site gets no usable CORS header and the browser blocks the
+    # response.
+    origin = request.headers.get("Origin", "")
+    if origin and origin in _ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Warden-Token"
+        response.headers["Vary"] = "Origin"
 
 
 def _get_upload_dir() -> Path:
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or str(Path.home())
-    dir_path = Path(base) / "warden" / "uploads"
+    dir_path = _warden_data_dir() / "uploads"
     dir_path.mkdir(parents=True, exist_ok=True)
     return dir_path
 
@@ -547,6 +631,7 @@ async def upload_handler(request: web.Request) -> web.Response:
     reader = await request.multipart()
     files = []
     upload_dir = _get_upload_dir()
+    upload_root = upload_dir.resolve()
     while True:
         field = await reader.next()
         if field is None:
@@ -554,8 +639,19 @@ async def upload_handler(request: web.Request) -> web.Response:
         if field.name != "files":
             continue
         filename = field.filename or f"untitled_{uuid.uuid4().hex[:8]}"
-        safe_name = f"{uuid.uuid4().hex}_{filename}"
-        dest = upload_dir / safe_name
+        # Strip path separators and other unsafe characters from the filename
+        # so the saved name can never traverse out of the upload directory.
+        safe_basename = _SAFE_FILENAME_RE.sub("_", os.path.basename(filename)) or "untitled"
+        safe_name = f"{uuid.uuid4().hex}_{safe_basename}"
+        dest = (upload_dir / safe_name).resolve()
+        # Defence-in-depth: refuse if the resolved destination somehow left
+        # the upload directory (should be impossible after the sanitization
+        # above, but cheap to check).
+        try:
+            dest.relative_to(upload_root)
+        except ValueError:
+            log_request("POST", "/upload", 400)
+            return web.json_response({"error": "invalid filename"}, status=400)
         with open(dest, "wb") as f:
             while True:
                 chunk = await field.read_chunk()
@@ -633,8 +729,23 @@ async def chat(request: web.Request) -> web.StreamResponse:
         files_data = []
         if file_ids:
             upload_dir = _get_upload_dir()
+            upload_root = upload_dir.resolve()
             for fid in file_ids:
-                fp = upload_dir / fid
+                if not isinstance(fid, str) or not _FILE_ID_RE.match(fid):
+                    log_request("POST", "/chat", 400)
+                    await response.write(
+                        json.dumps(
+                            {"type": "error", "text": "invalid file id"},
+                            ensure_ascii=False,
+                        ).encode()
+                        + b"\n"
+                    )
+                    continue
+                fp = (upload_dir / fid).resolve()
+                try:
+                    fp.relative_to(upload_root)
+                except ValueError:
+                    continue
                 if fp.exists():
                     with open(fp, "rb") as f:
                         raw = f.read()
@@ -746,12 +857,18 @@ async def main() -> Backend:
     info("starting backend...")
     backend = Backend()
     await backend.setup()
+    auth_token = _generate_auth_token()
+    if _is_dev_mode():
+        info("auth: dev mode (WARDEN_DEV=1) — token not required")
+    else:
+        success(f"auth token written to {_auth_token_path()}")
     success("remote API ready")
 
     shutdown_event = asyncio.Event()
-    app = web.Application(middlewares=[_cors_middleware])
+    app = web.Application(middlewares=[_cors_middleware, _auth_middleware])
     app.on_response_prepare.append(_cors_headers)
     app["backend"] = backend
+    app["auth_token"] = auth_token
     app["shutdown_event"] = shutdown_event
     app.router.add_get("/health", health)
     app.router.add_post("/reset", reset)

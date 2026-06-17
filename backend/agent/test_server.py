@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from unittest.mock import AsyncMock, MagicMock
 
 from aiohttp import web
@@ -66,6 +67,27 @@ def _make_app(backend: MagicMock, shutdown_event: asyncio.Event | None = None) -
     app.router.add_post("/question", server_module.question_handler)
     app.router.add_get("/tools", server_module.tools_list)
     app.router.add_post("/confirm", server_module.confirm)
+    app.router.add_post("/chat", server_module.chat)
+    return app
+
+
+def _make_app_with_auth(
+    backend: MagicMock, auth_token: str = "secret", shutdown_event=None
+) -> web.Application:
+    """App with the same middlewares the real server installs, so auth and
+    CORS behave like in production."""
+    app = web.Application(
+        middlewares=[server_module._cors_middleware, server_module._auth_middleware]
+    )
+    app.on_response_prepare.append(server_module._cors_headers)
+    app["backend"] = backend
+    app["auth_token"] = auth_token
+    if shutdown_event is not None:
+        app["shutdown_event"] = shutdown_event
+    app.router.add_get("/health", server_module.health)
+    app.router.add_post("/reset", server_module.reset)
+    app.router.add_post("/mode", server_module.set_mode)
+    app.router.add_get("/status", server_module.status)
     app.router.add_post("/chat", server_module.chat)
     return app
 
@@ -363,3 +385,128 @@ def test_client_disconnected_no_transport():
     request = MagicMock()
     request.transport = None
     assert server_module._client_disconnected(request) is False
+
+
+# ── auth + CORS middleware ────────────────────────────────────────────────────
+
+
+async def test_health_open_without_token(aiohttp_client):
+    """Without WARDEN_DEV, /health must still answer — the Tauri shell and the
+    dev probe rely on it to wait for the backend."""
+    backend = _make_backend()
+    app = _make_app_with_auth(backend)
+    client = await aiohttp_client(app)
+    resp = await client.get("/health")
+    assert resp.status == 200
+
+
+async def test_protected_endpoint_rejects_missing_token(aiohttp_client, monkeypatch):
+    monkeypatch.delenv("WARDEN_DEV", raising=False)
+    backend = _make_backend()
+    app = _make_app_with_auth(backend, auth_token="real-token")
+    client = await aiohttp_client(app)
+    resp = await client.get("/status")
+    assert resp.status == 403
+
+
+async def test_protected_endpoint_accepts_valid_token(aiohttp_client, monkeypatch):
+    monkeypatch.delenv("WARDEN_DEV", raising=False)
+    backend = _make_backend()
+    app = _make_app_with_auth(backend, auth_token="real-token")
+    client = await aiohttp_client(app)
+    resp = await client.get("/status", headers={"X-Warden-Token": "real-token"})
+    assert resp.status == 200
+
+
+async def test_protected_endpoint_rejects_wrong_token(aiohttp_client, monkeypatch):
+    monkeypatch.delenv("WARDEN_DEV", raising=False)
+    backend = _make_backend()
+    app = _make_app_with_auth(backend, auth_token="real-token")
+    client = await aiohttp_client(app)
+    resp = await client.get("/status", headers={"X-Warden-Token": "wrong"})
+    assert resp.status == 403
+
+
+async def test_dev_mode_skips_token_check(aiohttp_client, monkeypatch):
+    monkeypatch.setenv("WARDEN_DEV", "1")
+    backend = _make_backend()
+    app = _make_app_with_auth(backend, auth_token="real-token")
+    client = await aiohttp_client(app)
+    resp = await client.get("/status")
+    assert resp.status == 200
+
+
+async def test_cors_preflight_allowlisted_origin(aiohttp_client):
+    backend = _make_backend()
+    app = _make_app_with_auth(backend)
+    client = await aiohttp_client(app)
+    resp = await client.options(
+        "/status",
+        headers={
+            "Origin": "http://localhost:1420",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert resp.status == 204
+    assert resp.headers.get("Access-Control-Allow-Origin") == "http://localhost:1420"
+
+
+async def test_cors_preflight_foreign_origin_rejected(aiohttp_client):
+    backend = _make_backend()
+    app = _make_app_with_auth(backend)
+    client = await aiohttp_client(app)
+    resp = await client.options(
+        "/status",
+        headers={
+            "Origin": "https://evil.example.com",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert resp.status == 403
+    assert "Access-Control-Allow-Origin" not in resp.headers
+
+
+async def test_cors_actual_request_allowlisted_origin(aiohttp_client, monkeypatch):
+    """An actual (non-preflight) request from an allowlisted origin gets CORS
+    headers back even without a token in dev mode."""
+    monkeypatch.setenv("WARDEN_DEV", "1")
+    backend = _make_backend()
+    app = _make_app_with_auth(backend)
+    client = await aiohttp_client(app)
+    resp = await client.get("/status", headers={"Origin": "http://localhost:1420"})
+    assert resp.status == 200
+    assert resp.headers.get("Access-Control-Allow-Origin") == "http://localhost:1420"
+
+
+async def test_cors_actual_request_foreign_origin_no_header(aiohttp_client, monkeypatch):
+    """A foreign origin never receives an ACAO header, so the browser blocks
+    the response. (The request still executes server-side in dev mode, but the
+    browser cannot read the body.)"""
+    monkeypatch.setenv("WARDEN_DEV", "1")
+    backend = _make_backend()
+    app = _make_app_with_auth(backend)
+    client = await aiohttp_client(app)
+    resp = await client.get("/status", headers={"Origin": "https://evil.example.com"})
+    assert "Access-Control-Allow-Origin" not in resp.headers
+
+
+# ── path traversal protection ─────────────────────────────────────────────────
+
+
+def test_file_id_regex_rejects_traversal():
+    """file_ids passed to /chat must match the upload format and cannot contain
+    path separators — so `..\\..\\.env` is rejected before any file is read."""
+    assert server_module._FILE_ID_RE.match("..\\..\\.env") is None
+    assert server_module._FILE_ID_RE.match("../../etc/passwd") is None
+    assert server_module._FILE_ID_RE.match("normal.txt") is None
+    ok = "a" * 32 + "_report.pdf"
+    assert server_module._FILE_ID_RE.match(ok) is not None
+
+
+def test_safe_filename_strips_separators():
+    """Uploaded filenames are sanitized so a multipart `filename=..\\evil.bat`
+    cannot escape the upload directory."""
+    sanitized = server_module._SAFE_FILENAME_RE.sub("_", os.path.basename("..\\evil.bat"))
+    assert "/" not in sanitized
+    assert "\\" not in sanitized
+    assert sanitized != "..\\evil.bat"
