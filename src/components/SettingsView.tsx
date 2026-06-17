@@ -164,6 +164,35 @@ function StatusDot({ ok }: { ok: boolean }) {
   );
 }
 
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+      className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${
+        checked ? "bg-emerald-500/80" : "bg-fill-strong"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+          checked ? "translate-x-4" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
 function GeneralSection({ status }: { status: StatusResult | null }) {
   return (
     <>
@@ -317,11 +346,70 @@ function AgentSection({
   status: StatusResult | null;
   onToggleMode: () => void;
 }) {
-  void onToggleMode;
+  const [compacting, setCompacting] = useState(false);
+  const [compactMsg, setCompactMsg] = useState("");
+  const auto = status?.mode === "auto";
+  const used = status?.token_count ?? 0;
+  const limit = status?.token_limit ?? 0;
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+  const compact = async () => {
+    setCompacting(true);
+    setCompactMsg("");
+    try {
+      const res = await api.compact();
+      setCompactMsg(
+        `Context compacted: ${res.tokens_before.toLocaleString()} → ${res.tokens_after.toLocaleString()} tokens.`,
+      );
+    } catch {
+      setCompactMsg("Compact failed.");
+    } finally {
+      setCompacting(false);
+    }
+  };
+
   return (
     <>
-      <SectionHeader title="Agent" hint="Execution behavior and context." />
-      <p className="text-ui-lg text-text-muted">Mode: {status?.mode ?? "—"}</p>
+      <SectionHeader title="Agent" hint="Execution behavior and context window." />
+
+      <Field
+        label="Auto mode"
+        description="Run tools without asking for confirmation. Off = ask before risky actions."
+      >
+        <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
+      </Field>
+
+      <Field
+        label="Context usage"
+        description={
+          limit > 0 ? `${used.toLocaleString()} / ${limit.toLocaleString()} tokens` : "—"
+        }
+      >
+        <span className="text-ui tabular-nums text-text-secondary">{pct}%</span>
+      </Field>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-ui-lg font-medium tracking-[-0.01em] text-text-primary">
+              Compact context
+            </p>
+            <p className="mt-0.5 text-ui text-text-muted">
+              Summarize the conversation to free up the context window.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={compact}
+            disabled={compacting}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
+          >
+            {compacting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {compacting ? "Compacting…" : "Compact"}
+          </button>
+        </div>
+        {compactMsg && <p className="mt-2 text-ui text-text-muted">{compactMsg}</p>}
+      </div>
     </>
   );
 }
