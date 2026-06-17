@@ -293,6 +293,7 @@ function ThinkBlock({ text }: { text: string }) {
         className="flex items-center gap-1 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
       >
         <motion.span
+          initial={false}
           animate={{ rotate: open ? 0 : -90 }}
           transition={{ duration: 0.15 }}
           className="flex shrink-0"
@@ -356,6 +357,7 @@ function ToolGroup({ items }: { items: ToolBlock[] }) {
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <motion.span
+              initial={false}
               animate={{ rotate: open ? 0 : -90 }}
               transition={{ duration: 0.15 }}
               className="flex"
