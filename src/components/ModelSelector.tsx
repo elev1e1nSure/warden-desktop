@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, Search, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Model } from "../types";
 
@@ -15,7 +15,36 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = models.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()));
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("warden.favoriteModels");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavorite = (modelId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites((prev) => {
+      const next = prev.includes(modelId)
+        ? prev.filter((id) => id !== modelId)
+        : [...prev, modelId];
+      localStorage.setItem("warden.favoriteModels", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Sort: starred models first, then maintain original order
+  const sorted = [...models].sort((a, b) => {
+    const aFav = favorites.includes(a.id);
+    const bFav = favorites.includes(b.id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    return 0;
+  });
+
+  const filtered = sorted.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
     if (!open) return;
@@ -42,12 +71,12 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: "top left" }}
-            className="absolute left-0 top-full z-50 mt-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
+            style={{ transformOrigin: "bottom left" }}
+            className="accelerate-scale absolute left-0 bottom-full z-50 mb-2 flex max-h-80 w-64 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
           >
             <div className="flex items-center gap-2 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" strokeWidth={1.75} />
@@ -72,36 +101,56 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
               )}
               {filtered.map((model) => {
                 const active = model.id === selected.id;
+                const isFav = favorites.includes(model.id);
                 return (
-                  <button
+                  <div
                     key={model.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(model);
-                      setOpen(false);
-                    }}
-                    className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
+                    className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
                       active ? "bg-fill-active" : "hover:bg-fill-hover"
                     }`}
                   >
-                    <span
-                      className={`min-w-0 flex-1 truncate text-ui tracking-[-0.01em] transition-colors ${
-                        active
-                          ? "text-text-primary"
-                          : "text-text-secondary group-hover:text-text-primary"
-                      }`}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorite(model.id, e)}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-fill-strong hover:text-text-primary transition-colors"
+                      title={isFav ? "Remove from favorites" : "Add to favorites"}
                     >
-                      {model.name}
-                    </span>
-                    {active ? (
-                      <Check
-                        className="h-3.5 w-3.5 shrink-0 text-text-secondary"
-                        strokeWidth={2.25}
+                      <Star
+                        className={`h-3.5 w-3.5 transition-colors ${
+                          isFav
+                            ? "fill-white text-white"
+                            : "text-white/40"
+                        }`}
+                        strokeWidth={1.5}
                       />
-                    ) : (
-                      <span className="h-3.5 w-3.5 shrink-0" />
-                    )}
-                  </button>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelect(model);
+                        setOpen(false);
+                      }}
+                      className="group flex flex-1 items-center justify-between min-w-0 rounded-lg py-1.5 px-2 text-left transition-none"
+                    >
+                      <span
+                        className={`min-w-0 flex-1 truncate text-ui tracking-[-0.01em] transition-colors ${
+                          active
+                            ? "text-text-primary font-medium"
+                            : "text-text-secondary group-hover:text-text-primary"
+                        }`}
+                      >
+                        {model.name}
+                      </span>
+                      {active ? (
+                        <Check
+                          className="h-3.5 w-3.5 shrink-0 text-text-secondary"
+                          strokeWidth={2.25}
+                        />
+                      ) : (
+                        <span className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>

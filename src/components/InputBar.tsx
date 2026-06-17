@@ -8,6 +8,7 @@ import {
   useReducer,
   useRef,
   useState,
+  memo,
 } from "react";
 import { api } from "../api/client";
 import { saveConnection } from "../api/session";
@@ -15,6 +16,8 @@ import type { SkillInfo } from "../api/types";
 import { pop } from "../motion";
 import ModeToggle from "./ModeToggle";
 import Tooltip from "./Tooltip";
+import ModelSelector from "./ModelSelector";
+import type { Model } from "../types";
 
 const BUILTIN_COMMANDS = [{ name: "api", description: "Change API key" }] as const;
 
@@ -42,6 +45,11 @@ interface InputBarProps {
   placeholder?: string;
   auto?: boolean;
   onToggleMode?: () => void;
+  models: Model[];
+  selectedModel: Model;
+  onSelectModel: (name: string) => void;
+  connected: boolean;
+  onOpenConnect: () => void;
 }
 
 /* Find a `/`-prefixed token the user is currently editing. We only treat
@@ -70,7 +78,7 @@ function detectSlashToken(
   return null;
 }
 
-export default function InputBar({
+function InputBar({
   onSend,
   onStop,
   streaming,
@@ -78,6 +86,11 @@ export default function InputBar({
   placeholder,
   auto,
   onToggleMode,
+  models,
+  selectedModel,
+  onSelectModel,
+  connected,
+  onOpenConnect,
 }: InputBarProps) {
   const [value, setValue] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
@@ -90,12 +103,13 @@ export default function InputBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs height adjustment only when text value changes
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  });
+  }, [value]);
 
   const slash = useMemo(() => detectSlashToken(value, caret), [value, caret]);
 
@@ -363,6 +377,24 @@ export default function InputBar({
         className="hidden"
       />
 
+      <div className="mb-2 flex items-center justify-between">
+        {connected ? (
+          <ModelSelector
+            models={models}
+            selected={selectedModel}
+            onSelect={(m) => onSelectModel(m.id)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenConnect}
+            className="rounded-full border border-line bg-fill-subtle px-3 py-1 text-meta font-medium text-text-secondary transition-colors hover:border-fill-strong hover:text-text-primary"
+          >
+            Connect a model
+          </button>
+        )}
+      </div>
+
       {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-drop container needs no explicit role */}
       <div
         onDragOver={handleDragOver}
@@ -372,6 +404,7 @@ export default function InputBar({
           dragOver ? "border-accent" : "border-line"
         }`}
       >
+
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachedFiles.map((f) => (
@@ -507,7 +540,7 @@ export default function InputBar({
               exit={pop.exit}
               transition={pop.transition}
               style={{ transformOrigin: "bottom left" }}
-              className="absolute bottom-full left-0 mb-2 flex max-h-72 w-72 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
+              className="accelerate-scale absolute bottom-full left-0 mb-2 flex max-h-72 w-72 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
             >
               <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
                 <Search className="h-3 w-3" strokeWidth={1.75} />
@@ -570,3 +603,5 @@ export default function InputBar({
     </div>
   );
 }
+
+export default memo(InputBar);
