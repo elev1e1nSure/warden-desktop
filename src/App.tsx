@@ -35,6 +35,10 @@ const WELCOME_PHRASES = [
   "What's on the horizon?"
 ];
 
+const cleanLLMTokens = (str: string): string => {
+  return str.replace(/<\|eom\|>|<\|eot_id\|>|<\|eom_id\|>|<\|im_end\|>|<\|im_start\|>|<\|end_of_text\|>|<\|endoftext\|>|<\/s>|<s>|<pad>/gi, "");
+};
+
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const [status, setStatus] = useState<StatusResult | null>(null);
@@ -314,16 +318,12 @@ function App() {
     const list = blocksRef.current;
     if (cur) {
       commit(
-        list.map((b) => (b.id === cur && b.kind === kind ? { ...b, text: b.text + text } : b)),
+        list.map((b) => (b.id === cur && b.kind === kind ? { ...b, text: cleanLLMTokens(b.text + text) } : b)),
       );
     } else {
       const id = genId();
       slot.current = id;
-      if (kind === "assistant") {
-        commit([...list, { id, kind, text }]);
-      } else {
-        commit([...list, { id, kind, text }]);
-      }
+      commit([...list, { id, kind, text: cleanLLMTokens(text) }]);
     }
   }, [commit, genId]);
 
@@ -355,7 +355,7 @@ function App() {
         if (cur) {
           commit(
             list.map((b) =>
-              b.id === cur && b.kind === "think" ? { ...b, text: b.text + e.text } : b,
+              b.id === cur && b.kind === "think" ? { ...b, text: cleanLLMTokens(b.text + e.text) } : b,
             ),
           );
         } else {
@@ -365,10 +365,10 @@ function App() {
           if (assistantId) {
             const idx = list.findIndex((b) => b.id === assistantId);
             const next = [...list];
-            next.splice(idx, 0, { id, kind: "think", text: e.text });
+            next.splice(idx, 0, { id, kind: "think", text: cleanLLMTokens(e.text) });
             commit(next);
           } else {
-            commit([...list, { id, kind: "think", text: e.text }]);
+            commit([...list, { id, kind: "think", text: cleanLLMTokens(e.text) }]);
           }
         }
         break;
