@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -417,21 +417,13 @@ export default function Timeline({
   blocks,
   generation = 0,
   thinking = false,
-  follow = true,
 }: {
   blocks: Block[];
   generation?: number;
   thinking?: boolean;
-  follow?: boolean;
 }) {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
-
-  useEffect(() => {
-    if (!follow) return;
-    bottomRef.current?.scrollIntoView({ behavior: "instant" });
-  }, [follow]);
 
   return (
     <div
@@ -478,8 +470,6 @@ export default function Timeline({
             </motion.div>
           )}
         </AnimatePresence>
-
-        <div ref={bottomRef} />
       </div>
 
       <AnimatePresence>

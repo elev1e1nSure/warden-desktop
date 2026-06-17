@@ -567,9 +567,21 @@ function App() {
   const handleCloseSkills = useCallback(() => setView("chat"), []);
   const handleCloseSettings = useCallback(() => setView("chat"), []);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll timeline when content changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: blocks and streaming are triggers for scroll height recalculation
+  useEffect(() => {
+    if (!followTimeline) return;
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [blocks, streaming, followTimeline]);
+
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
         <div className="flex min-h-0 flex-1 relative">
           <div
             className={
@@ -675,6 +687,7 @@ function App() {
                 {/* Timeline */}
                 {(hasBlocks || streaming) && (
                   <div
+                    ref={scrollContainerRef}
                     onScroll={handleTimelineScroll}
                     className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
                   >
@@ -684,7 +697,6 @@ function App() {
                       thinking={
                         streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
                       }
-                      follow={followTimeline}
                     />
                   </div>
                 )}
