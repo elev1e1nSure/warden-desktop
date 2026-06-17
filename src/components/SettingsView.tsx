@@ -1,8 +1,23 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Bot, Brain, Info, SlidersHorizontal, Wifi } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  Brain,
+  Check,
+  Eye,
+  EyeOff,
+  Info,
+  Loader2,
+  SlidersHorizontal,
+  Wifi,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { api } from "../api/client";
+import { loadConnection, saveConnection } from "../api/session";
 import type { StatusResult } from "../api/types";
 import { skillDetailDown } from "../motion";
+import type { Model } from "../types";
+import ModelSelector from "./ModelSelector";
 
 export type SettingsSection = "general" | "connection" | "agent" | "memory" | "about";
 
@@ -13,7 +28,6 @@ interface SettingsViewProps {
   models: string[];
   onSelectModel: (name: string) => void;
   onToggleMode: () => void;
-  onOpenConnect: () => void;
   onOpenSkills: () => void;
 }
 
@@ -32,7 +46,6 @@ export default function SettingsView({
   models,
   onSelectModel,
   onToggleMode,
-  onOpenConnect,
   onOpenSkills,
 }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>("general");
@@ -99,7 +112,6 @@ export default function SettingsView({
                 connected={connected}
                 models={models}
                 onSelectModel={onSelectModel}
-                onOpenConnect={onOpenConnect}
               />
             )}
             {section === "agent" && <AgentSection status={status} onToggleMode={onToggleMode} />}
@@ -123,6 +135,35 @@ function SectionHeader({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
+/** A labelled settings row: title + optional description on the left, control on the right. */
+function Field({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-4 border-b border-hairline py-3.5 last:border-b-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-ui-lg font-medium tracking-[-0.01em] text-text-primary">{label}</p>
+        {description && <p className="mt-0.5 text-ui text-text-muted">{description}</p>}
+      </div>
+      {children && <div className="flex shrink-0 items-center">{children}</div>}
+    </div>
+  );
+}
+
+function StatusDot({ ok }: { ok: boolean }) {
+  return (
+    <span
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${ok ? "bg-emerald-400" : "bg-text-faint"}`}
+    />
+  );
+}
+
 function GeneralSection({ status }: { status: StatusResult | null }) {
   return (
     <>
@@ -137,30 +178,134 @@ function ConnectionSection({
   connected,
   models,
   onSelectModel,
-  onOpenConnect,
 }: {
   status: StatusResult | null;
   connected: boolean;
   models: string[];
   onSelectModel: (name: string) => void;
-  onOpenConnect: () => void;
 }) {
-  // Suppress unused-var lint until the section is filled in (step 2).
-  void models;
-  void onSelectModel;
+  const [apiKey, setApiKey] = useState("");
+  const [reveal, setReveal] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [savedOk, setSavedOk] = useState(false);
+
+  useEffect(() => {
+    const saved = loadConnection();
+    if (saved?.apiKey) setApiKey(saved.apiKey);
+  }, []);
+
+  const connect = async () => {
+    const key = apiKey.trim();
+    if (!key) {
+      setError("API key is required");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setSavedOk(false);
+    try {
+      const res = await api.connect(key);
+      if (res.ok) {
+        saveConnection({ apiKey: key });
+        setSavedOk(true);
+      } else {
+        setError(res.error || "connection failed");
+      }
+    } catch (e) {
+      setError(`could not reach backend: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const modelList: Model[] = models.map((m) => ({ id: m, name: m, description: "" }));
+  const selectedModel: Model = {
+    id: status?.model ?? "",
+    name: status?.model || "No model",
+    description: "",
+  };
+
   return (
     <>
-      <SectionHeader title="Provider" hint="API connection and default model." />
-      <p className="text-ui-lg text-text-muted">
-        {connected ? `Connected · ${status?.provider ?? ""}` : "Not connected"}
-      </p>
-      <button
-        type="button"
-        onClick={onOpenConnect}
-        className="mt-3 rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
+      <SectionHeader title="Provider" hint="OpenRouter connection and default model." />
+
+      <Field
+        label="Status"
+        description={connected ? "Backend is connected to the provider." : "Not connected."}
       >
-        {connected ? "Reconnect" : "Connect"}
-      </button>
+        <span className="flex items-center gap-2 text-ui text-text-secondary">
+          <StatusDot ok={connected} />
+          {connected ? "Connected" : "Disconnected"}
+        </span>
+      </Field>
+
+      <Field label="Provider">
+        <span className="text-ui text-text-secondary">{status?.provider || "—"}</span>
+      </Field>
+
+      <Field label="Default model" description="Used for new chats. Mirrors the status bar.">
+        {connected ? (
+          <ModelSelector
+            models={modelList}
+            selected={selectedModel}
+            onSelect={(m) => onSelectModel(m.id)}
+          />
+        ) : (
+          <span className="text-ui text-text-muted">—</span>
+        )}
+      </Field>
+
+      <div className="mt-6">
+        <label htmlFor="settings-api-key" className="block text-ui font-medium text-text-secondary">
+          API key
+        </label>
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="relative flex-1">
+            <input
+              id="settings-api-key"
+              type={reveal ? "text" : "password"}
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setSavedOk(false);
+                setError("");
+              }}
+              onKeyDown={(e) => e.key === "Enter" && connect()}
+              placeholder="sk-or-v1-…"
+              className="w-full rounded-xl border-2 border-line bg-fill-subtle py-2 pl-3 pr-10 text-ui text-text-primary placeholder:text-text-muted outline-none focus:border-fill-strong"
+            />
+            <button
+              type="button"
+              onClick={() => setReveal((v) => !v)}
+              aria-label={reveal ? "Hide API key" : "Show API key"}
+              className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+            >
+              {reveal ? (
+                <EyeOff className="h-4 w-4" strokeWidth={1.75} />
+              ) : (
+                <Eye className="h-4 w-4" strokeWidth={1.75} />
+              )}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={connect}
+            disabled={busy}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
+          >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {busy ? "Connecting…" : connected ? "Reconnect" : "Connect"}
+          </button>
+        </div>
+        {error && <p className="mt-2 text-ui text-danger">{error}</p>}
+        {savedOk && !error && (
+          <p className="mt-2 flex items-center gap-1.5 text-ui text-emerald-400">
+            <Check className="h-3.5 w-3.5" strokeWidth={2} />
+            Connected and saved.
+          </p>
+        )}
+      </div>
     </>
   );
 }

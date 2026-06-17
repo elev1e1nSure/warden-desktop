@@ -580,7 +580,6 @@ function App() {
               models={models}
               onSelectModel={handleSelectModel}
               onToggleMode={handleToggleMode}
-              onOpenConnect={() => setShowConnect(true)}
               onOpenSkills={() => setView("skills")}
             />
           </div>
