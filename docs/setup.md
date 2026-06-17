@@ -46,7 +46,6 @@ To view the list of all available commands, run `just` without arguments.
 You can also install all dependencies manually:
 ```powershell
 pnpm install
-# then in backend directory
 cd backend
 uv sync
 ```
@@ -68,10 +67,11 @@ pnpm.cmd install
 ### Install Backend Dependencies
 
 ```powershell
+cd backend
 uv sync
 ```
 
-Run this command inside the `backend/` directory. It creates a `.venv` folder and installs runtime and development dependencies specified in `pyproject.toml` and `uv.lock`.
+This creates a `.venv` folder and installs runtime and development dependencies specified in `pyproject.toml` and `uv.lock`.
 
 Optional dependency extras:
 
@@ -141,9 +141,34 @@ pnpm format         # Biome format --write
 pnpm typecheck      # tsc --noEmit
 pnpm check          # Biome: lint, format, and import sort
 
-uv run ruff check backend       # Python lint (run in backend/)
-uv run ruff format backend      # Python format (run in backend/)
+uv run ruff check .            # Python lint (run in backend/)
+uv run ruff format .            # Python format (run in backend/)
 uv run pytest                   # Backend tests (run in backend/)
+```
+
+## Running Tests
+
+```powershell
+just test            # All tests (frontend + backend)
+just test-frontend   # Frontend only (vitest)
+just test-backend    # Backend only (pytest, run in backend/)
+```
+
+Backend tests require being in the `backend/` directory:
+
+```powershell
+cd backend
+uv run pytest
+uv run pytest -q --no-cov       # Faster: skip coverage
+uv run pytest agent/test_server.py  # Single file
+```
+
+Coverage threshold is 79%. To generate a coverage report:
+
+```powershell
+cd backend
+uv run pytest --cov=agent --cov-report=html
+# Open htmlcov/index.html in a browser
 ```
 
 ## Building Backend Executable

@@ -7,7 +7,7 @@ flowchart TD
   User["User"] --> UI["React UI<br/>src/"]
   UI --> API["REST + NDJSON client<br/>src/api/"]
   API --> Backend["Python backend<br/>backend/agent/"]
-  Backend --> LLM["LLM provider<br/>Ollama / OpenAI-compatible API"]
+  Backend --> LLM["LLM provider<br/>OpenRouter (OpenAI-compatible API)"]
   Backend --> Tools["Tools<br/>filesystem, shell, browser, screen, memory"]
   UI --> Tauri["Tauri shell<br/>src-tauri/"]
   Tauri --> OS["Desktop window / OS integration"]
@@ -23,7 +23,7 @@ The main entry point is `src/App.tsx`. It manages the global UI state: active ch
 
 Important directories:
 
-- `src/components/` — UI components: sidebar, timeline, input, modals, status bar.
+- `src/components/` — UI components: sidebar, timeline, input, modals.
 - `src/api/` — API client to communicate with the backend.
 - `src/types.ts` — UI message and block type definitions.
 - `src/index.css`, `src/App.css` — application styles.
@@ -51,7 +51,7 @@ Tauri is responsible for the desktop window wrapper, window configuration, syste
 
 - `src-tauri/tauri.conf.json` — dev/build settings, window size, permissions, and app metadata.
 - `src-tauri/tauri.bundle.conf.json` — additional resources for bundled build.
-- `src-tauri/src/` — Rust entry point of the desktop application.
+- `src-tauri/src/` — Rust entry point of the desktop application. Rust spawns the Python backend and reads the backend token via `get_backend_token` command.
 - `src-tauri/icons/` — application icons.
 
 The application window is named `warden`. Its default window size is `1100x720` with a minimum size of `720x480`.
@@ -95,7 +95,7 @@ sequenceDiagram
 
 ## Source Map
 
-- UI behavior — `src/App.tsx` and `src/components/`.
+- UI behavior — `src/App.tsx`, `src/main.tsx`, and `src/components/`.
 - Backend endpoints — `backend/agent/server.py`.
 - Streaming protocol — `src/api/stream.ts` and backend chat routes.
 - Build scripts — `package.json`, `scripts/`, `src-tauri/`.

@@ -33,8 +33,8 @@ The project currently integrates several components:
 The `backend/` folder contains the agent runtime:
 
 - `backend/agent/` — Python backend server and logic;
-- `backend/requirements.txt` — Python dependencies;
+- `backend/pyproject.toml` — Python dependencies (managed with `uv`);
 - `backend/run_backend.py` — entry point script for PyInstaller;
 - `backend/.warden/skills/` — project skills.
 
-The Go CLI has been removed from the project: the desktop UI is now the sole frontend for the Python backend.
+The desktop UI is the sole frontend for the Python backend (Go CLI was removed in an earlier release).
