@@ -26,6 +26,11 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 - If product scope changes, update [docs/project.md](docs/project.md).
 - Prefer existing patterns over new abstractions.
 
+## Commits
+
+- Write commit messages in English (overrides the global Russian-commit preference for this repo).
+- Use conventional commits with a scope: `type(scope): description`, no trailing period.
+
 ## Do Not
 
 - Do not reintroduce the Go CLI.
