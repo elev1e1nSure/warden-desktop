@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, Check, File, FileText, Paperclip, Search, Square, X } from "lucide-react";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -8,16 +9,15 @@ import {
   useReducer,
   useRef,
   useState,
-  memo,
 } from "react";
 import { api } from "../api/client";
 import { saveConnection } from "../api/session";
 import type { SkillInfo } from "../api/types";
 import { pop } from "../motion";
+import type { Model } from "../types";
+import ModelSelector from "./ModelSelector";
 import ModeToggle from "./ModeToggle";
 import Tooltip from "./Tooltip";
-import ModelSelector from "./ModelSelector";
-import type { Model } from "../types";
 
 const BUILTIN_COMMANDS = [{ name: "api", description: "Change API key" }] as const;
 
@@ -231,9 +231,9 @@ function InputBar({
     }
 
     onSend(trimmed, attachedFiles);
-    for (const f of attachedFiles) {
-      if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
-    }
+    // Do NOT revoke preview URLs here — the timeline needs them to render
+    // the attached images. They will be revoked when the file is explicitly
+    // removed (removeFile) or when the chat is switched/cleared.
     setValue("");
     setAttachedFiles([]);
   };
@@ -404,7 +404,6 @@ function InputBar({
           dragOver ? "border-accent" : "border-line"
         }`}
       >
-
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachedFiles.map((f) => (

@@ -1,7 +1,15 @@
 import { AnimatePresence, MotionConfig } from "framer-motion";
-import { type CSSProperties, type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "./api/client";
-import { loadConnection } from "./api/session";
+import {
+  type CSSProperties,
+  type UIEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { api, setAuthToken } from "./api/client";
+import { loadConnection, verifyBackend } from "./api/session";
 import { streamChat } from "./api/stream";
 import type { ChatEvent, ConfirmEvent, QuestionEvent, StatusResult } from "./api/types";
 import ConfirmModal from "./components/ConfirmModal";
@@ -11,6 +19,7 @@ import QuestionModal from "./components/QuestionModal";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
+import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
 import Toaster from "./components/Toaster";
 import type { Block, Chat, Model } from "./types";
@@ -32,11 +41,14 @@ const WELCOME_PHRASES = [
   "What shall we build today?",
   "Ready to orchestrate some tasks?",
   "Let's automate the routine.",
-  "What's on the horizon?"
+  "What's on the horizon?",
 ];
 
 const cleanLLMTokens = (str: string): string => {
-  return str.replace(/<\|eom\|>|<\|eot_id\|>|<\|eom_id\|>|<\|im_end\|>|<\|im_start\|>|<\|end_of_text\|>|<\|endoftext\|>|<\/s>|<s>|<pad>/gi, "");
+  return str.replace(
+    /<\|eom\|>|<\|eot_id\|>|<\|eom_id\|>|<\|im_end\|>|<\|im_start\|>|<\|end_of_text\|>|<\|endoftext\|>|<\/s>|<s>|<pad>/gi,
+    "",
+  );
 };
 
 function App() {
@@ -79,17 +91,24 @@ function App() {
     return WELCOME_PHRASES[idx] ?? WELCOME_PHRASES[0];
   }, []);
 
-  const modelList: Model[] = useMemo(() => models.map((m) => ({
-    id: m,
-    name: m,
-    description: "",
-  })), [models]);
+  const modelList: Model[] = useMemo(
+    () =>
+      models.map((m) => ({
+        id: m,
+        name: m,
+        description: "",
+      })),
+    [models],
+  );
 
-  const selectedModel: Model = useMemo(() => ({
-    id: status?.model ?? "",
-    name: status?.model || "No model",
-    description: "",
-  }), [status?.model]);
+  const selectedModel: Model = useMemo(
+    () => ({
+      id: status?.model ?? "",
+      name: status?.model || "No model",
+      description: "",
+    }),
+    [status?.model],
+  );
 
   // commit: marks blocks as dirty (needs saving). Use for user actions / stream events.
   const commit = useCallback((next: Block[]) => {
@@ -169,7 +188,9 @@ function App() {
     persistTimerRef.current = window.setTimeout(() => {
       persistTimerRef.current = null;
       blocksDirtyRef.current = false;
-      void api.saveChatBlocks(id, snapshot).catch(() => {});
+      void api.saveChatBlocks(id, snapshot).catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.error("saveChatBlocks failed:", err);
+      });
     }, 300);
     return () => {
       if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
@@ -224,11 +245,16 @@ function App() {
         };
 
         await sync();
+        if (cancelled) return;
 
         const u1 = await win.listen("tauri://enter-fullscreen", debouncedSync);
+        if (cancelled) return;
         const u2 = await win.listen("tauri://leave-fullscreen", debouncedSync);
+        if (cancelled) return;
         const u3 = await win.listen("tauri://maximize", debouncedSync);
+        if (cancelled) return;
         const u4 = await win.listen("tauri://unmaximize", debouncedSync);
+        if (cancelled) return;
         const u5 = await win.listen("tauri://resize", debouncedSync);
 
         window.addEventListener("resize", debouncedSync);
@@ -257,6 +283,16 @@ function App() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // 1. Try to fetch the shared secret token from the Tauri shell.
+      //    In dev (without Tauri) this will fail silently.
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const token = await invoke<string>("get_backend_token");
+        if (token) setAuthToken(token);
+      } catch {
+        // Not running inside Tauri or token not available — dev mode, WARDEN_DEV=1
+      }
+
       for (let i = 0; i < 90; i++) {
         if (cancelled) return;
         if (await api.health()) break;
@@ -283,6 +319,10 @@ function App() {
         const saved = loadConnection();
         if (saved) {
           try {
+            // Verify the backend is our own Warden instance before sending the
+            // API key — protects against a rogue process listening on :8765.
+            const ok = await verifyBackend();
+            if (!ok) return;
             const r = await api.connect(saved.apiKey);
             if (!cancelled && r.ok) {
               await refreshStatus();
@@ -309,191 +349,205 @@ function App() {
     };
   }, [refreshStatus, loadModels, loadChats]);
 
-  const appendText = useCallback((
-    slot: React.MutableRefObject<string | null>,
-    kind: "assistant" | "think",
-    text: string,
-  ) => {
-    const cur = slot.current;
-    const list = blocksRef.current;
-    if (cur) {
-      commit(
-        list.map((b) => (b.id === cur && b.kind === kind ? { ...b, text: cleanLLMTokens(b.text + text) } : b)),
-      );
-    } else {
-      const id = genId();
-      slot.current = id;
-      commit([...list, { id, kind, text: cleanLLMTokens(text) }]);
-    }
-  }, [commit, genId]);
-
-  const onEvent = useCallback((e: ChatEvent) => {
-    switch (e.type) {
-      case "warden_start":
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        break;
-      case "title":
-        setActiveChatId(e.chat_id);
-        setChats((prev) => {
-          const idx = prev.findIndex((chat) => chat.id === e.chat_id);
-          const timestamp = nowTimestamp();
-          if (idx === -1) {
-            return [{ id: e.chat_id, title: e.title, timestamp, messages: [] }, ...prev];
-          }
-          return prev.map((chat) =>
-            chat.id === e.chat_id ? { ...chat, title: e.title, timestamp } : chat,
-          );
-        });
-        break;
-      case "token":
-        appendText(assistantIdRef, "assistant", e.text);
-        break;
-      case "think": {
-        const cur = thinkIdRef.current;
-        const list = blocksRef.current;
-        if (cur) {
-          commit(
-            list.map((b) =>
-              b.id === cur && b.kind === "think" ? { ...b, text: cleanLLMTokens(b.text + e.text) } : b,
-            ),
-          );
-        } else {
-          const id = genId();
-          thinkIdRef.current = id;
-          const assistantId = assistantIdRef.current;
-          if (assistantId) {
-            const idx = list.findIndex((b) => b.id === assistantId);
-            const next = [...list];
-            next.splice(idx, 0, { id, kind: "think", text: cleanLLMTokens(e.text) });
-            commit(next);
-          } else {
-            commit([...list, { id, kind: "think", text: cleanLLMTokens(e.text) }]);
-          }
-        }
-        break;
-      }
-      case "tool_start": {
+  const appendText = useCallback(
+    (slot: React.MutableRefObject<string | null>, kind: "assistant" | "think", text: string) => {
+      const cur = slot.current;
+      const list = blocksRef.current;
+      if (cur) {
+        commit(
+          list.map((b) =>
+            b.id === cur && b.kind === kind ? { ...b, text: cleanLLMTokens(b.text + text) } : b,
+          ),
+        );
+      } else {
         const id = genId();
-        toolIdRef.current = id;
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        commit([
-          ...blocksRef.current,
-          { id, kind: "tool", name: e.name, args: e.args, status: "running" },
-        ]);
-        break;
+        slot.current = id;
+        commit([...list, { id, kind, text: cleanLLMTokens(text) }]);
       }
-      case "tool": {
-        const running = toolIdRef.current;
-        if (running) {
-          toolIdRef.current = null;
-          commit(
-            blocksRef.current.map((b) =>
-              b.id === running && b.kind === "tool"
-                ? { ...b, result: e.result, diff: e.diff, status: "done" }
-                : b,
-            ),
-          );
-        } else {
+    },
+    [commit, genId],
+  );
+
+  const onEvent = useCallback(
+    (e: ChatEvent) => {
+      switch (e.type) {
+        case "warden_start":
+          assistantIdRef.current = null;
+          thinkIdRef.current = null;
+          break;
+        case "title":
+          setActiveChatId(e.chat_id);
+          setChats((prev) => {
+            const idx = prev.findIndex((chat) => chat.id === e.chat_id);
+            const timestamp = nowTimestamp();
+            if (idx === -1) {
+              return [{ id: e.chat_id, title: e.title, timestamp, messages: [] }, ...prev];
+            }
+            return prev.map((chat) =>
+              chat.id === e.chat_id ? { ...chat, title: e.title, timestamp } : chat,
+            );
+          });
+          break;
+        case "token":
+          appendText(assistantIdRef, "assistant", e.text);
+          break;
+        case "think": {
+          const cur = thinkIdRef.current;
+          const list = blocksRef.current;
+          if (cur) {
+            commit(
+              list.map((b) =>
+                b.id === cur && b.kind === "think"
+                  ? { ...b, text: cleanLLMTokens(b.text + e.text) }
+                  : b,
+              ),
+            );
+          } else {
+            const id = genId();
+            thinkIdRef.current = id;
+            const assistantId = assistantIdRef.current;
+            if (assistantId) {
+              const idx = list.findIndex((b) => b.id === assistantId);
+              const next = [...list];
+              next.splice(idx, 0, { id, kind: "think", text: cleanLLMTokens(e.text) });
+              commit(next);
+            } else {
+              commit([...list, { id, kind: "think", text: cleanLLMTokens(e.text) }]);
+            }
+          }
+          break;
+        }
+        case "tool_start": {
+          const id = genId();
+          toolIdRef.current = id;
+          assistantIdRef.current = null;
+          thinkIdRef.current = null;
           commit([
             ...blocksRef.current,
-            {
-              id: genId(),
-              kind: "tool",
-              name: e.name,
-              args: e.args,
-              result: e.result,
-              diff: e.diff,
-              status: "done",
-            },
+            { id, kind: "tool", name: e.name, args: e.args, status: "running" },
           ]);
+          break;
         }
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        break;
+        case "tool": {
+          const running = toolIdRef.current;
+          if (running) {
+            toolIdRef.current = null;
+            commit(
+              blocksRef.current.map((b) =>
+                b.id === running && b.kind === "tool"
+                  ? { ...b, result: e.result, diff: e.diff, status: "done" }
+                  : b,
+              ),
+            );
+          } else {
+            commit([
+              ...blocksRef.current,
+              {
+                id: genId(),
+                kind: "tool",
+                name: e.name,
+                args: e.args,
+                result: e.result,
+                diff: e.diff,
+                status: "done",
+              },
+            ]);
+          }
+          assistantIdRef.current = null;
+          thinkIdRef.current = null;
+          break;
+        }
+        case "confirm":
+          setConfirmReq(e);
+          break;
+        case "question":
+          setQuestionReq(e);
+          break;
+        case "done":
+          break;
+        case "error":
+          assistantIdRef.current = null;
+          commit([...blocksRef.current, { id: genId(), kind: "error", text: e.text.trim() }]);
+          break;
       }
-      case "confirm":
-        setConfirmReq(e);
-        break;
-      case "question":
-        setQuestionReq(e);
-        break;
-      case "done":
-        break;
-      case "error":
-        assistantIdRef.current = null;
-        commit([...blocksRef.current, { id: genId(), kind: "error", text: e.text.trim() }]);
-        break;
-    }
-  }, [appendText, commit, genId]);
+    },
+    [appendText, commit, genId],
+  );
 
-  const handleSend = useCallback(async (text: string, files: AttachedFile[]) => {
-    if (streaming || !connected) return;
-    assistantIdRef.current = null;
-    thinkIdRef.current = null;
-    toolIdRef.current = null;
+  const handleSend = useCallback(
+    async (text: string, files: AttachedFile[]) => {
+      if (streaming || !connected) return;
+      assistantIdRef.current = null;
+      thinkIdRef.current = null;
+      toolIdRef.current = null;
 
-    let fileIds: string[] = [];
-    let uploadFailed = false;
-    if (files.length > 0) {
-      try {
-        const results = await Promise.all(files.map((f) => api.uploadFile(f.file)));
-        fileIds = results.filter(Boolean);
-      } catch {
-        uploadFailed = true;
+      let fileIds: string[] = [];
+      let uploadFailed = false;
+      if (files.length > 0) {
+        try {
+          const results = await Promise.all(files.map((f) => api.uploadFile(f.file)));
+          fileIds = results.filter(Boolean);
+        } catch {
+          uploadFailed = true;
+        }
       }
-    }
 
-    if (uploadFailed && !text) {
-      commit([
-        ...blocksRef.current,
-        {
-          id: genId(),
-          kind: "error",
-          text: "File upload failed; nothing was sent.",
-        },
-      ]);
-      return;
-    }
+      if (uploadFailed && !text) {
+        commit([
+          ...blocksRef.current,
+          {
+            id: genId(),
+            kind: "error",
+            text: "File upload failed; nothing was sent.",
+          },
+        ]);
+        return;
+      }
 
-    const next = [...blocksRef.current];
+      const next = [...blocksRef.current];
 
-    for (const f of files) {
-      if (f.file.type.startsWith("image/") && f.previewUrl) {
-        next.push({
-          id: genId(),
-          kind: "image",
-          name: f.file.name,
-          url: f.previewUrl,
+      for (const f of files) {
+        if (f.file.type.startsWith("image/") && f.previewUrl) {
+          next.push({
+            id: genId(),
+            kind: "image",
+            name: f.file.name,
+            url: f.previewUrl,
+          });
+        }
+      }
+
+      if (text || next.length === blocksRef.current.length) {
+        const displayText = text || (files.length > 0 ? `[${files.length} file(s) attached]` : "");
+        if (displayText) {
+          next.push({ id: genId(), kind: "user", text: displayText });
+        }
+      }
+
+      commit(next);
+
+      setFollowTimeline(true);
+      setStreaming(true);
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      const payload: { text: string; files?: string[] } = { text };
+      if (fileIds.length > 0) payload.files = fileIds;
+      streamChat(payload, onEvent, ctrl.signal)
+        .finally(() => {
+          // Guard against race: if a new stream was started while this one was
+          // finishing, `abortRef.current` will point to the new controller.
+          if (abortRef.current !== ctrl) return;
+          abortRef.current = null;
+          setStreaming(false);
+          refreshStatus();
+          loadChats();
+        })
+        .catch((err) => {
+          if (process.env.NODE_ENV !== "production") console.error("streamChat failed:", err);
         });
-      }
-    }
-
-    if (text || next.length === blocksRef.current.length) {
-      const displayText = text || (files.length > 0 ? `[${files.length} file(s) attached]` : "");
-      if (displayText) {
-        next.push({ id: genId(), kind: "user", text: displayText });
-      }
-    }
-
-    commit(next);
-
-    setFollowTimeline(true);
-    setStreaming(true);
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const payload: { text: string; files?: string[] } = { text };
-    if (fileIds.length > 0) payload.files = fileIds;
-    streamChat(payload, onEvent, ctrl.signal)
-      .finally(() => {
-        setStreaming(false);
-        abortRef.current = null;
-        refreshStatus();
-        loadChats();
-      })
-      .catch(() => {});
-  }, [streaming, connected, commit, genId, onEvent, refreshStatus, loadChats]);
+    },
+    [streaming, connected, commit, genId, onEvent, refreshStatus, loadChats],
+  );
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -503,25 +557,31 @@ function App() {
     setQuestionReq(null);
   }, []);
 
-  const handleConfirm = useCallback(async (ok: boolean) => {
-    const req = confirmReq;
-    try {
-      if (req) await api.confirm(req.id, ok);
-      setConfirmReq(null);
-    } catch {
-      // keep modal open so the user can retry or cancel
-    }
-  }, [confirmReq]);
+  const handleConfirm = useCallback(
+    async (ok: boolean) => {
+      const req = confirmReq;
+      try {
+        if (req) await api.confirm(req.id, ok);
+        setConfirmReq(null);
+      } catch {
+        // keep modal open so the user can retry or cancel
+      }
+    },
+    [confirmReq],
+  );
 
-  const handleAnswer = useCallback(async (answers: string[][]) => {
-    const req = questionReq;
-    try {
-      if (req) await api.answerQuestion(req.id, answers);
-      setQuestionReq(null);
-    } catch {
-      // keep modal open so the user can retry or cancel
-    }
-  }, [questionReq]);
+  const handleAnswer = useCallback(
+    async (answers: string[][]) => {
+      const req = questionReq;
+      try {
+        if (req) await api.answerQuestion(req.id, answers);
+        setQuestionReq(null);
+      } catch {
+        // keep modal open so the user can retry or cancel
+      }
+    },
+    [questionReq],
+  );
 
   const handleToggleMode = useCallback(async () => {
     if (!status) return;
@@ -534,24 +594,27 @@ function App() {
     }
   }, [status]);
 
-  const handleSelectModel = useCallback(async (name: string) => {
-    if (!name || name === status?.model) return;
-    // Reflect the choice instantly — switching should never wait on the
-    // network round-trip. The in-flight model is tracked so a status refresh
-    // can't clobber it before the backend confirms.
-    pendingModelRef.current = name;
-    setStatus((prev) => (prev ? { ...prev, model: name } : prev));
-    try {
-      await api.setModel(name);
-      localStorage.setItem("warden.lastModel", name);
-    } catch {
-      // Switch failed — reconcile with whatever the backend actually has.
+  const handleSelectModel = useCallback(
+    async (name: string) => {
+      if (!name || name === status?.model) return;
+      // Reflect the choice instantly — switching should never wait on the
+      // network round-trip. The in-flight model is tracked so a status refresh
+      // can't clobber it before the backend confirms.
+      pendingModelRef.current = name;
+      setStatus((prev) => (prev ? { ...prev, model: name } : prev));
+      try {
+        await api.setModel(name);
+        localStorage.setItem("warden.lastModel", name);
+      } catch {
+        // Switch failed — reconcile with whatever the backend actually has.
+        pendingModelRef.current = null;
+        await refreshStatus();
+        return;
+      }
       pendingModelRef.current = null;
-      await refreshStatus();
-      return;
-    }
-    pendingModelRef.current = null;
-  }, [status, refreshStatus]);
+    },
+    [status, refreshStatus],
+  );
 
   const handleNewChat = useCallback(async () => {
     try {
@@ -568,23 +631,26 @@ function App() {
     }
   }, [flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
 
-  const handleSelectChat = useCallback(async (id: string) => {
-    if (id === activeChatId) return;
-    try {
-      await flushActiveChatBlocks();
-      handleStop();
-      const res = await api.selectChat(id);
-      const blocks = res.chat.blocks ?? [];
-      setActiveChatId(res.chat.id);
-      loadBlocks(blocks);
-      setFollowTimeline(true);
-      setGen((g) => g + 1);
-      await refreshStatus();
-      await loadChats();
-    } catch {
-      // leave the current chat selected if the switch fails
-    }
-  }, [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, refreshStatus, loadChats]);
+  const handleSelectChat = useCallback(
+    async (id: string) => {
+      if (id === activeChatId) return;
+      try {
+        await flushActiveChatBlocks();
+        handleStop();
+        const res = await api.selectChat(id);
+        const blocks = res.chat.blocks ?? [];
+        setActiveChatId(res.chat.id);
+        loadBlocks(blocks);
+        setFollowTimeline(true);
+        setGen((g) => g + 1);
+        await refreshStatus();
+        await loadChats();
+      } catch {
+        // leave the current chat selected if the switch fails
+      }
+    },
+    [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, refreshStatus, loadChats],
+  );
 
   const handleRenameChat = useCallback(async (id: string, title: string) => {
     if (!title.trim()) return;
@@ -596,19 +662,22 @@ function App() {
     }
   }, []);
 
-  const handleDeleteChat = useCallback(async (id: string) => {
-    try {
-      await api.deleteChat(id);
-      if (id === activeChatId) {
-        setActiveChatId(null);
-        loadBlocks([]);
-        setGen((g) => g + 1);
+  const handleDeleteChat = useCallback(
+    async (id: string) => {
+      try {
+        await api.deleteChat(id);
+        if (id === activeChatId) {
+          setActiveChatId(null);
+          loadBlocks([]);
+          setGen((g) => g + 1);
+        }
+        await loadChats();
+      } catch {
+        /* ignore */
       }
-      await loadChats();
-    } catch {
-      /* ignore */
-    }
-  }, [activeChatId, loadBlocks, loadChats]);
+    },
+    [activeChatId, loadBlocks, loadChats],
+  );
 
   const handleConnected = useCallback(async () => {
     try {
@@ -747,7 +816,6 @@ function App() {
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
             >
               <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-
                 {/* Timeline */}
                 {(hasBlocks || streaming) && (
                   <div
@@ -771,11 +839,13 @@ function App() {
                   className={
                     hasBlocks || streaming
                       ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-10 bg-gradient-to-t from-bg via-bg/95 to-transparent pointer-events-none"
-                      : "flex flex-1 flex-col items-center justify-center px-6 w-full"
+                      : "relative isolate flex flex-1 flex-col items-center justify-center overflow-hidden px-6 w-full"
                   }
                 >
+                  {!(hasBlocks || streaming) && <StarfieldBackdrop />}
+
                   {!(hasBlocks || streaming) && (
-                    <div className="mb-7 select-none">
+                    <div className="relative z-10 mb-7 select-none">
                       <div
                         style={{ transform: "translateX(var(--chat-shift, 0px))" }}
                         className="text-center"
@@ -791,7 +861,7 @@ function App() {
                     className={
                       hasBlocks || streaming
                         ? "mx-auto w-full max-w-3xl pointer-events-auto"
-                        : "w-full max-w-3xl"
+                        : "relative z-10 w-full max-w-3xl"
                     }
                   >
                     <AnimatePresence mode="wait">
