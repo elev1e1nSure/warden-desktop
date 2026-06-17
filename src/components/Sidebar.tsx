@@ -104,7 +104,7 @@ export default function Sidebar({
   return (
     <aside
       style={{ width, backdropFilter: "blur(25px)", WebkitBackdropFilter: "blur(25px)" }}
-      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar"
+      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
     >
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">

@@ -706,18 +706,16 @@ function App() {
                   <div
                     className="absolute bottom-0 left-0 right-0 z-[19] pointer-events-none"
                     style={{
-                      height: "9rem",
-                      backdropFilter: "blur(14px)",
-                      WebkitBackdropFilter: "blur(14px)",
-                      maskImage: "linear-gradient(to top, black 45%, transparent 100%)",
-                      WebkitMaskImage: "linear-gradient(to top, black 45%, transparent 100%)",
+                      height: "11rem",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
                     }}
                   />
                 )}
                 <div
                   className={
                     hasBlocks || streaming
-                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-transparent pointer-events-none"
+                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-bg/20 pointer-events-none"
                       : "flex flex-1 flex-col items-center justify-center px-6 w-full"
                   }
                 >
