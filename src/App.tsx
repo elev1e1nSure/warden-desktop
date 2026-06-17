@@ -672,7 +672,7 @@ function App() {
                   "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
                 } as CSSProperties
               }
-              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg bg-grid-drift"
+              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
             >
               <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                 <StatusBar

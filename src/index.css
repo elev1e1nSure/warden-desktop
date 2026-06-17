@@ -230,29 +230,6 @@ input::placeholder {
   }
 }
 
-/* ─── Ambient Grid Drift ───────────────────────────────────── */
-@keyframes grid-drift {
-  from {
-    background-position: 0px 0px;
-  }
-  to {
-    background-position: 64px 64px;
-  }
-}
-
-.bg-grid-drift {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
-  background-size: 64px 64px;
-  animation: grid-drift 25s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bg-grid-drift {
-    animation: none !important;
-  }
-}
 
 /* ─── Ambient Glow Orbs ────────────────────────────────────── */
 @keyframes ambient-drift-1 {
