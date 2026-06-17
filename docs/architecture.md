@@ -1,6 +1,6 @@
-# Архитектура
+# Architecture
 
-Проект устроен как desktop shell вокруг существующего Warden backend.
+The project is structured as a desktop shell around the existing Warden backend.
 
 ```mermaid
 flowchart TD
@@ -13,67 +13,67 @@ flowchart TD
   Tauri --> OS["Desktop window / OS integration"]
 ```
 
-## Слои
+## Layers
 
 ### React UI
 
-Код находится в `src/`.
+The UI code is located in `src/`.
 
-Главный файл — `src/App.tsx`. Он держит состояние UI: текущий чат, список чатов, выбранную модель, streaming state, confirmations, questions и переключение между chat view и skills view.
+The main entry point is `src/App.tsx`. It manages the global UI state: active chat, chat list, selected LLM model, streaming state, confirmations, questions, and view switching between chat view and skills view.
 
-Важные папки:
+Important directories:
 
-- `src/components/` — визуальные компоненты: sidebar, timeline, input, modals, status bar.
-- `src/api/` — клиент к backend.
-- `src/types.ts` — UI-типы сообщений и блоков.
-- `src/index.css`, `src/App.css` — стили приложения.
+- `src/components/` — UI components: sidebar, timeline, input, modals, status bar.
+- `src/api/` — API client to communicate with the backend.
+- `src/types.ts` — UI message and block type definitions.
+- `src/index.css`, `src/App.css` — application styles.
 
-### API client
+### API Client
 
-Код находится в `src/api/`.
+The client code is located in `src/api/`.
 
-- `client.ts` — REST-запросы к backend.
-- `stream.ts` — streaming chat через `POST /chat` и NDJSON.
-- `session.ts` — локальное хранение данных подключения.
-- `types.ts` — типы backend events и responses.
+- `client.ts` — REST requests to the backend.
+- `stream.ts` — streaming chat via `POST /chat` using NDJSON.
+- `session.ts` — local storage helper for connection details.
+- `types.ts` — backend event and response type mappings.
 
-Frontend ожидает backend на:
+The frontend expects the backend server to be listening at:
 
 ```text
 http://localhost:8765
 ```
 
-### Tauri shell
+### Tauri Shell
 
-Код находится в `src-tauri/`.
+The Tauri wrapper is located in `src-tauri/`.
 
-Tauri отвечает за desktop-окно, настройки приложения и packaging. Основная конфигурация:
+Tauri is responsible for the desktop window wrapper, window configuration, system integration, and packaging. Key configurations:
 
-- `src-tauri/tauri.conf.json` — dev/build настройки, окно, app metadata.
-- `src-tauri/tauri.bundle.conf.json` — дополнительные resources для bundled build.
-- `src-tauri/src/` — Rust entrypoint приложения.
-- `src-tauri/icons/` — app icons.
+- `src-tauri/tauri.conf.json` — dev/build settings, window size, permissions, and app metadata.
+- `src-tauri/tauri.bundle.conf.json` — additional resources for bundled build.
+- `src-tauri/src/` — Rust entry point of the desktop application.
+- `src-tauri/icons/` — application icons.
 
-Окно приложения называется `warden`, стартовый размер — `1100x720`, минимальный — `720x480`.
+The application window is named `warden`. Its default window size is `1100x720` with a minimum size of `720x480`.
 
-### Python backend
+### Python Backend
 
-Код находится в `backend/agent/`.
+The backend code is located in `backend/agent/`.
 
-Backend предоставляет HTTP API для desktop UI и выполняет основную работу агента:
+The backend exposes an HTTP API for the desktop UI and drives the agent runtime execution:
 
-- chat session;
+- chat session lifecycle;
 - streaming events;
-- LLM client;
+- LLM client interactions;
 - tool execution;
-- confirmations;
-- memory;
-- skills;
+- confirmation prompts;
+- long-term memory;
+- skills execution;
 - safety policies.
 
-Desktop UI не вызывает tools напрямую. Он отправляет сообщения backend и показывает события, которые backend стримит обратно.
+The desktop UI does not run tools directly. It sends messages to the backend and renders the stream of events sent back by the agent.
 
-## Поток сообщения
+## Message Flow
 
 ```mermaid
 sequenceDiagram
@@ -83,7 +83,7 @@ sequenceDiagram
   participant B as Python backend
   participant L as LLM/tools
 
-  U->>UI: пишет сообщение
+  U->>UI: writes a message
   UI->>API: streamChat(payload)
   API->>B: POST /chat
   B->>L: model/tool loop
@@ -93,10 +93,10 @@ sequenceDiagram
   UI-->>U: timeline updates
 ```
 
-## Где искать правду
+## Source Map
 
-- UI behavior — `src/App.tsx` и `src/components/`.
+- UI behavior — `src/App.tsx` and `src/components/`.
 - Backend endpoints — `backend/agent/server.py`.
-- Streaming protocol — `src/api/stream.ts` и backend chat routes.
+- Streaming protocol — `src/api/stream.ts` and backend chat routes.
 - Build scripts — `package.json`, `scripts/`, `src-tauri/`.
 - Agent internals — `backend/agent/`.

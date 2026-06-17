@@ -81,7 +81,7 @@ export default function Sidebar({
     const trigger = menuTriggerRef.current[menuChatId];
     if (trigger) {
       const rect = trigger.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, left: rect.right });
+      setMenuPos({ top: rect.top - 4, left: rect.right });
     }
     // Close on any click outside the menu or its trigger. We use 'click'
     // (not 'mousedown') so the trigger's own click that *opens* the menu
@@ -257,46 +257,51 @@ export default function Sidebar({
                 const chat = chats.find((c) => c.id === menuChatId);
                 if (!chat) return null;
                 return (
-                  <motion.div
-                    ref={menuRef}
-                    initial={{ opacity: 0, scale: 0.97, y: -4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97, y: -4 }}
-                    transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
+                  <div
                     style={{
                       position: "fixed",
                       top: menuPos.top,
                       left: menuPos.left,
-                      transform: "translateX(-100%)",
-                      transformOrigin: "top right",
+                      transform: "translate(-100%, -100%)",
                       zIndex: 9999,
                     }}
-                    className="w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-xl flex flex-col gap-0.5"
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRenamingId(chat.id);
-                        setRenameValue(chat.title);
-                        setMenuChatId(null);
+                    <motion.div
+                      ref={menuRef}
+                      initial={{ opacity: 0, scale: 0.97, y: 4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.97, y: 4 }}
+                      transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
+                      style={{
+                        transformOrigin: "bottom right",
                       }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+                      className="w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-xl flex flex-col gap-0.5"
                     >
-                      <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                      Rename
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onDeleteChat(chat.id);
-                        setMenuChatId(null);
-                      }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                      Delete
-                    </button>
-                  </motion.div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenamingId(chat.id);
+                          setRenameValue(chat.title);
+                          setMenuChatId(null);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+                      >
+                        <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeleteChat(chat.id);
+                          setMenuChatId(null);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                        Delete
+                      </button>
+                    </motion.div>
+                  </div>
                 );
               })()
             : null}

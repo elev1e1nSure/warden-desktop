@@ -57,21 +57,21 @@ select = [
 ignore = [
     "E501",  # line length handled by formatter
     "B008",  # function calls in argument defaults (common in fastapi-style)
-    # ─── Tech debt: вернуть к проверке после рефактора на этапе 5 ───
-    "RUF012", # mutable-class-default — нужно ClassVar в tools/*.py
+    # ─── Tech debt: restore validation after refactoring in stage 5 ───
+    "RUF012", # mutable-class-default — ClassVar is needed in tools/*.py
     "RUF059", # unused-unpacked-variable
-    "F401",   # unused-import — нужна чистка
+    "F401",   # unused-import — cleanup needed
     "F841",   # unused-variable
     "E741",   # ambiguous variable name (l, I, O)
-    "SIM105", # suppressible-exception — заменить на contextlib.suppress
+    "SIM105", # suppressible-exception — replace with contextlib.suppress
     "SIM117", # multiple-with-statements
-    "SIM108", # if-else вместо тернарного
-    "RUF001", # ambiguous unicode character (— vs - и т.п.)
+    "SIM108", # if-else instead of ternary
+    "RUF001", # ambiguous unicode character (— vs - etc.)
     "RUF005", # collection-literal-concat
-    "RUF006", # asyncio-dangling-task — потенциальный баг, проверить
+    "RUF006", # asyncio-dangling-task — potential bug, needs verification
     "B007",   # unused loop control variable
-    "B905",   # zip без strict=
-    "E402",   # import не в начале файла
+    "B905",   # zip without strict=
+    "E402",   # import not at top of file
 ]
 
 [tool.ruff.lint.per-file-ignores]

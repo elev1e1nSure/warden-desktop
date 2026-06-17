@@ -75,13 +75,38 @@ Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest)
 
 ### Build from source
 
+Using `just` (recommended):
+
 ```powershell
+# Install all dependencies (frontend and backend)
+just install
+
+# Run the complete development environment (frontend, backend, Tauri)
+just dev
+
+# Build the desktop application
+just build-app
+```
+
+Or manually:
+
+```powershell
+# Install frontend dependencies
 pnpm install
+
+# Install backend dependencies (in backend/)
+cd backend
+uv sync
+cd ..
+
+# Run the development environment
 pnpm dev:all
+
+# Build the application
 pnpm build:app
 ```
 
-Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain
+Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain, and optionally [just](https://github.com/casey/just).
 
 ---
 

@@ -63,10 +63,8 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
             <div
               className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto no-scrollbar"
               style={{
-                maskImage:
-                  "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
               }}
             >
               {filtered.length === 0 && (

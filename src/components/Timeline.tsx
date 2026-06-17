@@ -436,7 +436,7 @@ export default function Timeline({
       style={{ transform: "translateX(var(--chat-shift, 0px))" }}
       className="mx-auto w-full max-w-3xl"
     >
-      <div className="flex w-full flex-col gap-4 px-6 pt-12 pb-8">
+      <div className="flex w-full flex-col gap-4 px-6 pt-12 pb-32">
         {groups.map((g) => (
           <div key={`${generation}-${groupKey(g)}`}>
             {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}

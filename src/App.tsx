@@ -620,9 +620,16 @@ function App() {
                   "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
                 } as CSSProperties
               }
-              className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg"
+              className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg bg-grid-drift"
             >
-              <div className="flex min-h-0 flex-1 flex-col">
+              {/* Ambient Background Gradients */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
+                <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
+                <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
+              </div>
+
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                 <StatusBar
                   status={status}
                   connected={connected}
@@ -657,14 +664,15 @@ function App() {
 
                 {/* Input zone */}
                 <motion.div
+                  layout="position"
                   className={
-                    hasBlocks
-                      ? "shrink-0 px-6 pt-2 pb-6"
-                      : "flex flex-1 flex-col items-center justify-center px-6"
+                    hasBlocks || streaming
+                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-transparent pointer-events-none"
+                      : "flex flex-1 flex-col items-center justify-center px-6 w-full"
                   }
                 >
                   <AnimatePresence mode="popLayout">
-                    {!hasBlocks && (
+                    {!(hasBlocks || streaming) && (
                       <motion.div {...headingPop} className="mb-7 select-none">
                         <div
                           style={{ transform: "translateX(var(--chat-shift, 0px))" }}
@@ -678,15 +686,23 @@ function App() {
                     )}
                   </AnimatePresence>
 
-                  <InputBar
-                    onSend={handleSend}
-                    onStop={handleStop}
-                    streaming={streaming}
-                    disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
-                    placeholder={connected ? "Message warden..." : "Connect a model first"}
-                    auto={status?.mode === "auto"}
-                    onToggleMode={connected ? handleToggleMode : undefined}
-                  />
+                  <div
+                    className={
+                      hasBlocks || streaming
+                        ? "mx-auto w-full max-w-3xl pointer-events-auto"
+                        : "w-full max-w-3xl"
+                    }
+                  >
+                    <InputBar
+                      onSend={handleSend}
+                      onStop={handleStop}
+                      streaming={streaming}
+                      disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
+                      placeholder={connected ? "Message warden..." : "Connect a model first"}
+                      auto={status?.mode === "auto"}
+                      onToggleMode={connected ? handleToggleMode : undefined}
+                    />
+                  </div>
                 </motion.div>
               </div>
             </main>
