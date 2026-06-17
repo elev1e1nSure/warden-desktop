@@ -702,20 +702,10 @@ function App() {
 
                 {/* Input zone — no layout animation; position switches instantly to
                     avoid the input flying through the middle on send / chat switch. */}
-                {(hasBlocks || streaming) && (
-                  <div
-                    className="absolute bottom-0 left-0 right-0 z-[19] pointer-events-none"
-                    style={{
-                      height: "11rem",
-                      backdropFilter: "blur(20px)",
-                      WebkitBackdropFilter: "blur(20px)",
-                    }}
-                  />
-                )}
                 <div
                   className={
                     hasBlocks || streaming
-                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-bg/20 pointer-events-none"
+                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-20 bg-gradient-to-t from-bg via-bg/90 to-bg/20 pointer-events-none"
                       : "flex flex-1 flex-col items-center justify-center px-6 w-full"
                   }
                 >
