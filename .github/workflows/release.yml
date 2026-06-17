@@ -76,7 +76,7 @@ jobs:
                 },
                 {
                   role: "user",
-                  content: "Here are the commits since the last release. Write release notes in English that are useful for end users:\n\n\($changelog)"
+                  content: "Here are the commits since the last release. Write release notes in English that are useful for end users:\n\n" + $changelog
                 }
               ]
             }' > request.json
