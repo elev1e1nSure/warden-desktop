@@ -25,6 +25,7 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 - If setup, dev, or build commands change, update [docs/setup.md](docs/setup.md).
 - If product scope changes, update [docs/project.md](docs/project.md).
 - Prefer existing patterns over new abstractions.
+- When adding a new tool (`backend/agent/tools/`) or a new action to an existing tool, add a matching `case` to `toolDescription()` in `src/components/Timeline.tsx` that returns a human-readable sentence (e.g. `Clicked at (X, Y)`, `Read config.json`). Never leave a new tool falling through to the generic fallback.
 
 ## Commits
 
