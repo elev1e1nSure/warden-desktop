@@ -57,8 +57,9 @@ fn spawn_backend(app: &tauri::AppHandle) -> Option<Child> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .manage(BackendProc(Mutex::new(None)))
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![get_backend_token])
         .setup(|app| {
             let handle = app.handle().clone();
             if let Some(child) = spawn_backend(&handle) {
@@ -75,4 +76,15 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[tauri::command]
+async fn get_backend_token() -> Result<String, String> {
+    let path = dirs::data_local_dir()
+        .ok_or("LOCALAPPDATA not found")?
+        .join("warden")
+        .join(".token");
+    std::fs::read_to_string(&path)
+        .map(|s| s.trim().to_string())
+        .map_err(|e| format!("failed to read token: {e}"))
 }
