@@ -1,5 +1,5 @@
 import { AnimatePresence, MotionConfig } from "framer-motion";
-import { type CSSProperties, type UIEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api/client";
 import { loadConnection } from "./api/session";
 import { streamChat } from "./api/stream";
@@ -11,10 +11,9 @@ import QuestionModal from "./components/QuestionModal";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
-import StatusBar from "./components/StatusBar";
 import Timeline from "./components/Timeline";
 import Toaster from "./components/Toaster";
-import type { Block, Chat } from "./types";
+import type { Block, Chat, Model } from "./types";
 
 type AppView = "chat" | "skills" | "settings";
 
@@ -27,6 +26,14 @@ const loadSidebarWidth = (): number => {
   const raw = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
   return Number.isFinite(raw) && raw >= 180 && raw <= 400 ? raw : 272;
 };
+
+const WELCOME_PHRASES = [
+  "Where should we begin?",
+  "What shall we build today?",
+  "Ready to orchestrate some tasks?",
+  "Let's automate the routine.",
+  "What's on the horizon?"
+];
 
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
@@ -63,19 +70,36 @@ function App() {
   const connected = Boolean(status?.connected);
   const hasBlocks = blocks.length > 0;
 
+  const welcomePhrase = useMemo(() => {
+    const idx = Math.floor(Math.random() * WELCOME_PHRASES.length);
+    return WELCOME_PHRASES[idx] ?? WELCOME_PHRASES[0];
+  }, []);
+
+  const modelList: Model[] = useMemo(() => models.map((m) => ({
+    id: m,
+    name: m,
+    description: "",
+  })), [models]);
+
+  const selectedModel: Model = useMemo(() => ({
+    id: status?.model ?? "",
+    name: status?.model || "No model",
+    description: "",
+  }), [status?.model]);
+
   // commit: marks blocks as dirty (needs saving). Use for user actions / stream events.
-  const commit = (next: Block[]) => {
+  const commit = useCallback((next: Block[]) => {
     blocksDirtyRef.current = true;
     blocksRef.current = next;
     setBlocks(next);
-  };
+  }, []);
   // loadBlocks: replaces blocks WITHOUT marking dirty. Use when loading from DB.
-  const loadBlocks = (next: Block[]) => {
+  const loadBlocks = useCallback((next: Block[]) => {
     blocksDirtyRef.current = false;
     blocksRef.current = next;
     setBlocks(next);
-  };
-  const genId = () => `b${++idRef.current}`;
+  }, []);
+  const genId = useCallback(() => `b${++idRef.current}`, []);
 
   // Persist the sidebar width so it survives restarts.
   useEffect(() => {
@@ -89,9 +113,12 @@ function App() {
   const loadModels = useCallback(async () => {
     try {
       const res = await api.listModels();
-      setModels(res.models ?? []);
+      const list = res.models ?? [];
+      setModels(list);
+      return list;
     } catch {
       setModels([]);
+      return [];
     }
   }, []);
 
@@ -171,47 +198,53 @@ function App() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let cancelled = false;
+    let timeoutId: number | undefined;
+
     (async () => {
       try {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const win = getCurrentWindow();
         const sync = async () => {
           if (cancelled) return;
-          const [fs, mx] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
-          if (!cancelled) setWindowSpansFull(fs || mx);
+          try {
+            const [fs, mx] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
+            if (!cancelled) setWindowSpansFull(fs || mx);
+          } catch {
+            // not running inside Tauri or window API failed — keep default
+          }
         };
+
+        const debouncedSync = () => {
+          if (timeoutId) window.clearTimeout(timeoutId);
+          timeoutId = window.setTimeout(sync, 150);
+        };
+
         await sync();
-        const u1 = await win.listen("tauri://enter-fullscreen", () => {
-          if (!cancelled) setWindowSpansFull(true);
-        });
-        const u2 = await win.listen("tauri://leave-fullscreen", () => {
-          if (cancelled) return;
-          // leave-fullscreen doesn't tell us if we then sit maximised
-          void win.isMaximized().then((mx) => {
-            if (!cancelled) setWindowSpansFull(mx);
-          });
-        });
-        const u3 = await win.listen("tauri://maximize", () => {
-          if (!cancelled) setWindowSpansFull(true);
-        });
-        const u4 = await win.listen("tauri://unmaximize", () => {
-          if (cancelled) return;
-          void win.isFullscreen().then((fs) => {
-            if (!cancelled) setWindowSpansFull(fs);
-          });
-        });
+
+        const u1 = await win.listen("tauri://enter-fullscreen", debouncedSync);
+        const u2 = await win.listen("tauri://leave-fullscreen", debouncedSync);
+        const u3 = await win.listen("tauri://maximize", debouncedSync);
+        const u4 = await win.listen("tauri://unmaximize", debouncedSync);
+        const u5 = await win.listen("tauri://resize", debouncedSync);
+
+        window.addEventListener("resize", debouncedSync);
+
         unlisten = () => {
           u1();
           u2();
           u3();
           u4();
+          u5();
+          window.removeEventListener("resize", debouncedSync);
         };
       } catch {
         // not running inside Tauri (e.g. plain `vite dev`) — keep default
       }
     })();
+
     return () => {
       cancelled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
       unlisten?.();
     };
   }, []);
@@ -230,22 +263,40 @@ function App() {
       await loadChats();
       if (cancelled || !s) return;
       if (s.connected) {
-        await loadModels();
-        if (s.model) return;
-      }
-      // Auto-reconnect with the last used credentials so a model never has to
-      // be picked on launch. No modal is forced — connect via the status bar.
-      const saved = loadConnection();
-      if (saved) {
-        try {
-          const r = await api.connect(saved.apiKey);
-          if (!cancelled && r.ok) {
+        const list = await loadModels();
+        const savedModel = localStorage.getItem("warden.lastModel");
+        if (savedModel && list.includes(savedModel) && s.model !== savedModel) {
+          try {
+            await api.setModel(savedModel);
             await refreshStatus();
-            await loadModels();
-            await loadChats();
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore — user can connect manually
+        }
+      } else {
+        // Auto-reconnect with the last used credentials so a model never has to
+        // be picked on launch. No modal is forced — connect via the status bar.
+        const saved = loadConnection();
+        if (saved) {
+          try {
+            const r = await api.connect(saved.apiKey);
+            if (!cancelled && r.ok) {
+              await refreshStatus();
+              const list = await loadModels();
+              const savedModel = localStorage.getItem("warden.lastModel");
+              if (savedModel && list.includes(savedModel)) {
+                try {
+                  await api.setModel(savedModel);
+                  await refreshStatus();
+                } catch {
+                  // ignore
+                }
+              }
+              await loadChats();
+            }
+          } catch {
+            // ignore — user can connect manually
+          }
         }
       }
     })();
@@ -254,7 +305,7 @@ function App() {
     };
   }, [refreshStatus, loadModels, loadChats]);
 
-  const appendText = (
+  const appendText = useCallback((
     slot: React.MutableRefObject<string | null>,
     kind: "assistant" | "think",
     text: string,
@@ -274,9 +325,9 @@ function App() {
         commit([...list, { id, kind, text }]);
       }
     }
-  };
+  }, [commit, genId]);
 
-  const onEvent = (e: ChatEvent) => {
+  const onEvent = useCallback((e: ChatEvent) => {
     switch (e.type) {
       case "warden_start":
         assistantIdRef.current = null;
@@ -375,9 +426,9 @@ function App() {
         commit([...blocksRef.current, { id: genId(), kind: "error", text: e.text.trim() }]);
         break;
     }
-  };
+  }, [appendText, commit, genId]);
 
-  const handleSend = async (text: string, files: AttachedFile[]) => {
+  const handleSend = useCallback(async (text: string, files: AttachedFile[]) => {
     if (streaming || !connected) return;
     assistantIdRef.current = null;
     thinkIdRef.current = null;
@@ -442,17 +493,17 @@ function App() {
         loadChats();
       })
       .catch(() => {});
-  };
+  }, [streaming, connected, commit, genId, onEvent, refreshStatus, loadChats]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setStreaming(false);
     setConfirmReq(null);
     setQuestionReq(null);
-  };
+  }, []);
 
-  const handleConfirm = async (ok: boolean) => {
+  const handleConfirm = useCallback(async (ok: boolean) => {
     const req = confirmReq;
     try {
       if (req) await api.confirm(req.id, ok);
@@ -460,9 +511,9 @@ function App() {
     } catch {
       // keep modal open so the user can retry or cancel
     }
-  };
+  }, [confirmReq]);
 
-  const handleAnswer = async (answers: string[][]) => {
+  const handleAnswer = useCallback(async (answers: string[][]) => {
     const req = questionReq;
     try {
       if (req) await api.answerQuestion(req.id, answers);
@@ -470,9 +521,9 @@ function App() {
     } catch {
       // keep modal open so the user can retry or cancel
     }
-  };
+  }, [questionReq]);
 
-  const handleToggleMode = async () => {
+  const handleToggleMode = useCallback(async () => {
     if (!status) return;
     const auto = status.mode !== "auto";
     try {
@@ -481,9 +532,9 @@ function App() {
     } catch {
       // leave the current mode visible if the backend rejects the change
     }
-  };
+  }, [status]);
 
-  const handleSelectModel = async (name: string) => {
+  const handleSelectModel = useCallback(async (name: string) => {
     if (!name || name === status?.model) return;
     // Reflect the choice instantly — switching should never wait on the
     // network round-trip. The in-flight model is tracked so a status refresh
@@ -492,6 +543,7 @@ function App() {
     setStatus((prev) => (prev ? { ...prev, model: name } : prev));
     try {
       await api.setModel(name);
+      localStorage.setItem("warden.lastModel", name);
     } catch {
       // Switch failed — reconcile with whatever the backend actually has.
       pendingModelRef.current = null;
@@ -499,9 +551,9 @@ function App() {
       return;
     }
     pendingModelRef.current = null;
-  };
+  }, [status, refreshStatus]);
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
       await flushActiveChatBlocks();
       handleStop();
@@ -514,25 +566,15 @@ function App() {
     } catch {
       // keep the current chat intact if reset fails
     }
-  };
+  }, [flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
 
-  const handleSelectChat = async (id: string) => {
+  const handleSelectChat = useCallback(async (id: string) => {
     if (id === activeChatId) return;
     try {
       await flushActiveChatBlocks();
       handleStop();
       const res = await api.selectChat(id);
       const blocks = res.chat.blocks ?? [];
-      if (blocks.length === 0) {
-        await api.deleteChat(id);
-        setActiveChatId(null);
-        loadBlocks([]);
-        setFollowTimeline(true);
-        setGen((g) => g + 1);
-        await refreshStatus();
-        await loadChats();
-        return;
-      }
       setActiveChatId(res.chat.id);
       loadBlocks(blocks);
       setFollowTimeline(true);
@@ -542,8 +584,9 @@ function App() {
     } catch {
       // leave the current chat selected if the switch fails
     }
-  };
-  const handleRenameChat = async (id: string, title: string) => {
+  }, [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, refreshStatus, loadChats]);
+
+  const handleRenameChat = useCallback(async (id: string, title: string) => {
     if (!title.trim()) return;
     try {
       await api.renameChat(id, title.trim());
@@ -551,9 +594,9 @@ function App() {
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
-  const handleDeleteChat = async (id: string) => {
+  const handleDeleteChat = useCallback(async (id: string) => {
     try {
       await api.deleteChat(id);
       if (id === activeChatId) {
@@ -565,18 +608,27 @@ function App() {
     } catch {
       /* ignore */
     }
-  };
+  }, [activeChatId, loadBlocks, loadChats]);
 
-  const handleConnected = async () => {
+  const handleConnected = useCallback(async () => {
     try {
       setShowConnect(false);
       await refreshStatus();
-      await loadModels();
+      const list = await loadModels();
+      const savedModel = localStorage.getItem("warden.lastModel");
+      if (savedModel && list.includes(savedModel)) {
+        try {
+          await api.setModel(savedModel);
+          await refreshStatus();
+        } catch {
+          // ignore
+        }
+      }
       await loadChats();
     } catch {
       // reconnect modal stays closed; status refresh will retry later
     }
-  };
+  }, [refreshStatus, loadModels, loadChats]);
 
   const handleCloseSkills = useCallback(() => setView("chat"), []);
   const handleCloseSettings = useCallback(() => setView("chat"), []);
@@ -695,13 +747,6 @@ function App() {
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
             >
               <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                <StatusBar
-                  status={status}
-                  connected={connected}
-                  models={models}
-                  onSelectModel={handleSelectModel}
-                  onOpenConnect={() => setShowConnect(true)}
-                />
 
                 {/* Timeline */}
                 {(hasBlocks || streaming) && (
@@ -736,7 +781,7 @@ function App() {
                         className="text-center"
                       >
                         <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
-                          {connected ? "Where should we begin?" : "warden"}
+                          {connected ? welcomePhrase : "warden"}
                         </h1>
                       </div>
                     </div>
@@ -772,6 +817,11 @@ function App() {
                           placeholder={connected ? "Message warden..." : "Connect a model first"}
                           auto={status?.mode === "auto"}
                           onToggleMode={connected ? handleToggleMode : undefined}
+                          models={modelList}
+                          selectedModel={selectedModel}
+                          onSelectModel={handleSelectModel}
+                          connected={connected}
+                          onOpenConnect={() => setShowConnect(true)}
                         />
                       )}
                     </AnimatePresence>
