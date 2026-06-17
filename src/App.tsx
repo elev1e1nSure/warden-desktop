@@ -590,7 +590,11 @@ function App() {
                 : "absolute inset-0 opacity-0 pointer-events-none"
             }
           >
-            <SkillsView onClose={handleCloseSkills} />
+            <SkillsView
+              onClose={handleCloseSkills}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
           </div>
           <div
             className={
@@ -607,6 +611,8 @@ function App() {
               onSelectModel={handleSelectModel}
               onToggleMode={handleToggleMode}
               onOpenSkills={() => setView("skills")}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
             />
           </div>
           <div

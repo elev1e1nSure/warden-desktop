@@ -101,7 +101,15 @@ const skillsMdComponents = {
   ),
 };
 
-export default function SkillsView({ onClose }: { onClose: () => void }) {
+export default function SkillsView({
+  onClose,
+  sidebarWidth,
+  setSidebarWidth,
+}: {
+  onClose: () => void;
+  sidebarWidth: number;
+  setSidebarWidth: (w: number) => void;
+}) {
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [query, setQuery] = useState("");
@@ -109,8 +117,6 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
   const [rightPanel, setRightPanel] = useState<RightPanel>("detail");
   const [editingName, setEditingName] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const [skillsSidebarWidth, setSkillsSidebarWidth] = useState(272);
-
   const [menuSkillName, setMenuSkillName] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -223,7 +229,7 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1">
         {/* Left panel — same bg as sidebar */}
-        <div style={{ width: skillsSidebarWidth }} className="flex shrink-0 flex-col bg-sidebar">
+        <div style={{ width: sidebarWidth }} className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]">
           <nav className="flex flex-col px-2 pt-2">
             {/* Back — full nav item, same as Settings */}
             <button
@@ -328,9 +334,9 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
           onMouseDown={(e) => {
             e.preventDefault();
             const startX = e.clientX;
-            const startW = skillsSidebarWidth;
+            const startW = sidebarWidth;
             const onMove = (ev: MouseEvent) =>
-              setSkillsSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
             const onUp = () => {
               document.removeEventListener("mousemove", onMove);
               document.removeEventListener("mouseup", onUp);

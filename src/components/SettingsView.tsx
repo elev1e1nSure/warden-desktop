@@ -28,6 +28,8 @@ interface SettingsViewProps {
   onSelectModel: (name: string) => void;
   onToggleMode: () => void;
   onOpenSkills: () => void;
+  sidebarWidth: number;
+  setSidebarWidth: (w: number) => void;
 }
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -45,6 +47,8 @@ export default function SettingsView({
   models,
   onSelectModel,
   onToggleMode,
+  sidebarWidth,
+  setSidebarWidth,
 }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>("general");
   const onCloseRef = useRef(onClose);
@@ -62,7 +66,7 @@ export default function SettingsView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1">
         {/* Left panel — section nav */}
-        <div className="flex w-[260px] shrink-0 flex-col bg-sidebar">
+        <div style={{ width: sidebarWidth }} className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]">
           <nav className="flex flex-col px-2 pt-2">
             <button
               type="button"
@@ -98,6 +102,27 @@ export default function SettingsView({
               })}
             </div>
           </nav>
+        </div>
+
+        {/* Resize handle */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = sidebarWidth;
+            const onMove = (ev: MouseEvent) =>
+              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+          className="relative z-10 w-0 shrink-0 cursor-col-resize"
+        >
+          <div className="absolute inset-y-0 -left-2 -right-2" />
         </div>
 
         {/* Right panel — content */}
