@@ -8,6 +8,7 @@ import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
 import InputBar, { type AttachedFile } from "./components/InputBar";
 import QuestionModal from "./components/QuestionModal";
+import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StatusBar from "./components/StatusBar";
@@ -16,7 +17,7 @@ import Toaster from "./components/Toaster";
 import { headingPop } from "./motion";
 import type { Block, Chat } from "./types";
 
-type AppView = "chat" | "skills";
+type AppView = "chat" | "skills" | "settings";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const nowTimestamp = () =>
@@ -550,6 +551,7 @@ function App() {
   };
 
   const handleCloseSkills = useCallback(() => setView("chat"), []);
+  const handleCloseSettings = useCallback(() => setView("chat"), []);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -563,6 +565,24 @@ function App() {
             }
           >
             <SkillsView onClose={handleCloseSkills} />
+          </div>
+          <div
+            className={
+              view === "settings"
+                ? "flex min-h-0 flex-1"
+                : "absolute inset-0 opacity-0 pointer-events-none"
+            }
+          >
+            <SettingsView
+              onClose={handleCloseSettings}
+              status={status}
+              connected={connected}
+              models={models}
+              onSelectModel={handleSelectModel}
+              onToggleMode={handleToggleMode}
+              onOpenConnect={() => setShowConnect(true)}
+              onOpenSkills={() => setView("skills")}
+            />
           </div>
           <div
             className={
@@ -585,6 +605,7 @@ function App() {
                 void handleNewChat();
               }}
               onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
+              onOpenSettings={() => setView("settings")}
               onRenameChat={(id, title) => {
                 void handleRenameChat(id, title);
               }}
