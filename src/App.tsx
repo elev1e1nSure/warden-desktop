@@ -612,10 +612,16 @@ function App() {
           <div
             className={
               view === "chat"
-                ? "flex min-h-0 flex-1"
+                ? "relative overflow-hidden flex min-h-0 flex-1"
                 : "absolute inset-0 opacity-0 pointer-events-none"
             }
           >
+            {/* Ambient orbs at layout level so they show through the glass sidebar */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
+              <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
+              <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
+            </div>
             <Sidebar
               chats={chats}
               activeChatId={activeChatId}
@@ -666,15 +672,8 @@ function App() {
                   "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
                 } as CSSProperties
               }
-              className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg bg-grid-drift"
+              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg bg-grid-drift"
             >
-              {/* Ambient Background Gradients */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
-                <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
-                <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
-              </div>
-
               <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                 <StatusBar
                   status={status}
@@ -706,8 +705,18 @@ function App() {
                 <div
                   className={
                     hasBlocks || streaming
-                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/85 to-transparent pointer-events-none"
+                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-16 bg-gradient-to-t from-bg via-bg/70 to-transparent pointer-events-none"
                       : "flex flex-1 flex-col items-center justify-center px-6 w-full"
+                  }
+                  style={
+                    hasBlocks || streaming
+                      ? {
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          maskImage: "linear-gradient(to top, black 40%, transparent 100%)",
+                          WebkitMaskImage: "linear-gradient(to top, black 40%, transparent 100%)",
+                        }
+                      : undefined
                   }
                 >
                   {!(hasBlocks || streaming) && (

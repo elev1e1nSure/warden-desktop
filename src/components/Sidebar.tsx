@@ -102,7 +102,10 @@ export default function Sidebar({
   };
 
   return (
-    <aside style={{ width }} className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar">
+    <aside
+      style={{ width, backdropFilter: "blur(25px)", WebkitBackdropFilter: "blur(25px)" }}
+      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar"
+    >
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
         <NavButton icon={<SquarePen strokeWidth={1.75} />} label="New Chat" onClick={onNewChat} />
@@ -274,8 +277,10 @@ export default function Sidebar({
                       transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
                       style={{
                         transformOrigin: "bottom right",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
                       }}
-                      className="w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-xl flex flex-col gap-0.5"
+                      className="w-36 overflow-hidden rounded-xl border border-white/15 bg-[rgba(26,26,26,0.75)] p-1 shadow-2xl flex flex-col gap-0.5"
                     >
                       <button
                         type="button"
