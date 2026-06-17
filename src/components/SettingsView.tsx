@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
   Wifi,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
@@ -77,7 +78,7 @@ export default function SettingsView({
               <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
             </button>
 
-            <div className="mx-1 my-2 h-px bg-hairline" />
+            <div className="h-4" />
 
             <div className="flex flex-col gap-0.5">
               {SECTIONS.map((s) => {
@@ -87,14 +88,22 @@ export default function SettingsView({
                     key={s.id}
                     type="button"
                     onClick={() => setSection(s.id)}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
+                    className={`group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none hover:bg-fill-hover ${
                       active
-                        ? "bg-fill-active text-text-primary"
-                        : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
+                        ? "text-text-primary"
+                        : "text-text-secondary hover:text-text-primary"
                     }`}
+                    style={{ isolation: "isolate" }}
                   >
-                    <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{s.icon}</span>
-                    <span className="truncate text-ui-lg font-medium tracking-[-0.01em]">
+                    {active && (
+                      <motion.div
+                        layoutId="active-settings-highlight"
+                        className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+                        transition={{ type: "spring", stiffness: 600, damping: 48 }}
+                      />
+                    )}
+                    <span className="relative z-10 shrink-0 [&>svg]:h-4 [&>svg]:w-4">{s.icon}</span>
+                    <span className="relative z-10 truncate text-ui-lg font-medium tracking-[-0.01em]">
                       {s.label}
                     </span>
                   </button>
@@ -187,14 +196,6 @@ function Field({
   );
 }
 
-function StatusDot({ ok }: { ok: boolean }) {
-  return (
-    <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${ok ? "bg-emerald-400" : "bg-text-faint"}`}
-    />
-  );
-}
-
 function Toggle({
   checked,
   onChange,
@@ -237,10 +238,6 @@ function GeneralSection({ status }: { status: StatusResult | null }) {
           >
             {status?.cwd || "—"}
           </span>
-        </Field>
-
-        <Field label="Theme" description="Light theme is coming later.">
-          <span className="text-ui text-text-muted">Dark</span>
         </Field>
       </FieldGroup>
     </>
@@ -305,16 +302,6 @@ function ConnectionSection({
       <SectionHeader title="Provider" />
 
       <FieldGroup>
-        <Field
-          label="Status"
-          description={connected ? "Backend is connected to the provider." : "Not connected."}
-        >
-          <span className="flex items-center gap-2 text-ui text-text-secondary">
-            <StatusDot ok={connected} />
-            {connected ? "Connected" : "Disconnected"}
-          </span>
-        </Field>
-
         <Field label="Provider">
           <span className="text-ui text-text-secondary">{status?.provider || "—"}</span>
         </Field>

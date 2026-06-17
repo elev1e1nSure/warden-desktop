@@ -241,10 +241,10 @@ export default function SkillsView({
               <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
             </button>
 
-            <div className="mx-1 my-2 h-px bg-hairline" />
+            <div className="h-3" />
 
             {/* Search + New */}
-            <div className="flex items-center gap-1 pb-1">
+            <div className="flex items-center gap-1 pb-3">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
                 <input
@@ -293,10 +293,16 @@ export default function SkillsView({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") selectSkill(skill.name);
                       }}
-                      className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
-                        active ? "bg-fill-active" : "hover:bg-fill-hover"
-                      }`}
+                      className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 hover:bg-fill-hover"
+                      style={{ isolation: "isolate" }}
                     >
+                      {active && (
+                        <motion.div
+                          layoutId="active-skills-highlight"
+                          className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+                          transition={{ type: "spring", stiffness: 600, damping: 48 }}
+                        />
+                      )}
                       <span
                         className={`relative z-10 block flex-1 truncate text-ui-lg tracking-[-0.01em] ${
                           active ? "font-medium text-text-primary" : "text-text-secondary"
@@ -427,10 +433,10 @@ export default function SkillsView({
           {menuSkillName && menuPos ? (
             <motion.div
               ref={menuRef}
-              initial={{ opacity: 0, scale: 0.97, y: -4 }}
+              initial={{ opacity: 0, scale: 0.96, y: 6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: -4 }}
-              transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 position: "fixed",
                 top: menuPos.top,
@@ -438,26 +444,28 @@ export default function SkillsView({
                 transform: "translateX(-100%)",
                 transformOrigin: "top right",
                 zIndex: 9999,
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
               }}
-              className="w-36 overflow-hidden rounded-xl border border-white/15 bg-[rgba(26,26,26,0.75)] p-1 shadow-2xl"
+              className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
             >
               <button
                 type="button"
                 onClick={() => handleEdit(menuSkillName)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+                className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-text-secondary hover:text-text-primary"
               >
-                <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                Edit
+                <Pencil className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary" strokeWidth={1.75} />
+                <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
+                  Edit
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(menuSkillName)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
+                className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-danger hover:text-danger-hover"
               >
-                <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                Delete
+                <Trash2 className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100" strokeWidth={1.75} />
+                <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
+                  Delete
+                </span>
               </button>
             </motion.div>
           ) : null}
