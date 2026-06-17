@@ -5,6 +5,7 @@ import type {
   ChatDetail,
   ChatListResult,
   ConnectResult,
+  MemorySnapshot,
   MemoryState,
   ModelsResult,
   SkillInfo,
@@ -97,6 +98,8 @@ export const api = {
   setMemory: (enabled: boolean) => postJSON("/memory/state", { enabled }),
 
   clearMemory: () => postJSON<{ cleared: number }>("/memory/clear"),
+
+  memorySnapshot: () => getJSON<MemorySnapshot>("/memory/snapshot"),
 
   shutdown: () => postJSON("/shutdown"),
 

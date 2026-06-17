@@ -9,12 +9,13 @@ import {
   Info,
   Loader2,
   SlidersHorizontal,
+  Trash2,
   Wifi,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
-import type { StatusResult } from "../api/types";
+import type { MemoryState, StatusResult } from "../api/types";
 import { skillDetailDown } from "../motion";
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
@@ -414,11 +415,143 @@ function AgentSection({
   );
 }
 
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function MemorySection() {
+  const [state, setState] = useState<MemoryState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [snapshot, setSnapshot] = useState<string | null>(null);
+  const [snapLoading, setSnapLoading] = useState(false);
+
+  const load = () => {
+    api
+      .memoryState()
+      .then(setState)
+      .catch(() => setState(null));
+  };
+
+  useEffect(load, []);
+
+  const toggle = async () => {
+    if (!state || busy) return;
+    const next = !state.enabled;
+    setBusy(true);
+    setState({ ...state, enabled: next });
+    try {
+      await api.setMemory(next);
+    } catch {
+      setState({ ...state, enabled: !next });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = async () => {
+    setBusy(true);
+    try {
+      await api.clearMemory();
+      setConfirmClear(false);
+      setSnapshot(null);
+      load();
+    } catch {
+      /* ignore */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const viewSnapshot = async () => {
+    setSnapLoading(true);
+    try {
+      const snap = await api.memorySnapshot();
+      setSnapshot(JSON.stringify(snap, null, 2));
+    } catch {
+      setSnapshot("Failed to load snapshot.");
+    } finally {
+      setSnapLoading(false);
+    }
+  };
+
   return (
     <>
-      <SectionHeader title="Memory" hint="Long-term memory across chats." />
-      <p className="text-ui-lg text-text-muted">—</p>
+      <SectionHeader title="Memory" hint="Long-term memory the agent keeps across chats." />
+
+      <Field
+        label="Enable memory"
+        description="Let the agent remember facts and recall them in future chats."
+      >
+        <Toggle
+          checked={Boolean(state?.enabled)}
+          onChange={toggle}
+          label="Toggle long-term memory"
+        />
+      </Field>
+
+      <Field label="Stored entries">
+        <span className="text-ui tabular-nums text-text-secondary">{state?.entries ?? "—"}</span>
+      </Field>
+
+      <Field label="Snapshots">
+        <span className="text-ui tabular-nums text-text-secondary">{state?.snapshots ?? "—"}</span>
+      </Field>
+
+      <Field label="Database size">
+        <span className="text-ui tabular-nums text-text-secondary">
+          {state ? formatBytes(state.db_size) : "—"}
+        </span>
+      </Field>
+
+      <div className="mt-6 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={viewSnapshot}
+          disabled={snapLoading}
+          className="flex items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
+        >
+          {snapLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          View latest snapshot
+        </button>
+        {!confirmClear ? (
+          <button
+            type="button"
+            onClick={() => setConfirmClear(true)}
+            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover"
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Clear memory
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-ui text-text-secondary">Clear all memory?</span>
+            <button
+              type="button"
+              onClick={clear}
+              disabled={busy}
+              className="rounded-lg px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmClear(false)}
+              className="rounded-lg px-3 py-1.5 text-ui text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+            >
+              No
+            </button>
+          </div>
+        )}
+      </div>
+
+      {snapshot !== null && (
+        <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-fill-subtle p-4 font-mono text-[12px] leading-relaxed text-code-text ring-1 ring-hairline">
+          {snapshot}
+        </pre>
+      )}
     </>
   );
 }
