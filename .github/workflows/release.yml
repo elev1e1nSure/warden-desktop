@@ -70,20 +70,26 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
+          SYSTEM_PROMPT="You write release notes in English. Rules:
+          - Write in a clear, human-readable way for end users
+          - No technical noise: no commit hashes, no feat/fix/chore/refactor prefixes
+          - Skip internal changes that don't affect the user
+          - Group changes by theme (new features, improvements, bug fixes)
+          - Plain text format
+          - No unnecessary introductions or conclusions"
+
+          USER_PREFIX="Here are the commits since the last release. Write release notes in English that are useful for end users:"
+
           jq -n \
             --arg model "deepseek/deepseek-v4-flash" \
+            --arg system "$SYSTEM_PROMPT" \
+            --arg user_prefix "$USER_PREFIX" \
             --rawfile changelog changelog.txt \
             '{
               model: $model,
               messages: [
-                {
-                  role: "system",
-                  content: "You write release notes in English. Rules:\n- Write in a clear, human-readable way for end users\n- No technical noise: no commit hashes, no feat/fix/chore/refactor prefixes\n- Skip internal changes that don't affect the user\n- Group changes by theme (new features, improvements, bug fixes)\n- Plain text format\n- No unnecessary introductions or conclusions"
-                },
-                {
-                  role: "user",
-                  content: "Here are the commits since the last release. Write release notes in English that are useful for end users:\n\n" + $changelog
-                }
+                {role: "system", content: $system},
+                {role: "user", content: ($user_prefix + "\n\n" + $changelog)}
               ]
             }' > request.json
 
