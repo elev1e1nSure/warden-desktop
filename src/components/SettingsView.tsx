@@ -8,7 +8,6 @@ import {
   Info,
   Loader2,
   SlidersHorizontal,
-  Trash2,
   Wifi,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -46,7 +45,6 @@ export default function SettingsView({
   models,
   onSelectModel,
   onToggleMode,
-  onOpenSkills,
 }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>("general");
   const onCloseRef = useRef(onClose);
@@ -66,7 +64,6 @@ export default function SettingsView({
         {/* Left panel — section nav */}
         <div className="flex w-[260px] shrink-0 flex-col bg-sidebar">
           <nav className="flex flex-col px-2 pt-2">
-            {/* Back as a full nav item */}
             <button
               type="button"
               onClick={onClose}
@@ -76,10 +73,8 @@ export default function SettingsView({
               <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
             </button>
 
-            {/* Divider */}
             <div className="mx-1 my-2 h-px bg-hairline" />
 
-            {/* Section links */}
             <div className="flex flex-col gap-0.5">
               {SECTIONS.map((s) => {
                 const active = s.id === section;
@@ -119,9 +114,7 @@ export default function SettingsView({
             )}
             {section === "agent" && <AgentSection status={status} onToggleMode={onToggleMode} />}
             {section === "memory" && <MemorySection />}
-            {section === "about" && (
-              <AboutSection connected={connected} onOpenSkills={onOpenSkills} />
-            )}
+            {section === "about" && <AboutSection />}
           </div>
         </div>
       </div>
@@ -135,7 +128,6 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-/** A group of Field rows rendered as a bordered card with optional category label. */
 function FieldGroup({ label, children }: { label?: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
@@ -144,12 +136,12 @@ function FieldGroup({ label, children }: { label?: string; children: React.React
           {label}
         </p>
       )}
-      <div className="overflow-hidden rounded-xl border border-hairline">{children}</div>
+      {/* No overflow-hidden — lets dropdowns escape the card boundary */}
+      <div className="rounded-xl border border-hairline">{children}</div>
     </div>
   );
 }
 
-/** A labelled settings row: title + optional description on the left, control on the right. */
 function Field({
   label,
   description,
@@ -375,92 +367,27 @@ function AgentSection({
   status: StatusResult | null;
   onToggleMode: () => void;
 }) {
-  const [compacting, setCompacting] = useState(false);
-  const [compactMsg, setCompactMsg] = useState("");
   const auto = status?.mode === "auto";
-  const used = status?.token_count ?? 0;
-  const limit = status?.token_limit ?? 0;
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-
-  const compact = async () => {
-    setCompacting(true);
-    setCompactMsg("");
-    try {
-      const res = await api.compact();
-      setCompactMsg(
-        `Context compacted: ${res.tokens_before.toLocaleString()} → ${res.tokens_after.toLocaleString()} tokens.`,
-      );
-    } catch {
-      setCompactMsg("Compact failed.");
-    } finally {
-      setCompacting(false);
-    }
-  };
 
   return (
     <>
       <SectionHeader title="Agent" />
 
-      <FieldGroup label="Behavior">
+      <FieldGroup>
         <Field
           label="Auto mode"
           description="Run tools without asking for confirmation. Off = ask before risky actions."
         >
           <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
         </Field>
-
-        <Field
-          label="Context usage"
-          description={
-            limit > 0 ? `${used.toLocaleString()} / ${limit.toLocaleString()} tokens` : "—"
-          }
-        >
-          <span className="text-ui tabular-nums text-text-secondary">{pct}%</span>
-        </Field>
-      </FieldGroup>
-
-      <FieldGroup label="Actions">
-        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-          <div className="min-w-0">
-            <p className="text-ui-lg font-medium tracking-[-0.01em] text-text-primary">
-              Compact context
-            </p>
-            <p className="mt-0.5 text-ui text-text-muted">
-              Summarize the conversation to free up the context window.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={compact}
-            disabled={compacting}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
-          >
-            {compacting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {compacting ? "Compacting…" : "Compact"}
-          </button>
-        </div>
-        {compactMsg && (
-          <p className="border-t border-hairline px-4 py-2.5 text-ui text-text-muted">
-            {compactMsg}
-          </p>
-        )}
       </FieldGroup>
     </>
   );
 }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function MemorySection() {
   const [state, setState] = useState<MemoryState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
-  const [snapshot, setSnapshot] = useState<string | null>(null);
-  const [snapLoading, setSnapLoading] = useState(false);
 
   const load = () => {
     api
@@ -485,37 +412,11 @@ function MemorySection() {
     }
   };
 
-  const clear = async () => {
-    setBusy(true);
-    try {
-      await api.clearMemory();
-      setConfirmClear(false);
-      setSnapshot(null);
-      load();
-    } catch {
-      /* ignore */
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const viewSnapshot = async () => {
-    setSnapLoading(true);
-    try {
-      const snap = await api.memorySnapshot();
-      setSnapshot(JSON.stringify(snap, null, 2));
-    } catch {
-      setSnapshot("Failed to load snapshot.");
-    } finally {
-      setSnapLoading(false);
-    }
-  };
-
   return (
     <>
       <SectionHeader title="Memory" />
 
-      <FieldGroup label="Storage">
+      <FieldGroup>
         <Field
           label="Enable memory"
           description="Let the agent remember facts and recall them in future chats."
@@ -526,98 +427,12 @@ function MemorySection() {
             label="Toggle long-term memory"
           />
         </Field>
-
-        <Field label="Stored entries">
-          <span className="text-ui tabular-nums text-text-secondary">
-            {state?.entries ?? "—"}
-          </span>
-        </Field>
-
-        <Field label="Snapshots">
-          <span className="text-ui tabular-nums text-text-secondary">
-            {state?.snapshots ?? "—"}
-          </span>
-        </Field>
-
-        <Field label="Database size">
-          <span className="text-ui tabular-nums text-text-secondary">
-            {state ? formatBytes(state.db_size) : "—"}
-          </span>
-        </Field>
       </FieldGroup>
-
-      <FieldGroup label="Data">
-        <div className="flex items-center gap-2 px-4 py-3.5">
-          <button
-            type="button"
-            onClick={viewSnapshot}
-            disabled={snapLoading}
-            className="flex items-center gap-1.5 rounded-xl bg-fill-hover px-4 py-2 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active disabled:opacity-40"
-          >
-            {snapLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            View latest snapshot
-          </button>
-          {!confirmClear ? (
-            <button
-              type="button"
-              onClick={() => setConfirmClear(true)}
-              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover"
-            >
-              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Clear memory
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-ui text-text-secondary">Clear all memory?</span>
-              <button
-                type="button"
-                onClick={clear}
-                disabled={busy}
-                className="rounded-lg px-3 py-1.5 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmClear(false)}
-                className="rounded-lg px-3 py-1.5 text-ui text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-              >
-                No
-              </button>
-            </div>
-          )}
-        </div>
-      </FieldGroup>
-
-      {snapshot !== null && (
-        <pre className="mt-1 max-h-80 overflow-auto rounded-xl bg-fill-subtle p-4 font-mono text-[12px] leading-relaxed text-code-text ring-1 ring-hairline">
-          {snapshot}
-        </pre>
-      )}
     </>
   );
 }
 
-function AboutSection({
-  connected,
-  onOpenSkills,
-}: {
-  connected: boolean;
-  onOpenSkills: () => void;
-}) {
-  const [restarting, setRestarting] = useState(false);
-
-  const restart = async () => {
-    setRestarting(true);
-    try {
-      await api.shutdown();
-    } catch {
-      // shutdown closes the connection — errors here are expected.
-    } finally {
-      setRestarting(false);
-    }
-  };
-
+function AboutSection() {
   return (
     <>
       <SectionHeader title="About" />
@@ -626,45 +441,6 @@ function AboutSection({
         <Field label="Version">
           <span className="text-ui tabular-nums text-text-secondary">{APP_VERSION}</span>
         </Field>
-
-        <Field label="Backend" description="Local agent server on http://localhost:8765.">
-          <span className="flex items-center gap-2 text-ui text-text-secondary">
-            <StatusDot ok={connected} />
-            {connected ? "Running" : "Unavailable"}
-          </span>
-        </Field>
-
-        <Field label="Skills" description="Create and manage agent skills.">
-          <button
-            type="button"
-            onClick={onOpenSkills}
-            className="rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
-          >
-            Manage skills
-          </button>
-        </Field>
-      </FieldGroup>
-
-      <FieldGroup label="Danger Zone">
-        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-          <div className="min-w-0">
-            <p className="text-ui-lg font-medium tracking-[-0.01em] text-danger">
-              Restart backend
-            </p>
-            <p className="mt-0.5 text-ui text-text-muted">
-              Shut down the agent server. The app relaunches it on next start.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={restart}
-            disabled={restarting}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-ui font-medium text-danger transition-colors hover:bg-fill-hover disabled:opacity-40"
-          >
-            {restarting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Shut down
-          </button>
-        </div>
       </FieldGroup>
     </>
   );
