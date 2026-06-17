@@ -37,7 +37,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts
-            path: src-tauri/target/release/bundle/nsis/*portable*
+          path: src-tauri/target/release/bundle/nsis/*portable*
 
   release:
     needs: [build]
