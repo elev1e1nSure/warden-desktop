@@ -1,10 +1,49 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Loader2, X } from "lucide-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { blockEnter, collapse, EASE, labelFade } from "../motion";
 import type { Block } from "../types";
+
+// ─── streaming throttle ───────────────────────────────────────────────────────
+
+/* While a block is streaming we get a state update on every token. Re-parsing
+   markdown (and syntax-highlighting) that often is the main source of timeline
+   lag on long answers. This trailing throttle caps how often the rendered text
+   actually changes; the final value always flushes once streaming stops. */
+function useThrottledValue(value: string, ms: number, enabled: boolean): string {
+  const [out, setOut] = useState(value);
+  const latest = useRef(value);
+  const lastEmit = useRef(0);
+  const timer = useRef<number | null>(null);
+  latest.current = value;
+
+  useEffect(() => {
+    if (!enabled) {
+      if (timer.current !== null) {
+        window.clearTimeout(timer.current);
+        timer.current = null;
+      }
+      setOut(value);
+      return;
+    }
+    const elapsed = Date.now() - lastEmit.current;
+    if (elapsed >= ms) {
+      lastEmit.current = Date.now();
+      setOut(value);
+    } else if (timer.current === null) {
+      timer.current = window.setTimeout(() => {
+        timer.current = null;
+        lastEmit.current = Date.now();
+        setOut(latest.current);
+      }, ms - elapsed);
+    }
+  }, [value, ms, enabled]);
+
+  return enabled ? out : value;
+}
 
 // ─── types ──────────────────────────────────────────────────────────────────
 
@@ -468,78 +507,92 @@ const mdComponents = {
   },
 };
 
-const AssistantBlock = memo(function AssistantBlock({ text }: { text: string }) {
-  // Memoising the markdown render isn't free, but for a chat block it's
-  // negligible and lets streaming chunks reuse the same virtual DOM when
-  // the text hasn't crossed a markdown boundary.
+const AssistantBlock = memo(function AssistantBlock({
+  text,
+  live = false,
+}: {
+  text: string;
+  live?: boolean;
+}) {
+  // While streaming we throttle re-renders and skip the (expensive) syntax
+  // highlighter — code snaps to highlighted once the block settles. This keeps
+  // long answers smooth instead of re-parsing the whole message every token.
+  const display = useThrottledValue(text, 40, live);
   const rendered = useMemo(
     () => (
       <Markdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={live ? [] : [rehypeHighlight]}
         components={mdComponents}
       >
-        {text}
+        {display}
       </Markdown>
     ),
-    [text],
+    [display, live],
   );
 
+  // `is-streaming` appends a soft blinking caret after the last rendered element
+  // (see index.css) so the answer reads as actively being written.
+  const streamingCaret = live && display.length > 0;
+
   return (
-    <motion.div className="markdown-body text-body text-text-primary">
-      {text.length === 0 ? (
-        <span className="inline-block h-[14px] w-[5px] animate-pulse rounded-sm bg-fill-strong align-middle" />
+    <div
+      className={`markdown-body text-body text-text-primary${streamingCaret ? " is-streaming" : ""}`}
+    >
+      {display.length === 0 ? (
+        <span className="inline-block h-[15px] w-[6px] animate-pulse rounded-sm bg-fill-strong align-middle" />
       ) : (
         rendered
       )}
-    </motion.div>
+    </div>
   );
 });
 
-const ThinkBlock = memo(function ThinkBlock({
-  text,
-  streaming,
-}: {
-  text: string;
-  streaming?: boolean;
-}) {
+/* A single reasoning block. It IS the live indicator: while `live`, it shows an
+   animated "Thinking…" label; once the agent moves on it settles, in place, into
+   a collapsible "Thought". The element keeps a stable key for its whole life, so
+   the label simply crossfades — no remount, no jump. A settled block with no
+   captured reasoning renders nothing. */
+const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live: boolean }) {
   const [open, setOpen] = useState(false);
-  const active = streaming && !text;
-  const hasContent = text.length > 0;
+  const hasContent = text.trim().length > 0;
+
+  // Settled, nothing was reasoned out loud — leave no trace.
+  if (!live && !hasContent) return null;
+
+  const expandable = !live && hasContent;
+
   return (
-    <div>
+    <div className="py-0.5">
       <button
         type="button"
-        onClick={() => hasContent && setOpen((v) => !v)}
-        className="relative flex items-center p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary"
+        onClick={() => expandable && setOpen((v) => !v)}
+        disabled={!expandable}
+        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
       >
-        <div className="absolute right-full mr-1.5 flex shrink-0 items-center justify-center">
-          {active ? (
-            <span className="h-3.5 w-3.5" />
-          ) : (
+        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+          {expandable && (
             <motion.span
-              initial={false}
-              animate={{ rotate: open ? 0 : -90 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, rotate: open ? 0 : -90 }}
+              animate={{ opacity: 1, rotate: open ? 0 : -90 }}
+              transition={{ duration: 0.3, ease: EASE }}
               className="flex"
             >
               <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
             </motion.span>
           )}
-        </div>
-        <span className="relative inline-flex items-center h-[18px] min-w-[60px]">
-          <AnimatePresence>
-            {active ? (
+        </span>
+
+        <span className="relative inline-flex h-[18px] min-w-[72px] items-center">
+          <AnimatePresence initial={false}>
+            {live ? (
               <motion.span
-                key="thinking-label"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0 flex items-center whitespace-nowrap"
+                key="thinking"
+                {...labelFade}
+                className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
               >
                 Thinking
-                <span className="inline-flex ml-1">
+                <span className="ml-0.5 inline-flex">
                   <span className="thinking-dot" style={{ animationDelay: "0ms" }}>
                     .
                   </span>
@@ -553,11 +606,8 @@ const ThinkBlock = memo(function ThinkBlock({
               </motion.span>
             ) : (
               <motion.span
-                key="thought-label"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                key="thought"
+                {...labelFade}
                 className="absolute inset-0 flex items-center"
               >
                 Thought
@@ -567,15 +617,9 @@ const ThinkBlock = memo(function ThinkBlock({
         </span>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
+      <AnimatePresence initial={false}>
+        {open && expandable && (
+          <motion.div {...collapse} className="overflow-hidden">
             <div className="mt-2 text-ui leading-[1.7] text-text-muted">
               <Markdown
                 remarkPlugins={[remarkGfm]}
@@ -609,40 +653,57 @@ const ToolGroup = memo(
     const running = items.some((t) => t.status === "running");
     const n = items.length;
 
+    const label = `Ran ${n} command${n === 1 ? "" : "s"}`;
+
     return (
-      <div>
+      <div className="py-0.5">
         <button
           type="button"
           onClick={() => !running && setOpen((v) => !v)}
           disabled={running}
-          className="relative flex items-center p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+          className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
         >
-          <div className="absolute right-full mr-1.5 flex shrink-0 items-center justify-center">
+          <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
             {running ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <motion.span
                 initial={false}
                 animate={{ rotate: open ? 0 : -90 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.18, ease: EASE }}
                 className="flex"
               >
                 <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
               </motion.span>
             )}
-          </div>
-          <span>{running ? "Running…" : `Ran ${n} command${n === 1 ? "" : "s"}`}</span>
+          </span>
+
+          <span className="relative inline-flex h-[18px] min-w-[112px] items-center">
+            <AnimatePresence initial={false}>
+              {running ? (
+                <motion.span
+                  key="running"
+                  {...labelFade}
+                  className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
+                >
+                  Running…
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="ran"
+                  {...labelFade}
+                  className="absolute inset-0 flex items-center whitespace-nowrap"
+                >
+                  {label}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </span>
         </button>
 
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
+        <AnimatePresence initial={false}>
+          {open && !running && (
+            <motion.div {...collapse} className="overflow-hidden">
               <ul className="mt-1 flex flex-col gap-0.5">
                 {items.map((t) => (
                   <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
@@ -677,45 +738,21 @@ const ToolGroup = memo(
 function Timeline({
   blocks,
   generation = 0,
-  thinking = false,
+  streaming = false,
 }: {
   blocks: Block[];
   generation?: number;
-  thinking?: boolean;
+  streaming?: boolean;
 }) {
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
 
-  const renderGroups = useMemo(() => {
-    const lastUserIdx = (() => {
-      for (let i = groups.length - 1; i >= 0; i--) {
-        const g = groups[i];
-        if (g && g.kind === "single" && g.block.kind === "user") return i;
-      }
-      return -1;
-    })();
-
-    const currentThinkIdx = groups.findIndex(
-      (g, i) => i > lastUserIdx && g.kind === "single" && g.block.kind === "think",
-    );
-
-    if (currentThinkIdx === -1 && !thinking) return groups;
-
-    const result = groups.filter(
-      (g, i) => !(i > lastUserIdx && g.kind === "single" && g.block.kind === "think"),
-    );
-
-    const thinkText =
-      currentThinkIdx >= 0 && groups[currentThinkIdx]?.kind === "single"
-        ? groups[currentThinkIdx].block.text
-        : "";
-
-    result.splice(lastUserIdx + 1, 0, {
-      kind: "single",
-      block: { id: "think-slot", kind: "think", text: thinkText },
-    } as Group);
-    return result;
-  }, [groups, thinking]);
+  // The block currently being streamed into is the last one. A think/assistant
+  // block is "live" only while it is that last block and the turn is streaming;
+  // once anything follows it, it settles. This single derived fact drives both
+  // the Thinking→Thought morph and the assistant streaming render — no synthetic
+  // slots, no block rewriting.
+  const liveId = streaming ? (blocks[blocks.length - 1]?.id ?? null) : null;
 
   return (
     <div
@@ -723,55 +760,34 @@ function Timeline({
       className="mx-auto w-full max-w-3xl"
     >
       <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
-        <AnimatePresence mode="popLayout">
-          {renderGroups.map((g) => {
-            if (g.kind === "single" && g.block.kind === "think") {
-              const isSlot = g.block.id === "think-slot";
-              return (
-                <motion.div
-                  key={isSlot ? "think-slot" : `${generation}-${groupKey(g)}`}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
-                  <ThinkBlock text={isSlot ? "" : g.block.text} streaming={isSlot} />
-                </motion.div>
-              );
-            }
-            return (
-              <motion.div
-                key={`${generation}-${groupKey(g)}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                {g.kind === "single" && g.block.kind === "user" && (
-                  <UserBlock text={g.block.text} />
-                )}
-                {g.kind === "single" &&
-                  g.block.kind === "image" &&
-                  (() => {
-                    const b = g.block;
-                    return (
-                      <ImageBlock
-                        url={b.url}
-                        name={b.name}
-                        onExpand={() => setLightbox({ url: b.url, name: b.name })}
-                      />
-                    );
-                  })()}
-                {g.kind === "single" && g.block.kind === "assistant" && (
-                  <AssistantBlock text={g.block.text} />
-                )}
-                {g.kind === "single" && g.block.kind === "error" && (
-                  <p className="text-ui text-danger">{g.block.text}</p>
-                )}
-                {g.kind === "tools" && <ToolGroup items={g.items} />}
-              </motion.div>
-            );
-          })}
+        <AnimatePresence>
+          {groups.map((g) => (
+            <motion.div key={`${generation}-${groupKey(g)}`} {...blockEnter}>
+              {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
+              {g.kind === "single" && g.block.kind === "think" && (
+                <ThinkBlock text={g.block.text} live={g.block.id === liveId} />
+              )}
+              {g.kind === "single" &&
+                g.block.kind === "image" &&
+                (() => {
+                  const b = g.block;
+                  return (
+                    <ImageBlock
+                      url={b.url}
+                      name={b.name}
+                      onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                    />
+                  );
+                })()}
+              {g.kind === "single" && g.block.kind === "assistant" && (
+                <AssistantBlock text={g.block.text} live={g.block.id === liveId} />
+              )}
+              {g.kind === "single" && g.block.kind === "error" && (
+                <p className="text-ui text-danger">{g.block.text}</p>
+              )}
+              {g.kind === "tools" && <ToolGroup items={g.items} />}
+            </motion.div>
+          ))}
         </AnimatePresence>
       </div>
 

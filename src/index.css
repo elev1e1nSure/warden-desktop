@@ -201,6 +201,26 @@ input::placeholder {
   animation: thinking-dot 1.05s ease-in-out infinite;
 }
 
+/* Streaming caret — a soft bar that trails the last rendered element of an
+   assistant message while it is being written. Sits inline after the final
+   line so it reads like a live cursor; vanishes the moment the block settles. */
+@keyframes stream-caret {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0; }
+}
+
+.markdown-body.is-streaming > *:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1.05em;
+  margin-left: 0.12em;
+  border-radius: 2px;
+  background: currentColor;
+  vertical-align: text-bottom;
+  animation: stream-caret 1.05s ease-in-out infinite;
+}
+
 /* rehype-highlight injects .hljs on <code> blocks and applies its own
    background — we use our own wrapper background, so strip hljs's. */
 .markdown-body pre code.hljs,
@@ -255,9 +275,13 @@ input::placeholder {
   100% { transform: translate3d(0, 0, 0) scale(0.95); }
 }
 
+/* NOTE: large filter: blur() forces software rasterisation on WebView2 and is
+   the single biggest source of timeline jank during streaming. The radii below
+   are kept deliberately small; the soft glow comes mostly from the gradient's
+   own transparent falloff, not the blur. Don't push these back up. */
 .ambient-orb-1 {
   background: radial-gradient(ellipse at 40% 40%, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.06) 40%, transparent 70%);
-  filter: blur(90px);
+  filter: blur(56px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-1 32s ease-in-out infinite;
@@ -265,7 +289,7 @@ input::placeholder {
 
 .ambient-orb-2 {
   background: radial-gradient(ellipse at 60% 60%, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 40%, transparent 70%);
-  filter: blur(100px);
+  filter: blur(60px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-2 45s ease-in-out infinite;
@@ -273,7 +297,7 @@ input::placeholder {
 
 .ambient-orb-3 {
   background: radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.09) 0%, rgba(8, 145, 178, 0.04) 40%, transparent 65%);
-  filter: blur(80px);
+  filter: blur(52px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-3 28s ease-in-out infinite;

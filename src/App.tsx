@@ -1,4 +1,4 @@
-import { AnimatePresence, MotionConfig } from "framer-motion";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import {
   type CSSProperties,
   type UIEvent,
@@ -22,6 +22,7 @@ import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
 import Toaster from "./components/Toaster";
+import { EASE } from "./motion";
 import type { Block, Chat, Model } from "./types";
 
 type AppView = "chat" | "skills" | "settings";
@@ -50,6 +51,12 @@ const cleanLLMTokens = (str: string): string => {
     "",
   );
 };
+
+// Reasoning blocks are opened eagerly (as the live "Thinking…" indicator) and
+// stay empty on iterations where the model emits no reasoning. Drop those before
+// they reach state we persist or render long-term — they carry nothing.
+const stripEmptyThink = (blocks: Block[]): Block[] =>
+  blocks.filter((b) => b.kind !== "think" || b.text.trim().length > 0);
 
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
@@ -85,6 +92,9 @@ function App() {
 
   const connected = Boolean(status?.connected);
   const hasBlocks = blocks.length > 0;
+  // Empty state = the welcome screen with the input centred. The moment any
+  // message exists or a turn is streaming, we switch to the conversation layout.
+  const emptyState = !(hasBlocks || streaming);
 
   const welcomePhrase = useMemo(() => {
     const idx = Math.floor(Math.random() * WELCOME_PHRASES.length);
@@ -184,7 +194,7 @@ function App() {
     if (!activeChatId || !blocksDirtyRef.current) return;
     if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
     const id = activeChatId;
-    const snapshot = blocks;
+    const snapshot = stripEmptyThink(blocks);
     persistTimerRef.current = window.setTimeout(() => {
       persistTimerRef.current = null;
       blocksDirtyRef.current = false;
@@ -206,7 +216,7 @@ function App() {
       persistTimerRef.current = null;
     }
     blocksDirtyRef.current = false;
-    await api.saveChatBlocks(id, blocksRef.current);
+    await api.saveChatBlocks(id, stripEmptyThink(blocksRef.current));
   }, [activeChatId]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
@@ -368,12 +378,25 @@ function App() {
     [commit, genId],
   );
 
+  // Opens a fresh, empty reasoning block at the end of the timeline and points
+  // thinkIdRef at it. This block IS the "Thinking…" indicator; think tokens fill
+  // it and it settles into a "Thought" once the agent moves on. Empty ones are
+  // stripped before persisting (stripEmptyThink).
+  const openThink = useCallback(() => {
+    const id = genId();
+    thinkIdRef.current = id;
+    commit([...blocksRef.current, { id, kind: "think", text: "" }]);
+  }, [commit, genId]);
+
   const onEvent = useCallback(
     (e: ChatEvent) => {
       switch (e.type) {
         case "warden_start":
+          // Each agent iteration starts a fresh assistant slot. Open a new
+          // reasoning indicator unless one is already open (e.g. the eager one
+          // created on send for the very first iteration).
           assistantIdRef.current = null;
-          thinkIdRef.current = null;
+          if (thinkIdRef.current === null) openThink();
           break;
         case "title":
           setActiveChatId(e.chat_id);
@@ -389,32 +412,24 @@ function App() {
           });
           break;
         case "token":
+          // Don't close the think slot here. Some models stream the answer
+          // before their reasoning; keeping thinkIdRef pointed at this
+          // iteration's think block means late reasoning lands in it — which
+          // sits ABOVE the assistant block — instead of spawning a new "Thought"
+          // below the answer. The block settles to "Thought" purely by position
+          // (it's no longer the last block) once assistant content appears.
           appendText(assistantIdRef, "assistant", e.text);
           break;
         case "think": {
+          if (thinkIdRef.current === null) openThink();
           const cur = thinkIdRef.current;
-          const list = blocksRef.current;
-          if (cur) {
-            commit(
-              list.map((b) =>
-                b.id === cur && b.kind === "think"
-                  ? { ...b, text: cleanLLMTokens(b.text + e.text) }
-                  : b,
-              ),
-            );
-          } else {
-            const id = genId();
-            thinkIdRef.current = id;
-            const assistantId = assistantIdRef.current;
-            if (assistantId) {
-              const idx = list.findIndex((b) => b.id === assistantId);
-              const next = [...list];
-              next.splice(idx, 0, { id, kind: "think", text: cleanLLMTokens(e.text) });
-              commit(next);
-            } else {
-              commit([...list, { id, kind: "think", text: cleanLLMTokens(e.text) }]);
-            }
-          }
+          commit(
+            blocksRef.current.map((b) =>
+              b.id === cur && b.kind === "think"
+                ? { ...b, text: cleanLLMTokens(b.text + e.text) }
+                : b,
+            ),
+          );
           break;
         }
         case "tool_start": {
@@ -471,7 +486,7 @@ function App() {
           break;
       }
     },
-    [appendText, commit, genId],
+    [appendText, commit, genId, openThink],
   );
 
   const handleSend = useCallback(
@@ -524,6 +539,13 @@ function App() {
         }
       }
 
+      // Open the live "Thinking…" indicator immediately so the very first moment
+      // after send shows activity, before the backend's first byte arrives. The
+      // first warden_start reuses this slot instead of opening another.
+      const thinkId = genId();
+      thinkIdRef.current = thinkId;
+      next.push({ id: thinkId, kind: "think", text: "" });
+
       commit(next);
 
       setFollowTimeline(true);
@@ -538,7 +560,10 @@ function App() {
           // finishing, `abortRef.current` will point to the new controller.
           if (abortRef.current !== ctrl) return;
           abortRef.current = null;
+          assistantIdRef.current = null;
+          thinkIdRef.current = null;
           setStreaming(false);
+          commit(stripEmptyThink(blocksRef.current));
           refreshStatus();
           loadChats();
         })
@@ -552,10 +577,15 @@ function App() {
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    assistantIdRef.current = null;
+    thinkIdRef.current = null;
     setStreaming(false);
     setConfirmReq(null);
     setQuestionReq(null);
-  }, []);
+    // The stream's finally bails out once abortRef is cleared, so settle any
+    // dangling empty "Thinking…" indicator here.
+    commit(stripEmptyThink(blocksRef.current));
+  }, [commit]);
 
   const handleConfirm = useCallback(
     async (ok: boolean) => {
@@ -815,55 +845,107 @@ function App() {
               }
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
             >
-              <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                {/* Timeline */}
-                {(hasBlocks || streaming) && (
-                  <div
-                    ref={scrollContainerRef}
-                    onScroll={handleTimelineScroll}
-                    className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
-                  >
-                    <Timeline
-                      blocks={blocks}
-                      generation={gen}
-                      thinking={
-                        streaming && (blocks.length === 0 || blocks.at(-1)?.kind === "user")
-                      }
-                    />
-                  </div>
-                )}
-
-                {/* Input zone — no layout animation; position switches instantly to
-                    avoid the input flying through the middle on send / chat switch. */}
-                <div
-                  className={
-                    hasBlocks || streaming
-                      ? "absolute bottom-0 left-0 right-0 z-20 px-6 pb-6 pt-10 bg-gradient-to-t from-bg via-bg/95 to-transparent pointer-events-none"
-                      : "relative isolate flex flex-1 flex-col items-center justify-center overflow-hidden px-6 w-full"
-                  }
-                >
-                  {!(hasBlocks || streaming) && <StarfieldBackdrop />}
-
-                  {!(hasBlocks || streaming) && (
-                    <div className="relative z-10 mb-7 select-none">
-                      <div
-                        style={{ transform: "translateX(var(--chat-shift, 0px))" }}
-                        className="text-center"
-                      >
-                        <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
-                          {connected ? welcomePhrase : "warden"}
-                        </h1>
-                      </div>
-                    </div>
+              {/* Chat surface. The input bar is a single element that travels
+                  between centre (empty state) and bottom (conversation) via a
+                  layout="position" animation, so opening a new chat and sending
+                  the first message use the exact same motion. The timeline,
+                  starfield, welcome heading and bottom scrim cross-fade around it. */}
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+                {/* Empty-state starfield */}
+                <AnimatePresence>
+                  {emptyState && (
+                    <motion.div
+                      key="starfield"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      className="absolute inset-0 z-0"
+                    >
+                      <StarfieldBackdrop />
+                    </motion.div>
                   )}
+                </AnimatePresence>
 
-                  <div
-                    className={
-                      hasBlocks || streaming
-                        ? "mx-auto w-full max-w-3xl pointer-events-auto"
-                        : "relative z-10 w-full max-w-3xl"
-                    }
-                  >
+                {/* Timeline */}
+                <AnimatePresence>
+                  {!emptyState && (
+                    <motion.div
+                      key="timeline"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      ref={scrollContainerRef}
+                      onScroll={handleTimelineScroll}
+                      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
+                    >
+                      {/* Switching chats swaps the whole conversation as one unit
+                          (keyed by generation) rather than letting every block
+                          reconcile and re-animate — that per-block churn was the
+                          jank. Empty↔chat is handled by the outer layer above and
+                          left untouched. */}
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={gen}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.16, ease: EASE }}
+                        >
+                          <Timeline blocks={blocks} generation={gen} streaming={streaming} />
+                        </motion.div>
+                      </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Bottom scrim so messages fade out under the floating input */}
+                <AnimatePresence>
+                  {!emptyState && (
+                    <motion.div
+                      key="scrim"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-40 bg-gradient-to-t from-bg via-bg/95 to-transparent"
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* Overlay holding the welcome heading + input. The input's
+                    vertical position is driven purely by two flex spacers: equal
+                    weight centres it (empty state), collapsing the bottom one
+                    drops it to the bottom (conversation). Because the motion is
+                    state-driven, not layout-measured, sidebar resizing never
+                    disturbs it — only the empty↔conversation switch animates. */}
+                <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center px-6">
+                  <div className="w-full flex-1" />
+
+                  <AnimatePresence>
+                    {emptyState && (
+                      <motion.div
+                        key="welcome"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.3, ease: EASE }}
+                        className="relative z-10 mb-7 select-none"
+                      >
+                        <div
+                          style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+                          className="text-center"
+                        >
+                          <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
+                            {connected ? welcomePhrase : "warden"}
+                          </h1>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="pointer-events-auto w-full max-w-3xl">
                     <AnimatePresence mode="wait">
                       {confirmReq ? (
                         <ConfirmModal
@@ -896,6 +978,14 @@ function App() {
                       )}
                     </AnimatePresence>
                   </div>
+
+                  <motion.div
+                    className="w-full shrink-0"
+                    style={{ minHeight: 24 }}
+                    initial={false}
+                    animate={{ flexGrow: emptyState ? 1 : 0 }}
+                    transition={{ duration: 0.5, ease: EASE }}
+                  />
                 </div>
               </div>
             </main>
