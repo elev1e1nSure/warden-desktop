@@ -264,7 +264,7 @@ function groupKey(g: Group): string {
 
 const UserBlock = memo(function UserBlock({ text }: { text: string }) {
   return (
-    <motion.div layout className="flex justify-end pt-3 pb-1">
+    <motion.div className="flex justify-end pt-3 pb-1">
       <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-fill-active px-4 py-3 text-body leading-relaxed text-text-primary">
         {text}
       </div>
@@ -486,7 +486,7 @@ const AssistantBlock = memo(function AssistantBlock({ text }: { text: string }) 
   );
 
   return (
-    <motion.div layout className="markdown-body text-body text-text-primary">
+    <motion.div className="markdown-body text-body text-text-primary">
       {text.length === 0 ? (
         <span className="inline-block h-[14px] w-[5px] animate-pulse rounded-sm bg-fill-strong align-middle" />
       ) : (
@@ -663,21 +663,16 @@ function Timeline({
       className="mx-auto w-full max-w-3xl"
     >
       <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
-        <AnimatePresence initial={false}>
+        <AnimatePresence mode="popLayout">
           {groups.map((g) => {
             const isThought = g.kind === "single" && g.block.kind === "think";
             return (
               <motion.div
                 key={`${generation}-${groupKey(g)}`}
-                layout
-                initial={isThought ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={isThought ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-                transition={
-                  isThought
-                    ? { duration: 0.12, ease: [0.22, 1, 0.36, 1] }
-                    : { type: "spring", stiffness: 350, damping: 30 }
-                }
+                initial={isThought ? { opacity: 0 } : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
               >
                 {g.kind === "single" && g.block.kind === "user" && (
                   <UserBlock text={g.block.text} />
@@ -711,11 +706,10 @@ function Timeline({
           {thinking && (
             <motion.div
               key="thinking"
-              layout
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
             >
               <ThinkingIndicator />
             </motion.div>
