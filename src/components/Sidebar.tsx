@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ChevronDown, MoreHorizontal, Plug } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -40,14 +40,22 @@ function NavButton({ icon, label, onClick, disabled, active }: NavButtonProps) {
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
+      className={`relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
         disabled
           ? "cursor-default text-text-faint"
           : active
-            ? "bg-fill-active text-text-primary"
+            ? "text-text-primary"
             : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
       }`}
+      style={{ isolation: "isolate" }}
     >
+      {active && !disabled && (
+        <motion.div
+          layoutId="nav-highlight"
+          className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+          transition={{ type: "spring", stiffness: 600, damping: 48 }}
+        />
+      )}
       <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
         {React.isValidElement(icon)
           ? React.cloneElement(icon, { isHovered: hovered || active } as any)
@@ -146,6 +154,7 @@ function Sidebar({
       style={{ width, backdropFilter: "blur(25px)", WebkitBackdropFilter: "blur(25px)" }}
       className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
     >
+      <LayoutGroup>
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
         <NavButton
@@ -292,6 +301,7 @@ function Sidebar({
           onClick={onOpenSettings}
         />
       </div>
+      </LayoutGroup>
 
       {createPortal(
         <AnimatePresence>
