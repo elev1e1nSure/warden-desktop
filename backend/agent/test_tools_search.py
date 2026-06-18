@@ -27,6 +27,39 @@ class TestGoogleSearchTool:
         assert "Test" in result
         assert "example.com" in result
 
+    async def test_yahoo_fallback(self):
+        from agent.tools.search import GoogleSearchTool
+        import urllib.request as _ur
+        import agent.tools.search as _search_mod
+
+        class FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                pass
+
+            def read(self):
+                return (
+                    b"<html><body>"
+                    b'<div class="dd algo-sr"><a href="https://r.search.yahoo.com/RU=https%3a%2f%2fexample.com/RK=2/">'
+                    b'<h3 class="title"><span>Example Title</span></h3></a>'
+                    b'<div class="compText">Example snippet description</div></div>'
+                    b"</body></html>"
+                )
+
+        tool = GoogleSearchTool()
+        with (
+            patch("duckduckgo_search.DDGS", side_effect=Exception("DDG Rate limit")),
+            patch.object(_ur, "urlopen", return_value=FakeResp()),
+            patch.object(_search_mod.time, "sleep"),
+        ):
+            result = await tool.execute({"query": "test"})
+
+        assert "Example Title" in result
+        assert "example.com" in result
+        assert "Example snippet description" in result
+
 
 class TestWebFetchTool:
     async def test_invalid_url(self):
