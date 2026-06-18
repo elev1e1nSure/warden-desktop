@@ -1759,9 +1759,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9,<4.0" },
-    { name = "duckduckgo-search", specifier = ">=6.0,<8.0" },
+    { name = "duckduckgo-search", specifier = ">=6.0,<9.0" },
     { name = "html2text", marker = "extra == 'tools'", specifier = ">=2024.2.26" },
-    { name = "openai", specifier = ">=1.0,<2.0" },
+    { name = "openai", specifier = ">=1.0,<3.0" },
     { name = "pillow", specifier = ">=10.0" },
     { name = "playwright", marker = "extra == 'tools'", specifier = ">=1.40" },
     { name = "pyautogui", marker = "extra == 'tools'", specifier = ">=0.9" },
