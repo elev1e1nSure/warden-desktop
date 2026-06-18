@@ -70,15 +70,20 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          SYSTEM_PROMPT="You write release notes in English. Rules:
-          - Write in a clear, human-readable way for end users
-          - No technical noise: no commit hashes, no feat/fix/chore/refactor prefixes
-          - Skip internal changes that don't affect the user
-          - Group changes by theme (new features, improvements, bug fixes)
-          - Plain text format
-          - No unnecessary introductions or conclusions"
+          SYSTEM_PROMPT="You write release notes in English for a desktop AI assistant app called Warden. Rules:
+          - Write for end users, not developers — friendly and clear
+          - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
+          - Skip internal-only changes (CI, tests, linting, build scripts, refactors with no user-visible effect)
+          - Group changes into sections using these exact headers (only include sections that have content):
+            ## ✨ What's New
+            ## 🛠️ Improvements
+            ## 🐛 Bug Fixes
+          - Within each section, use a bullet list with a relevant emoji per item (🤖 🧠 💬 🎨 ⚡ 🔍 📋 🗂️ 🔧 etc.)
+          - Each bullet: one clear sentence describing what the user gains or what was fixed
+          - Tone: warm, direct, no marketing fluff
+          - End with a horizontal rule and a single line: > 💌 Thanks for using Warden!"
 
-          USER_PREFIX="Here are the commits since the last release. Write release notes in English that are useful for end users:"
+          USER_PREFIX="Here are the commits since the last release. Write beautiful, user-friendly release notes:"
 
           jq -n \
             --arg model "deepseek/deepseek-v4-flash" \
@@ -93,11 +98,17 @@ jobs:
               ]
             }' > request.json
 
-          curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+          AI_BODY=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
             -H "Authorization: Bearer $OPENROUTER_API_KEY" \
             -H "Content-Type: application/json" \
             -d @request.json \
-            | jq -r '.choices[0].message.content' > release_notes.md
+            | jq -r '.choices[0].message.content // "Release notes unavailable."')
+
+          TAG="${GITHUB_REF_NAME}"
+          DATE=$(date +'%B %d, %Y')
+
+          printf "# 🛡️ Warden %s\n\n**%s**\n\n---\n\n%s\n" \
+            "$TAG" "$DATE" "$AI_BODY" > release_notes.md
 
           echo "=== Generated release notes ==="
           cat release_notes.md
