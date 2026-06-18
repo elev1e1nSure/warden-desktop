@@ -1,6 +1,17 @@
 import * as React from "react";
-import { motion } from "framer-motion";
-import { Check, Cpu, Eye, EyeOff, FolderOpen, Globe, Loader2, Monitor, Shield, Terminal } from "lucide-react";
+import { LayoutGroup, motion } from "framer-motion";
+import {
+  Check,
+  Cpu,
+  Eye,
+  EyeOff,
+  FolderOpen,
+  Globe,
+  Loader2,
+  Monitor,
+  Shield,
+  Terminal,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AnimatedSliders from "./AnimatedSliders";
 import AnimatedArrowLeft from "./AnimatedArrowLeft";
@@ -15,7 +26,13 @@ import type { MemoryState, PermissionLevel, PermissionsState, StatusResult } fro
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
 
-export type SettingsSection = "general" | "connection" | "agent" | "permissions" | "memory" | "about";
+export type SettingsSection =
+  | "general"
+  | "connection"
+  | "agent"
+  | "permissions"
+  | "memory"
+  | "about";
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -492,46 +509,48 @@ function PermissionSelector({
   const id = React.useId();
 
   return (
-    <div className="flex rounded-lg border border-hairline bg-fill-subtle p-0.5 gap-0.5">
-      {PERMISSION_LEVELS.map((level) => {
-        const active = value === level.value;
-        const pillColor =
-          level.value === "block"
-            ? "rgba(239, 68, 68, 0.15)"
-            : level.value === "allow"
-              ? "rgba(52, 211, 153, 0.15)"
-              : "rgba(255, 255, 255, 0.08)";
-        const activeText =
-          level.value === "block"
-            ? "text-red-400"
-            : level.value === "allow"
-              ? "text-emerald-400"
-              : "text-text-primary";
+    <LayoutGroup id={id}>
+      <div className="flex rounded-lg border border-hairline bg-fill-subtle p-0.5 gap-0.5">
+        {PERMISSION_LEVELS.map((level) => {
+          const active = value === level.value;
+          const pillColor =
+            level.value === "block"
+              ? "rgba(239, 68, 68, 0.15)"
+              : level.value === "allow"
+                ? "rgba(52, 211, 153, 0.15)"
+                : "rgba(255, 255, 255, 0.08)";
+          const activeText =
+            level.value === "block"
+              ? "text-red-400"
+              : level.value === "allow"
+                ? "text-emerald-400"
+                : "text-text-primary";
 
-        return (
-          <button
-            key={level.value}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(level.value)}
-            style={{ isolation: "isolate" }}
-            className={`relative px-3 py-1.5 text-ui font-medium rounded-md transition-colors duration-150 ${
-              active ? activeText : "text-text-muted hover:text-text-secondary"
-            } disabled:opacity-40`}
-          >
-            {active && (
-              <motion.div
-                layoutId={`${id}-pill`}
-                animate={{ backgroundColor: pillColor }}
-                transition={{ type: "spring", stiffness: 500, damping: 42 }}
-                className="absolute inset-0 rounded-md"
-              />
-            )}
-            <span className="relative z-10">{level.label}</span>
-          </button>
-        );
-      })}
-    </div>
+          return (
+            <button
+              key={level.value}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(level.value)}
+              style={{ isolation: "isolate" }}
+              className={`relative px-3 py-1.5 text-ui font-medium rounded-md transition-colors duration-150 ${
+                active ? activeText : "text-text-muted"
+              } disabled:opacity-40`}
+            >
+              {active && (
+                <motion.div
+                  layoutId="pill"
+                  animate={{ backgroundColor: pillColor }}
+                  transition={{ type: "spring", stiffness: 500, damping: 42 }}
+                  className="absolute inset-0 rounded-md pointer-events-none"
+                />
+              )}
+              <span className="relative z-10">{level.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -565,9 +584,11 @@ function PermissionsSection() {
       <SectionHeader title="Permissions" />
 
       <p className="mb-5 text-ui text-text-muted">
-        Control which capabilities the agent can use. <strong className="text-text-secondary font-medium">Block</strong> disables a
-        group entirely. <strong className="text-text-secondary font-medium">Ask</strong> always prompts before using it.{" "}
-        <strong className="text-text-secondary font-medium">Allow</strong> lets it run without asking.
+        Control which capabilities the agent can use.{" "}
+        <strong className="text-text-secondary font-medium">Block</strong> disables a group
+        entirely. <strong className="text-text-secondary font-medium">Ask</strong> always prompts
+        before using it. <strong className="text-text-secondary font-medium">Allow</strong> lets it
+        run without asking.
       </p>
 
       <FieldGroup>
