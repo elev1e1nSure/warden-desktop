@@ -26,6 +26,14 @@
       "csp": "default-src 'self' tauri: asset:; img-src 'self' blob: data: asset: tauri:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:8765 ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "TAURI_PUBLIC_KEY_PLACEHOLDER",
+      "endpoints": [
+        "https://github.com/elev1e1nSure/warden-desktop/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
