@@ -143,21 +143,23 @@ function App() {
   }, []);
 
   const prefetchChats = useCallback(async (chatIds: string[]) => {
-    for (const id of chatIds) {
-      if (chatBlocksCacheRef.current.has(id) || prefetchingIdsRef.current.has(id)) {
-        continue;
-      }
-      prefetchingIdsRef.current.add(id);
-      try {
-        const res = await api.getChat(id);
-        const next = res.chat.blocks ?? [];
-        chatBlocksCacheRef.current.set(id, next);
-      } catch (err) {
-        console.error(`Failed to prefetch chat ${id}:`, err);
-      } finally {
-        prefetchingIdsRef.current.delete(id);
-      }
-    }
+    await Promise.all(
+      chatIds.map(async (id) => {
+        if (chatBlocksCacheRef.current.has(id) || prefetchingIdsRef.current.has(id)) {
+          return;
+        }
+        prefetchingIdsRef.current.add(id);
+        try {
+          const res = await api.getChat(id);
+          const next = res.chat.blocks ?? [];
+          chatBlocksCacheRef.current.set(id, next);
+        } catch (err) {
+          console.error(`Failed to prefetch chat ${id}:`, err);
+        } finally {
+          prefetchingIdsRef.current.delete(id);
+        }
+      })
+    );
   }, []);
 
   const loadChats = useCallback(async () => {
@@ -292,6 +294,11 @@ function App() {
       const cached = chatBlocksCacheRef.current.get(id);
       if (cached) {
         loadBlocks(cached);
+        setGen((g) => g + 1);
+        setFollowTimeline(true);
+      } else {
+        // Clear the blocks optimistically so the previous chat's contents are not shown while loading.
+        loadBlocks([]);
         setGen((g) => g + 1);
         setFollowTimeline(true);
       }
