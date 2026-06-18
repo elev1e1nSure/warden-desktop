@@ -12,7 +12,7 @@ import type {
   StatusResult,
 } from "./types";
 
-export const API_BASE = "http://localhost:8765";
+export const API_BASE = "http://127.0.0.1:8765";
 
 // Module-level token cache, populated by `initAuthToken()` on startup.
 let authToken: string | null = null;
