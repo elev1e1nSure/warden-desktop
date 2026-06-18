@@ -579,7 +579,12 @@ function App() {
                         transition={{ duration: 0.22, ease: EASE }}
                         style={{ transformOrigin: "50% 100%" }}
                       >
-                        <Timeline blocks={blocks} generation={gen} streaming={streaming} />
+                        <Timeline
+                          blocks={blocks}
+                          generation={gen}
+                          streaming={streaming}
+                          scrollRef={scrollContainerRef}
+                        />
                       </motion.div>
                     </motion.div>
                   )}

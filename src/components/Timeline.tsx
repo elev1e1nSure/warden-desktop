@@ -1,3 +1,4 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
@@ -28,9 +29,9 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { useThrottledValue } from "../hooks/useThrottledValue";
 import { toolDescription, toolRunningLabel } from "../lib/toolDescription";
-import { mdComponents } from "./markdown";
 import { blockEnter, collapse, EASE, labelFade } from "../motion";
 import type { Block } from "../types";
+import { mdComponents } from "./markdown";
 
 // ─── types ──────────────────────────────────────────────────────────────────
 
@@ -449,56 +450,79 @@ function Timeline({
   blocks,
   generation: _generation = 0,
   streaming = false,
+  scrollRef,
 }: {
   blocks: Block[];
   generation?: number;
   streaming?: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
-
-  // The block currently being streamed into is the last one. A think/assistant
-  // block is "live" only while it is that last block and the turn is streaming;
-  // once anything follows it, it settles. This single derived fact drives both
-  // the Thinking→Thought morph and the assistant streaming render — no synthetic
-  // slots, no block rewriting.
   const liveId = streaming ? (blocks[blocks.length - 1]?.id ?? null) : null;
+
+  const virtualizer = useVirtualizer({
+    count: groups.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 100,
+    overscan: 5,
+  });
 
   return (
     <div
       style={{ transform: "translateX(var(--chat-shift, 0px))" }}
       className="mx-auto w-full max-w-3xl"
     >
-      <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
-        <AnimatePresence initial={false}>
-          {groups.map((g) => (
-            <motion.div key={groupKey(g)} {...blockEnter}>
-              {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
-              {g.kind === "single" && g.block.kind === "think" && (
-                <ThinkBlock text={g.block.text} live={g.block.id === liveId} />
-              )}
-              {g.kind === "single" &&
-                g.block.kind === "image" &&
-                (() => {
-                  const b = g.block;
-                  return (
-                    <ImageBlock
-                      url={b.url}
-                      name={b.name}
-                      onExpand={() => setLightbox({ url: b.url, name: b.name })}
-                    />
-                  );
-                })()}
-              {g.kind === "single" && g.block.kind === "assistant" && (
-                <AssistantBlock text={g.block.text} live={g.block.id === liveId} />
-              )}
-              {g.kind === "single" && g.block.kind === "error" && (
-                <p className="text-ui text-danger">{g.block.text}</p>
-              )}
-              {g.kind === "tool" && <ToolRow block={g.block} />}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="w-full px-6 pt-12 pb-32" style={{ position: "relative" }}>
+        <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const g = groups[virtualItem.index];
+            if (!g) return null;
+
+            return (
+              <div
+                key={groupKey(g)}
+                data-index={virtualItem.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                <motion.div {...blockEnter} className="pb-2">
+                  {g.kind === "single" && g.block.kind === "user" && (
+                    <UserBlock text={g.block.text} />
+                  )}
+                  {g.kind === "single" && g.block.kind === "think" && (
+                    <ThinkBlock text={g.block.text} live={g.block.id === liveId} />
+                  )}
+                  {g.kind === "single" &&
+                    g.block.kind === "image" &&
+                    (() => {
+                      const b = g.block;
+                      return (
+                        <ImageBlock
+                          url={b.url}
+                          name={b.name}
+                          onExpand={() => setLightbox({ url: b.url, name: b.name })}
+                        />
+                      );
+                    })()}
+                  {g.kind === "single" && g.block.kind === "assistant" && (
+                    <AssistantBlock text={g.block.text} live={g.block.id === liveId} />
+                  )}
+                  {g.kind === "single" && g.block.kind === "error" && (
+                    <p className="text-ui text-danger">{g.block.text}</p>
+                  )}
+                  {g.kind === "tool" && <ToolRow block={g.block} />}
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <AnimatePresence>
