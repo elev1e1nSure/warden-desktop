@@ -99,7 +99,7 @@ export default function ModeToggle({
                       active && value === "auto"
                         ? "text-accent"
                         : active && value === "custom"
-                          ? "text-amber-400"
+                          ? "text-amber-100/80"
                           : active
                             ? "text-text-primary"
                             : isCustomUnavailable
@@ -113,7 +113,7 @@ export default function ModeToggle({
                       active && value === "auto"
                         ? "text-accent"
                         : active && value === "custom"
-                          ? "text-amber-400"
+                          ? "text-amber-100/80"
                           : active
                             ? "text-text-primary"
                             : "text-text-secondary"
@@ -127,7 +127,7 @@ export default function ModeToggle({
                         value === "auto"
                           ? "text-accent"
                           : value === "custom"
-                            ? "text-amber-400"
+                            ? "text-amber-100/80"
                             : "text-text-secondary"
                       }`}
                       strokeWidth={2.25}
@@ -155,7 +155,7 @@ export default function ModeToggle({
             mode === "auto"
               ? "text-accent hover:bg-fill-hover"
               : mode === "custom"
-                ? "text-amber-400 hover:bg-fill-hover"
+                ? "text-amber-100/80 hover:bg-fill-hover"
                 : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}
         >
