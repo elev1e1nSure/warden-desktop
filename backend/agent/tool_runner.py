@@ -13,20 +13,11 @@ from agent.tools import REGISTRY, ToolResult, parse_args
 from agent.tools.input import CU_MAX_SIDE
 
 _SCREENSHOT_TOOLS = {"screenshot", "browser_screenshot"}
-_CU_TOOLS = {"screenshot", "mouse", "keyboard"}
 
 # Truncate limits (mirrors opencode's truncate.ts: 2000 lines / 50KB)
 _TRUNCATE_MAX_LINES = 2000
 _TRUNCATE_MAX_BYTES = 50_000
 _TRUNCATE_MARKER = "\n…[truncated: showing first {} of {} lines, {} of {} bytes]…\n"
-
-_CU_WARNING_TITLE = "Computer use is a work in progress"
-_CU_WARNING_DETAILS = [
-    "This feature is early and rough — expect mistakes, misclicks, and wrong coordinates.",
-    "The agent sees a downscaled screenshot and may misjudge positions.",
-    "Move the cursor to the top-left corner to abort at any time.",
-    "This notice appears once per session.",
-]
 
 
 def _truncate(
@@ -103,7 +94,6 @@ async def execute_tool_call(
     confirmation_manager: ConfirmationManager | None,
     question_manager: QuestionManager | None,
     add_tool_result_fn,
-    cu_warned: dict | None = None,
     permissions: dict[str, str] | None = None,
 ) -> AsyncIterator[tuple]:
     """Execute a single tool call. Yields events and records results in history."""
@@ -127,34 +117,6 @@ async def execute_tool_call(
 
     args_json = json.dumps(args, ensure_ascii=False)
     args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-
-    # ── computer use: one-time session warning (bypasses auto mode) ──
-    if name in _CU_TOOLS and cu_warned is not None and not cu_warned["value"]:
-        if confirmation_manager is None:
-            add_tool_result_fn(name, "cancelled: no confirmation manager")
-            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
-            return
-        call_id, _ = confirmation_manager.register()
-        yield (
-            "confirm",
-            {
-                "id": call_id,
-                "tool": name,
-                "risk": "confirm",
-                "title": _CU_WARNING_TITLE,
-                "summary": "feature is early — results may be inaccurate",
-                "details": _CU_WARNING_DETAILS,
-                "args": args_json,
-                "preview": args_str,
-                "default": "cancel",
-            },
-        )
-        ok = await confirmation_manager.wait(call_id)
-        if not ok:
-            add_tool_result_fn(name, "cancelled by user")
-            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
-            return
-        cu_warned["value"] = True
 
     # ── question tool: special interactive flow ──
     if name == "question":
