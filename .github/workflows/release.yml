@@ -74,15 +74,14 @@ jobs:
           - Write for end users, not developers — clear and direct
           - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
           - Skip internal-only changes (CI, tests, linting, build scripts, refactors with no user-visible effect)
-          - Group changes into sections using these exact headers (only include sections that have content):
-            ## What's New
-            ## Improvements
-            ## Bug Fixes
-          - Use plain bullet lists, no emojis
-          - Each bullet: one clear sentence describing what changed and why it matters to the user
-          - Tone: neutral and informative, no fluff, no exclamation marks"
+          - Group changes into sections with an emoji in the header (only include sections that have content):
+            ## ✨ What's New
+            ## ⚡ Improvements
+            ## 🐛 Bug Fixes
+          - Each bullet starts with a single relevant emoji, then one clear sentence
+          - Tone: direct and informative, no marketing fluff"
 
-          USER_PREFIX="Here are the commits since the last release. Write concise, user-facing release notes:"
+          USER_PREFIX="Here are the commits since the last release. Write user-facing release notes:"
 
           jq -n \
             --arg model "deepseek/deepseek-v4-flash" \
@@ -106,7 +105,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           DATE=$(date +'%B %d, %Y')
 
-          printf "# Warden %s\n\n_%s_\n\n---\n\n%s\n" \
+          printf "# 🛡️ Warden %s\n\n_%s_\n\n---\n\n%s\n" \
             "$TAG" "$DATE" "$AI_BODY" > release_notes.md
 
           echo "=== Generated release notes ==="
