@@ -26,7 +26,7 @@ function buildStarShadow(count: number, size: number, blur: number, seed: number
   for (let i = 0; i < count; i += 1) {
     const x = Math.floor(rand() * max);
     const y = Math.floor(rand() * max);
-    const alpha = (0.5 + rand() * 0.5).toFixed(2);
+    const alpha = (0.7 + rand() * 0.3).toFixed(2);
     stars.push(`${x}px ${y}px ${blur}px rgba(255, 255, 255, ${alpha})`);
   }
 
@@ -56,29 +56,29 @@ export default function StarfieldBackdrop() {
     <div className="starfield-backdrop" aria-hidden="true">
       <StarLayer
         className="starfield-layer-sm"
-        count={220}
-        size={1}
+        count={320}
+        size={1.5}
         blur={0.5}
         speed="50s"
-        opacity={0.95}
+        opacity={1.0}
         seed={11}
       />
       <StarLayer
         className="starfield-layer-md"
-        count={90}
-        size={2}
-        blur={1.2}
+        count={120}
+        size={2.5}
+        blur={1.0}
         speed="100s"
-        opacity={0.72}
+        opacity={0.9}
         seed={29}
       />
       <StarLayer
         className="starfield-layer-lg"
-        count={36}
-        size={3}
-        blur={2.5}
+        count={50}
+        size={4}
+        blur={2.0}
         speed="150s"
-        opacity={0.58}
+        opacity={0.8}
         seed={53}
       />
     </div>

@@ -16,8 +16,10 @@ html {
   /* ─── Text ─────────────────────────────────────────────────── */
   --color-text-primary: #f2f2f2;
   --color-text-secondary: #b4b4b4;
-  --color-text-muted: #6e6e6e; /* bumped from #606060 for legibility */
-  --color-text-faint: #585858; /* decorative / very dim only */
+  --color-text-muted: #6e6e6e;
+  /* bumped from #606060 for legibility */
+  --color-text-faint: #585858;
+  /* decorative / very dim only */
 
   /* ─── Fills (white alpha) — hover / active / bubbles ───────── */
   --color-fill-subtle: rgba(255, 255, 255, 0.04);
@@ -40,17 +42,23 @@ html {
   --color-accent: #6a9fb5;
 
   /* ─── Type scale ───────────────────────────────────────────── */
-  --text-meta: 0.75rem; /* 12 — timestamps, section labels, tool meta */
+  --text-meta: 0.75rem;
+  /* 12 — timestamps, section labels, tool meta */
   --text-meta--line-height: 1.45;
-  --text-ui: 0.8125rem; /* 13 — sidebar, statusbar, secondary chrome */
+  --text-ui: 0.8125rem;
+  /* 13 — sidebar, statusbar, secondary chrome */
   --text-ui--line-height: 1.45;
-  --text-ui-lg: 0.875rem; /* 14 — nav, buttons */
+  --text-ui-lg: 0.875rem;
+  /* 14 — nav, buttons */
   --text-ui-lg--line-height: 1.45;
-  --text-body: 0.9375rem; /* 15 — chat content */
+  --text-body: 0.9375rem;
+  /* 15 — chat content */
   --text-body--line-height: 1.7;
-  --text-title: 1.125rem; /* 18 */
+  --text-title: 1.125rem;
+  /* 18 */
   --text-title--line-height: 1.3;
-  --text-display: 1.5rem; /* 24 — empty-state heading */
+  --text-display: 1.5rem;
+  /* 24 — empty-state heading */
   --text-display--line-height: 1.2;
 
   /* ─── Fonts ────────────────────────────────────────────────── */
@@ -109,9 +117,12 @@ aside {
 *,
 *::before,
 *::after {
-  scrollbar-width: none !important;          /* Firefox */
-  -ms-overflow-style: none !important;       /* legacy Edge / IE */
+  scrollbar-width: none !important;
+  /* Firefox */
+  -ms-overflow-style: none !important;
+  /* legacy Edge / IE */
 }
+
 *::-webkit-scrollbar,
 *::-webkit-scrollbar-track,
 *::-webkit-scrollbar-thumb,
@@ -165,21 +176,24 @@ input::placeholder {
 
 /* Shimmer text animation */
 @keyframes text-shimmer {
-  from { background-position: 200% center; }
-  to   { background-position: -200% center; }
+  from {
+    background-position: 200% center;
+  }
+
+  to {
+    background-position: -200% center;
+  }
 }
 
 .shimmer-text {
-  background: linear-gradient(
-    90deg,
-    #484848 0%,
-    #484848 25%,
-    #767676 40%,
-    #c0c0c0 50%,
-    #767676 60%,
-    #484848 75%,
-    #484848 100%
-  );
+  background: linear-gradient(90deg,
+      #484848 0%,
+      #484848 25%,
+      #767676 40%,
+      #c0c0c0 50%,
+      #767676 60%,
+      #484848 75%,
+      #484848 100%);
   background-size: 300% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -192,8 +206,16 @@ input::placeholder {
    Each dot cycles opacity 0.2 → 1 with a staggered delay so they
    "wave" in sequence. */
 @keyframes thinking-dot {
-  0%, 60%, 100% { opacity: 0.2; }
-  30%           { opacity: 1; }
+
+  0%,
+  60%,
+  100% {
+    opacity: 0.2;
+  }
+
+  30% {
+    opacity: 1;
+  }
 }
 
 .thinking-dot {
@@ -205,11 +227,18 @@ input::placeholder {
    assistant message while it is being written. Sits inline after the final
    line so it reads like a live cursor; vanishes the moment the block settles. */
 @keyframes stream-caret {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
-.markdown-body.is-streaming > *:last-child::after {
+.markdown-body.is-streaming>*:last-child::after {
   content: "";
   display: inline-block;
   width: 0.5em;
@@ -233,6 +262,7 @@ input::placeholder {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -240,6 +270,7 @@ input::placeholder {
 /* Respect reduced-motion: kill CSS transitions/animations.
    Framer-motion is handled separately via useReducedMotion in Phase 6. */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -253,26 +284,65 @@ input::placeholder {
 
 /* ─── Ambient Glow Orbs ────────────────────────────────────── */
 @keyframes ambient-drift-1 {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  20%  { transform: translate3d(18%, -12%, 0) scale(1.2); }
-  45%  { transform: translate3d(-5%, 20%, 0) scale(0.85); }
-  70%  { transform: translate3d(22%, 8%, 0) scale(1.1); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate3d(18%, -12%, 0) scale(1.2);
+  }
+
+  45% {
+    transform: translate3d(-5%, 20%, 0) scale(0.85);
+  }
+
+  70% {
+    transform: translate3d(22%, 8%, 0) scale(1.1);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 @keyframes ambient-drift-2 {
-  0%   { transform: translate3d(0, 0, 0) scale(1.05); }
-  25%  { transform: translate3d(-15%, 18%, 0) scale(0.88); }
-  55%  { transform: translate3d(10%, -10%, 0) scale(1.15); }
-  80%  { transform: translate3d(-8%, 5%, 0) scale(0.95); }
-  100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+
+  25% {
+    transform: translate3d(-15%, 18%, 0) scale(0.88);
+  }
+
+  55% {
+    transform: translate3d(10%, -10%, 0) scale(1.15);
+  }
+
+  80% {
+    transform: translate3d(-8%, 5%, 0) scale(0.95);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
 }
 
 @keyframes ambient-drift-3 {
-  0%   { transform: translate3d(0, 0, 0) scale(0.95); }
-  30%  { transform: translate3d(15%, -20%, 0) scale(1.15); }
-  60%  { transform: translate3d(-18%, -5%, 0) scale(0.9); }
-  100% { transform: translate3d(0, 0, 0) scale(0.95); }
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+
+  30% {
+    transform: translate3d(15%, -20%, 0) scale(1.15);
+  }
+
+  60% {
+    transform: translate3d(-18%, -5%, 0) scale(0.9);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
 }
 
 /* NOTE: large filter: blur() forces software rasterisation on WebView2 and is
@@ -315,8 +385,8 @@ input::placeholder {
   pointer-events: none;
   /* Dark tint pushes orbs back visually — this is what creates depth */
   background:
-    linear-gradient(160deg, rgba(255,255,255,0.025) 0%, transparent 40%),
-    rgba(5, 6, 18, 0.35);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.025) 0%, transparent 40%),
+    rgba(5, 6, 18, 0.18);
   /* Diffuse what little sharpness remains in the orbs */
   -webkit-backdrop-filter: blur(18px) saturate(0.65);
   backdrop-filter: blur(18px) saturate(0.65);
@@ -328,8 +398,13 @@ input::placeholder {
    React generates the star coordinates; CSS only owns the motion and
    atmosphere. The backdrop is scoped to the empty chat screen. */
 @keyframes starfield-scroll {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(0, -2000px, 0); }
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -2000px, 0);
+  }
 }
 
 .starfield-backdrop {
@@ -375,6 +450,7 @@ input::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .ambient-orb-1,
   .ambient-orb-2,
   .ambient-orb-3,
@@ -390,5 +466,3 @@ input::placeholder {
   backface-visibility: hidden;
   -webkit-font-smoothing: subpixel-antialiased;
 }
-
-
