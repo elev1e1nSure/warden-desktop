@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, MotionConfig } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
   type CSSProperties,
   type UIEvent,
@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { api } from "./api/client";
 import type { PermissionsState, StatusResult } from "./api/types";
 import ConfirmModal from "./components/ConfirmModal";
@@ -400,6 +401,12 @@ function App() {
     setView("chat");
     void loadPermissions();
   }, [loadPermissions]);
+
+  useHotkeys("ctrl+n", () => void handleNewChat(), { preventDefault: true }, [handleNewChat]);
+  useHotkeys("ctrl+shift+c", () => setShowConnect((v) => !v), { preventDefault: true }, []);
+  useHotkeys("escape", () => {
+    if (view !== "chat") setView("chat");
+  }, [view]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
