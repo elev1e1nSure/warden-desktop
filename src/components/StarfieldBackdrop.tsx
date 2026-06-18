@@ -4,6 +4,7 @@ type StarLayerProps = {
   className: string;
   count: number;
   size: number;
+  blur: number;
   speed: string;
   opacity: number;
   seed: number;
@@ -17,7 +18,7 @@ function makeRandom(seed: number) {
   };
 }
 
-function buildStarShadow(count: number, size: number, seed: number) {
+function buildStarShadow(count: number, size: number, blur: number, seed: number) {
   const rand = makeRandom(seed);
   const max = 2000;
   const stars: string[] = [];
@@ -26,7 +27,7 @@ function buildStarShadow(count: number, size: number, seed: number) {
     const x = Math.floor(rand() * max);
     const y = Math.floor(rand() * max);
     const alpha = (0.5 + rand() * 0.5).toFixed(2);
-    stars.push(`${x}px ${y}px rgba(255, 255, 255, ${alpha})`);
+    stars.push(`${x}px ${y}px ${blur}px rgba(255, 255, 255, ${alpha})`);
   }
 
   return {
@@ -36,8 +37,11 @@ function buildStarShadow(count: number, size: number, seed: number) {
   };
 }
 
-function StarLayer({ className, count, size, speed, opacity, seed }: StarLayerProps) {
-  const starStyle = useMemo(() => buildStarShadow(count, size, seed), [count, seed, size]);
+function StarLayer({ className, count, size, blur, speed, opacity, seed }: StarLayerProps) {
+  const starStyle = useMemo(
+    () => buildStarShadow(count, size, blur, seed),
+    [count, seed, size, blur],
+  );
 
   return (
     <div className={`starfield-layer ${className}`} style={{ opacity, animationDuration: speed }}>
@@ -54,6 +58,7 @@ export default function StarfieldBackdrop() {
         className="starfield-layer-sm"
         count={220}
         size={1}
+        blur={0.5}
         speed="50s"
         opacity={0.95}
         seed={11}
@@ -62,6 +67,7 @@ export default function StarfieldBackdrop() {
         className="starfield-layer-md"
         count={90}
         size={2}
+        blur={1.2}
         speed="100s"
         opacity={0.72}
         seed={29}
@@ -70,6 +76,7 @@ export default function StarfieldBackdrop() {
         className="starfield-layer-lg"
         count={36}
         size={3}
+        blur={2.5}
         speed="150s"
         opacity={0.58}
         seed={53}

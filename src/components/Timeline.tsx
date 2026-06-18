@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, BookPlus, ChevronDown, Layers, Loader2, Minus, X } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -52,6 +52,29 @@ function groupBlocks(blocks: Block[]): Group[] {
 function groupKey(g: Group): string {
   if (g.kind === "tools") return g.items[0]?.id ?? "";
   return g.block.id;
+}
+
+/* Returns false on first render, then true once the browser is idle — but only
+   while `enabled`. Used to push expensive work (syntax highlighting) past the
+   initial paint: when switching chats every settled block mounts at once, and
+   highlighting them all synchronously is what froze the swap on long chats. */
+function useIdleFlag(enabled: boolean): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!enabled) {
+      setReady(false);
+      return;
+    }
+    const hasIdle = typeof window.requestIdleCallback === "function";
+    const id = hasIdle
+      ? window.requestIdleCallback(() => setReady(true))
+      : window.setTimeout(() => setReady(true), 1);
+    return () => {
+      if (hasIdle) window.cancelIdleCallback(id);
+      else window.clearTimeout(id);
+    };
+  }, [enabled]);
+  return enabled && ready;
 }
 
 // ─── blocks ──────────────────────────────────────────────────────────────────
@@ -145,17 +168,22 @@ const AssistantBlock = memo(function AssistantBlock({
   // highlighter — code snaps to highlighted once the block settles. This keeps
   // long answers smooth instead of re-parsing the whole message every token.
   const display = useThrottledValue(text, 40, live);
+  // Highlighting is the single heaviest part of a settled answer. On a chat
+  // switch every block mounts at once, so doing it synchronously stalls the
+  // swap on long chats. Paint plain markdown first, then upgrade to highlighted
+  // once the browser is idle — code colours in a beat later, switch stays snappy.
+  const highlight = useIdleFlag(!live);
   const rendered = useMemo(
     () => (
       <Markdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={live ? [] : [rehypeHighlight]}
+        rehypePlugins={highlight ? [rehypeHighlight] : []}
         components={mdComponents}
       >
         {display}
       </Markdown>
     ),
-    [display, live],
+    [display, highlight],
   );
 
   // `is-streaming` appends a soft blinking caret after the last rendered element
@@ -247,7 +275,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
       <AnimatePresence initial={false}>
         {open && expandable && (
           <motion.div {...collapse} className="overflow-hidden">
-            <div className="mt-2 text-ui leading-[1.7] text-text-muted">
+            <div className="mt-2 pl-5 text-ui leading-[1.7] text-text-muted">
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -451,7 +479,7 @@ const ToolGroup = memo(
 
 function Timeline({
   blocks,
-  generation = 0,
+  generation: _generation = 0,
   streaming = false,
 }: {
   blocks: Block[];
@@ -474,9 +502,9 @@ function Timeline({
       className="mx-auto w-full max-w-3xl"
     >
       <div className="flex w-full flex-col gap-2 px-6 pt-12 pb-32">
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {groups.map((g) => (
-            <motion.div key={`${generation}-${groupKey(g)}`} {...blockEnter}>
+            <motion.div key={groupKey(g)} {...blockEnter}>
               {g.kind === "single" && g.block.kind === "user" && <UserBlock text={g.block.text} />}
               {g.kind === "single" && g.block.kind === "think" && (
                 <ThinkBlock text={g.block.text} live={g.block.id === liveId} />
