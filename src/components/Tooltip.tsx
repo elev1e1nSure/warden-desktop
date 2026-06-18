@@ -101,7 +101,7 @@ export default function Tooltip({ content, children, side = "top" }: TooltipProp
               top: position.top,
               left: position.left,
             }}
-            className="pointer-events-none z-50 whitespace-nowrap rounded-md bg-surface-raised px-2.5 py-1.5 text-meta font-medium text-text-primary shadow-lg border border-hairline"
+            className="accelerate-scale pointer-events-none z-50 whitespace-nowrap rounded-md bg-surface-raised px-2.5 py-1.5 text-meta font-medium text-text-primary shadow-lg"
           >
             {content}
           </motion.div>

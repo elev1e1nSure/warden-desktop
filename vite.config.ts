@@ -34,5 +34,6 @@ export default defineConfig(async () => ({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    exclude: ["**/jan/**", "**/node_modules/**", "**/dist/**", "**/src-tauri/**"],
   },
 }));

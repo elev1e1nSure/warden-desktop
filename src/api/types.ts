@@ -31,8 +31,12 @@ export interface SkillInfo {
 
 export interface MemoryState {
   enabled: boolean;
-  [key: string]: unknown;
+  entries: number;
+  snapshots: number;
+  db_size: number;
 }
+
+export type MemorySnapshot = Record<string, unknown>;
 
 export interface ChatSummary {
   id: string;

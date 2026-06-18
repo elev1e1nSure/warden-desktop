@@ -1,33 +1,198 @@
+import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Check,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Search,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Blocks, Check, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import AnimatedTrash from "./AnimatedTrash";
+import AnimatedPencil from "./AnimatedPencil";
+import AnimatedArrowLeft from "./AnimatedArrowLeft";
+import Markdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
-import { HIGHLIGHT_SPRING, pop, skillDetail } from "../motion";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 type RightPanel = "detail" | "create" | "edit";
 
-export default function SkillsView({ onClose }: { onClose: () => void }) {
+const skillsMdComponents = {
+  p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p {...props} className="mt-2 mb-1.5 text-[15px] leading-[1.8] text-text-secondary" />
+  ),
+  h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h1
+      {...props}
+      className="mb-3 mt-6 text-[24px] font-semibold tracking-[-0.02em] text-text-primary"
+    />
+  ),
+  h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2
+      {...props}
+      className="mb-2.5 mt-5 text-[20px] font-semibold tracking-[-0.02em] text-text-primary"
+    />
+  ),
+  h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3
+      {...props}
+      className="mb-2 mt-4 text-[17px] font-semibold tracking-[-0.015em] text-text-primary"
+    />
+  ),
+  h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h4
+      {...props}
+      className="mb-1.5 mt-3.5 text-body font-semibold tracking-[-0.01em] text-text-primary"
+    />
+  ),
+  ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul {...props} className="my-2 list-disc space-y-1.5 pl-6 marker:text-text-muted" />
+  ),
+  ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
+    <ol {...props} className="my-2 list-decimal space-y-1.5 pl-6 marker:text-text-muted" />
+  ),
+  li: (props: React.LiHTMLAttributes<HTMLLIElement>) => (
+    <li {...props} className="text-[15px] leading-[1.75] text-text-secondary" />
+  ),
+  a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a
+      {...props}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="text-[#7ab2ff] underline decoration-[#7ab2ff]/40 underline-offset-2 hover:decoration-[#7ab2ff]"
+    />
+  ),
+  blockquote: (props: React.BlockquoteHTMLAttributes<HTMLQuoteElement>) => (
+    <blockquote
+      {...props}
+      className="my-3 border-l-2 border-line pl-4 italic text-text-secondary"
+    />
+  ),
+  hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
+    <hr {...props} className="my-4 border-line" />
+  ),
+  code: (props: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) => {
+    const { className, children, inline, ...rest } = props;
+    if (inline) {
+      return (
+        <code
+          {...rest}
+          className="rounded bg-fill-subtle px-[5px] py-[1px] font-mono text-[13px] text-code-text"
+        >
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code {...rest} className={`${className ?? ""} font-mono text-[13px]`}>
+        {children}
+      </code>
+    );
+  },
+  pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
+    <pre
+      {...props}
+      className="my-3 overflow-x-auto rounded-xl bg-fill-subtle p-4 text-[13px] leading-[1.6] text-code-text ring-1 ring-hairline"
+    />
+  ),
+};
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
+    >
+      <AnimatedArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} isHovered={hovered} />
+      <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
+    </button>
+  );
+}
+
+interface DropdownButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+function DropdownButton({ icon, label, onClick, danger }: DropdownButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover ${
+        danger
+          ? "text-danger hover:text-danger-hover"
+          : "text-text-secondary hover:text-text-primary"
+      }`}
+    >
+      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon, { isHovered: hovered } as any)
+          : icon}
+      </span>
+      <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function FormBackButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+    >
+      <AnimatedArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} isHovered={hovered} />
+    </button>
+  );
+}
+
+function FormDeleteButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-ui font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+    >
+      <AnimatedTrash className="h-3.5 w-3.5" strokeWidth={2.25} isHovered={hovered} />
+      Delete
+    </button>
+  );
+}
+
+export default function SkillsView({
+  onClose,
+  ready,
+  sidebarWidth,
+  setSidebarWidth,
+}: {
+  onClose: () => void;
+  ready: boolean;
+  sidebarWidth: number;
+  setSidebarWidth: (w: number) => void;
+}) {
   const [skills, setSkills] = useState<SkillInfo[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [query, setQuery] = useState("");
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanel>("detail");
   const [editingName, setEditingName] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-
   const [menuSkillName, setMenuSkillName] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -45,12 +210,13 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     if (!cancelled) loadSkills();
     return () => {
       cancelled = true;
     };
-  }, [loadSkills]);
+  }, [ready, loadSkills]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -122,39 +288,55 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
       /* ignore */
     }
   };
+  const goBackToDetail = useCallback(() => {
+    setEditingName(null);
+    setRightPanel("detail");
+  }, []);
+
+  const selectSkill = useCallback(
+    (name: string) => {
+      if (name === selectedName) return;
+      setSelectedName(name);
+      setRightPanel("detail");
+    },
+    [selectedName],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1">
         {/* Left panel — same bg as sidebar */}
-        <div className="flex w-64 shrink-0 flex-col bg-sidebar">
-          {/* Search */}
-          <div className="flex items-center gap-1 px-2 py-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
-            >
-              <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search…"
-                className="w-full rounded-xl bg-fill-hover py-1.5 pl-8 pr-3 text-ui text-text-primary placeholder:text-text-muted focus:outline-none"
-              />
+        <div
+          style={{ width: sidebarWidth }}
+          className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
+        >
+          <nav className="flex flex-col px-2 pt-2">
+            {/* Back — full nav item, same as Settings */}
+            <BackButton onClick={onClose} />
+
+            <div className="h-3" />
+
+            {/* Search + New */}
+            <div className="flex items-center gap-1 pb-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search…"
+                  className="w-full rounded-xl bg-fill-hover py-1.5 pl-8 pr-3 text-ui text-text-primary placeholder:text-text-muted focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-text-muted transition-none hover:bg-fill-hover hover:text-text-secondary"
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.75} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
-            >
-              <Plus className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </button>
-          </div>
+          </nav>
 
           {/* List */}
           <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-2 pb-3">
@@ -180,25 +362,18 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                       key={skill.name}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        setSelectedName(skill.name);
-                        setRightPanel("detail");
-                      }}
+                      onClick={() => selectSkill(skill.name)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setSelectedName(skill.name);
-                          setRightPanel("detail");
-                        }
+                        if (e.key === "Enter") selectSkill(skill.name);
                       }}
-                      className={`group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 ${
-                        active ? "" : "hover:bg-fill-hover"
-                      }`}
+                      className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 hover:bg-fill-hover"
+                      style={{ isolation: "isolate" }}
                     >
                       {active && (
-                        <motion.span
-                          layoutId="skill-active"
-                          transition={HIGHLIGHT_SPRING}
-                          className="absolute inset-0 rounded-xl bg-fill-active"
+                        <motion.div
+                          layoutId="active-skills-highlight"
+                          className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+                          transition={{ type: "spring", stiffness: 600, damping: 48 }}
                         />
                       )}
                       <span
@@ -232,95 +407,97 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {/* Resize handle */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = sidebarWidth;
+            const onMove = (ev: MouseEvent) =>
+              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+          className="relative z-10 w-0 shrink-0 cursor-col-resize"
+        >
+          <div className="absolute inset-y-0 -left-2 -right-2" />
+        </div>
+
         {/* Right panel — content area */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-          <AnimatePresence mode="wait">
-            {rightPanel === "create" ? (
-              <SkillForm
-                key="create"
-                onSaved={() => {
-                  setRightPanel("detail");
-                  loadSkills();
-                }}
-                onCancel={() => setRightPanel("detail")}
-              />
-            ) : rightPanel === "edit" && editingName ? (
-              (() => {
-                const s = skills.find((x) => x.name === editingName);
-                return (
-                  <SkillForm
-                    key={editingName}
-                    existing={s ?? undefined}
-                    onSaved={() => {
-                      setRightPanel("detail");
-                      setEditingName(null);
-                      loadSkills();
-                    }}
-                    onCancel={() => {
-                      setRightPanel("detail");
-                      setEditingName(null);
-                    }}
-                    onDelete={() => {
-                      setRightPanel("detail");
-                      setEditingName(null);
-                      if (editingName === selectedName) setSelectedName(null);
-                      void handleDelete(editingName);
-                    }}
-                  />
-                );
-              })()
-            ) : selected ? (
-              <motion.div
-                key={selected.name}
-                initial={skillDetail.initial}
-                animate={skillDetail.animate}
-                exit={skillDetail.exit}
-                transition={skillDetail.transition}
-                className="px-8 py-7"
-              >
-                <div className="flex items-center gap-2">
-                  <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
-                    {selected.name}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(selected.name)}
-                    className="flex items-center gap-1.5 rounded-lg bg-fill-hover px-3 py-1.5 text-ui font-medium text-text-primary transition-colors hover:bg-fill-active"
-                  >
-                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Edit
-                  </button>
-                </div>
-                {selected.description && (
-                  <p className="mt-2 text-ui-lg leading-relaxed text-text-secondary">
-                    {selected.description}
-                  </p>
-                )}
-                {selected.location && (
-                  <p className="mt-3 text-meta text-text-muted">{selected.location}</p>
-                )}
-                {selected.content && (
-                  <pre className="mt-6 whitespace-pre-wrap break-words rounded-xl bg-code-bg px-4 py-4 font-mono text-ui leading-relaxed text-code-text">
-                    {selected.content}
-                  </pre>
-                )}
-              </motion.div>
-            ) : loadState === "ok" && skills.length > 0 ? (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="flex h-full flex-col items-center justify-center gap-3"
-              >
-                <Sparkles className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
-                <p className="text-title font-semibold tracking-[-0.02em] text-text-muted">
-                  Select a skill
+          {rightPanel === "create" ? (
+            <SkillForm
+              key="create"
+              onSaved={() => {
+                goBackToDetail();
+                loadSkills();
+              }}
+              onCancel={goBackToDetail}
+            />
+          ) : rightPanel === "edit" && editingName ? (
+            (() => {
+              const s = skills.find((x) => x.name === editingName);
+              return (
+                <SkillForm
+                  key={editingName}
+                  existing={s ?? undefined}
+                  onSaved={() => {
+                    goBackToDetail();
+                    loadSkills();
+                  }}
+                  onCancel={goBackToDetail}
+                  onDelete={() => {
+                    goBackToDetail();
+                    if (editingName === selectedName) setSelectedName(null);
+                    void handleDelete(editingName);
+                  }}
+                />
+              );
+            })()
+          ) : selected ? (
+            <div key={selected.name} className="px-8 py-8">
+              <div className="flex items-center gap-2">
+                <h2 className="flex-1 text-2xl font-semibold tracking-[-0.03em] text-text-primary">
+                  {selected.name}
+                </h2>
+              </div>
+              {selected.description && (
+                <p className="mt-2 text-ui-lg leading-relaxed text-text-secondary">
+                  {selected.description}
                 </p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+              )}
+              {selected.location && (
+                <p className="mt-3 text-meta text-text-muted">{selected.location}</p>
+              )}
+              {selected.content && (
+                <div className="mt-6 markdown-body">
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={skillsMdComponents}
+                  >
+                    {selected.content}
+                  </Markdown>
+                </div>
+              )}
+            </div>
+          ) : loadState === "ok" && skills.length > 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <Blocks className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
+              <p className="text-title font-semibold tracking-[-0.02em] text-text-muted">
+                Select a skill
+              </p>
+            </div>
+          ) : loadState === "loading" ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <p className="text-ui-lg text-text-muted">Loading…</p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -329,10 +506,10 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
           {menuSkillName && menuPos ? (
             <motion.div
               ref={menuRef}
-              initial={pop.initial}
-              animate={pop.animate}
-              exit={pop.exit}
-              transition={pop.transition}
+              initial={{ opacity: 0, scale: 0.96, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 position: "fixed",
                 top: menuPos.top,
@@ -341,24 +518,29 @@ export default function SkillsView({ onClose }: { onClose: () => void }) {
                 transformOrigin: "top right",
                 zIndex: 9999,
               }}
-              className="w-36 overflow-hidden rounded-xl bg-surface-raised p-1 shadow-xl ring-1 ring-hairline"
+              className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
             >
-              <button
-                type="button"
+              <DropdownButton
+                icon={
+                  <AnimatedPencil
+                    className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
+                    strokeWidth={2.25}
+                  />
+                }
+                label="Edit"
                 onClick={() => handleEdit(menuSkillName)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-              >
-                <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                Edit
-              </button>
-              <button
-                type="button"
+              />
+              <DropdownButton
+                icon={
+                  <AnimatedTrash
+                    className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
+                    strokeWidth={2.25}
+                  />
+                }
+                label="Delete"
+                danger
                 onClick={() => handleDelete(menuSkillName)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-ui tracking-[-0.01em] text-danger transition-colors hover:bg-fill-hover hover:text-danger-hover"
-              >
-                <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                Delete
-              </button>
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>,
@@ -385,6 +567,7 @@ function SkillForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const isCreate = !existing;
 
   const handleSave = async () => {
@@ -416,15 +599,9 @@ function SkillForm({
   };
 
   return (
-    <motion.div
-      key={isCreate ? "create" : existing.name}
-      initial={skillDetail.initial}
-      animate={skillDetail.animate}
-      exit={skillDetail.exit}
-      transition={skillDetail.transition}
-      className="px-8 py-7"
-    >
+    <div className="px-8 py-7">
       <div className="flex items-center gap-2">
+        <FormBackButton onClick={onCancel} />
         <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
           {isCreate ? "New Skill" : `Edit ${existing.name}`}
         </h2>
@@ -534,14 +711,7 @@ function SkillForm({
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-ui font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      Delete
-                    </button>
+                    <FormDeleteButton onClick={() => setShowDeleteConfirm(true)} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -569,6 +739,6 @@ function SkillForm({
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

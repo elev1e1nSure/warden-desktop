@@ -2,6 +2,10 @@
 
 Project notes for agents working in this repo. Keep this file as guardrails and pointers; do not duplicate the full docs here.
 
+## Language
+
+- Commit messages and code comments must be in English only.
+
 ## Sources Of Truth
 
 - Project overview: [docs/project.md](docs/project.md)
@@ -25,6 +29,12 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 - If setup, dev, or build commands change, update [docs/setup.md](docs/setup.md).
 - If product scope changes, update [docs/project.md](docs/project.md).
 - Prefer existing patterns over new abstractions.
+- When adding a new tool (`backend/agent/tools/`) or a new action to an existing tool, add a matching `case` to `toolDescription()` in `src/components/Timeline.tsx` that returns a human-readable sentence (e.g. `Clicked at (X, Y)`, `Read config.json`). Never leave a new tool falling through to the generic fallback.
+
+## Commits
+
+- Write commit messages in English (overrides the global Russian-commit preference for this repo).
+- Use conventional commits with a scope: `type(scope): description`, no trailing period.
 
 ## Do Not
 
@@ -35,14 +45,25 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 
 ## Commands
 
-- `pnpm dev:all`
-- `pnpm build`
-- `pnpm build:backend`
-- `pnpm build:app`
+Use `just` to run development tasks:
+- `just install` - install all dependencies (frontend and backend)
+- `just dev` - run full dev environment (frontend, backend, Tauri)
+- `just check` - run typecheck and all lints (frontend and backend)
+- `just lint` - run lints (Biome and Ruff)
+- `just format` - auto-format code (Biome and Ruff)
+- `just test` - run all tests (frontend and backend)
+- `just build-app` - build complete desktop app installer
+- `just build-backend` - compile backend executable via PyInstaller
+- `just clean` - clean build caches and compiled assets
+
+Alternative/raw commands:
+- `pnpm dev:all` - run all components together
+- `pnpm build:app` - build Tauri application
+- `pnpm build:backend` - build backend exe
 - `pnpm lint` (Biome) / `pnpm typecheck` (tsc)
-- `uv sync` в `backend/` для установки Python deps
-- `uv run pytest` в `backend/`
-- `uv run ruff check .` / `uv run ruff format .` в `backend/`
+- `uv sync` in `backend/` to install Python dependencies
+- `uv run pytest` in `backend/`
+- `uv run ruff check .` / `uv run ruff format .` in `backend/`
 
 Full setup details live in [docs/setup.md](docs/setup.md).
 
@@ -57,12 +78,3 @@ Full setup details live in [docs/setup.md](docs/setup.md).
 - `backend/dist/`
 - `backend/build/`
 - `src-tauri/target/`
-
-## Tech Debt (введено в этапе 1)
-
-- В `biome.json` понижены до `warn` несколько правил (`useButtonType`, `noSvgWithoutTitle`,
-  `noStaticElementInteractions`, `noArrayIndexKey`) — компоненты, которых это касается, чинятся
-  на этапе 4 (разрезание `App.tsx` и сопутствующий рефакторинг JSX). После этапа 4 эти правила
-  должны вернуться к `error`.
-- В `backend/` остаётся ~150 предупреждений ruff (mutable-class-default, unused-import,
-  ambiguous-variable-name и т.п.) — рефакторим вместе с реструктуризацией тестов на этапе 5.

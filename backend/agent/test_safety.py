@@ -394,3 +394,128 @@ class TestToolAssessment:
 
     def test_browser_fill_confirm(self) -> None:
         assert _decision("browser_fill", {"selector": "#q", "value": "hi"}).risk == "confirm"
+
+    # ── new tools: edit / glob / grep / lsp ─────────────────────────────────
+
+    def test_edit_inside_confirm(self) -> None:
+        cwd = os.getcwd()
+        d = assess_tool_call("edit", {"path": os.path.join(cwd, "f.txt")}, cwd=cwd)
+        assert d.risk == "confirm"
+
+    def test_edit_outside_confirm(self) -> None:
+        d = _decision("edit", {"path": r"D:\outside\f.txt"})
+        assert d.risk == "confirm"
+
+    def test_edit_dangerous_blocked(self) -> None:
+        d = _decision("edit", {"path": r"\\?\D:\evil.txt"})
+        assert d.risk == "blocked"
+
+    def test_glob_inside_safe(self) -> None:
+        cwd = os.getcwd()
+        d = assess_tool_call("glob", {"pattern": "**/*.py", "path": cwd}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_glob_outside_confirm(self) -> None:
+        d = _decision("glob", {"pattern": "**/*.py", "path": r"D:\outside"})
+        assert d.risk == "confirm"
+
+    def test_grep_inside_safe(self) -> None:
+        cwd = os.getcwd()
+        d = assess_tool_call("grep", {"pattern": "foo", "path": cwd}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_grep_outside_confirm(self) -> None:
+        d = _decision("grep", {"pattern": "foo", "path": r"D:\outside"})
+        assert d.risk == "confirm"
+
+    def test_lsp_inside_safe(self) -> None:
+        cwd = os.getcwd()
+        d = assess_tool_call(
+            "lsp", {"action": "definition", "path": os.path.join(cwd, "src", "main.py")}, cwd=cwd
+        )
+        assert d.risk == "safe"
+
+    def test_lsp_outside_confirm(self) -> None:
+        d = _decision("lsp", {"action": "definition", "path": r"D:\outside\main.py"})
+        assert d.risk == "confirm"
+
+
+# ---------------------------------------------------------------------------
+# Auto-mode safety: outside-workspace ops must stay gated even in auto
+# ---------------------------------------------------------------------------
+
+
+class TestAutoModeGating:
+    """In auto mode, `confirm` is normally promoted to `safe`. Operations that
+    target paths outside the workspace must NOT be promoted — otherwise a
+    malicious prompt in auto mode could write to a Startup folder or read
+    ~/.ssh/id_rsa without the user seeing a modal."""
+
+    def _auto(self, tool: str, args: dict, cwd: str = r"D:\Projects\warden") -> SafetyDecision:
+        return assess_tool_call(tool, args, cwd=cwd, mode="auto")
+
+    def test_file_write_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("file_write", {"path": r"D:\outside\f.txt", "content": "x"})
+        assert d.risk == "confirm"
+
+    def test_file_read_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("file_read", {"path": r"C:\Users\victim\.ssh\id_rsa"})
+        assert d.risk == "confirm"
+
+    def test_file_list_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("file_list", {"path": r"D:\outside"})
+        assert d.risk == "confirm"
+
+    def test_edit_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("edit", {"path": r"D:\outside\f.txt", "old_string": "a", "new_string": "b"})
+        assert d.risk == "confirm"
+
+    def test_glob_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("glob", {"pattern": "**/*", "path": r"D:\outside"})
+        assert d.risk == "confirm"
+
+    def test_grep_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("grep", {"pattern": "x", "path": r"D:\outside"})
+        assert d.risk == "confirm"
+
+    def test_lsp_outside_stays_confirm_in_auto(self) -> None:
+        d = self._auto("lsp", {"action": "definition", "path": r"D:\outside\f.py"})
+        assert d.risk == "confirm"
+
+    def test_glob_inside_promotes_to_safe_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("glob", {"pattern": "**/*", "path": cwd}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_grep_inside_promotes_to_safe_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("grep", {"pattern": "x", "path": cwd}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_lsp_inside_promotes_to_safe_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("lsp", {"action": "definition", "path": os.path.join(cwd, "f.py")}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_apply_patch_stays_confirm_in_auto(self) -> None:
+        d = self._auto("apply_patch", {"patch_text": "*** Begin Patch\n*** End Patch"})
+        assert d.risk == "confirm"
+
+    def test_file_write_inside_promotes_to_safe_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("file_write", {"path": os.path.join(cwd, "f.txt"), "content": "x"}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_file_read_inside_stays_safe_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("file_read", {"path": os.path.join(cwd, "README.md")}, cwd=cwd)
+        assert d.risk == "safe"
+
+    def test_file_delete_outside_stays_blocked_in_auto(self) -> None:
+        d = self._auto("file_delete", {"path": r"D:\outside\f.txt"})
+        assert d.risk == "blocked"
+
+    def test_file_delete_inside_stays_confirm_in_auto(self) -> None:
+        cwd = os.getcwd()
+        d = self._auto("file_delete", {"path": os.path.join(cwd, "f.txt")}, cwd=cwd)
+        assert d.risk == "confirm"
