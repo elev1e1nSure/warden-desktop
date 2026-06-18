@@ -533,7 +533,7 @@ function PermissionSelector({
               disabled={disabled}
               onClick={() => { if (!active) onChange(level.value); }}
               style={{ isolation: "isolate" }}
-              className={`relative px-3 py-1.5 text-ui font-medium rounded-md transition-colors duration-150 ${
+              className={`relative px-3 py-1.5 text-ui font-medium rounded-md ${
                 active ? activeText : "text-text-muted"
               } disabled:opacity-40`}
             >
