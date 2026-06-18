@@ -36,77 +36,73 @@ export default function QuestionModal({ request, onSubmit }: QuestionModalProps)
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.97 }}
-        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
-      >
-        <div className="border-b border-hairline px-5 py-4">
-          <h2 className="text-body font-semibold text-text-primary">
-            The agent needs your input
-          </h2>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden rounded-2xl border-2 border-line bg-[rgba(22,22,22,0.88)]"
+    >
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3">
+        <p className="text-ui-lg font-semibold tracking-[-0.01em] text-text-primary">
+          The agent needs your input
+        </p>
+      </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
-          {request.questions.map((q, qi) => (
-            <div key={q.question} className="space-y-2">
-              {q.header && (
-                <p className="text-meta font-medium uppercase tracking-wide text-text-muted">
-                  {q.header}
-                </p>
-              )}
-              <p className="text-ui-lg text-text-primary">{q.question}</p>
-              {q.multiple && <p className="text-meta text-text-muted">Select all that apply</p>}
-              <div className="flex flex-col gap-1.5">
-                {q.options.map((opt) => {
-                  const selected = answers[qi]?.includes(opt.label) ?? false;
-                  return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      onClick={() => toggle(qi, opt.label, Boolean(q.multiple))}
-                      className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
-                        selected
-                          ? "border-fill-strong bg-fill-active"
-                          : "border-line hover:bg-fill-hover"
-                      }`}
+      {/* Questions */}
+      <div className="max-h-72 space-y-4 overflow-y-auto px-4 pb-3 no-scrollbar">
+        {request.questions.map((q, qi) => (
+          <div key={q.question} className="space-y-2">
+            {q.header && (
+              <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-text-muted">
+                {q.header}
+              </p>
+            )}
+            <p className="text-ui text-text-primary">{q.question}</p>
+            <div className="flex flex-col gap-1">
+              {q.options.map((opt) => {
+                const selected = answers[qi]?.includes(opt.label) ?? false;
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => toggle(qi, opt.label, Boolean(q.multiple))}
+                    className={`flex items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
+                      selected ? "bg-fill-active" : "hover:bg-fill-hover"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${
+                        q.multiple ? "rounded" : "rounded-full"
+                      } ${selected ? "border-white bg-white text-black" : "border-white/20"}`}
                     >
-                      <span
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${
-                          q.multiple ? "rounded" : "rounded-full"
-                        } ${
-                          selected ? "border-white bg-white text-black" : "border-white/20"
-                        }`}
-                      >
-                        {selected && <Check className="h-3 w-3" strokeWidth={2.25} />}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-ui-lg text-text-primary">{opt.label}</span>
-                        {opt.description && (
-                          <span className="block text-meta text-text-muted">{opt.description}</span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {selected && <Check className="h-2.5 w-2.5" strokeWidth={2.5} />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-ui text-text-primary">{opt.label}</span>
+                      {opt.description && (
+                        <span className="block text-[12px] text-text-muted">{opt.description}</span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        <div className="flex justify-end border-t border-hairline px-5 py-3">
-          <button
-            type="button"
-            onClick={() => onSubmit(answers)}
-            className="rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90"
-          >
-            Submit
-          </button>
-        </div>
-      </motion.div>
-    </div>
+      {/* Actions */}
+      <div className="flex items-center justify-end px-3 pb-3">
+        <button
+          type="button"
+          onClick={() => onSubmit(answers)}
+          className="rounded-xl bg-white px-3 py-2 text-ui font-semibold text-black transition-colors hover:bg-white/90"
+        >
+          Submit
+        </button>
+      </div>
+    </motion.div>
   );
 }

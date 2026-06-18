@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import type { ConfirmEvent } from "../api/types";
 
@@ -8,87 +7,77 @@ interface ConfirmModalProps {
   onResolve: (ok: boolean) => void;
 }
 
-const RISK_LABEL: Record<string, string> = {
-  confirm: "Needs confirmation",
-  blocked: "Blocked",
-};
-
 export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onResolve(false);
+      if (e.key === "Enter") onResolve(true);
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onResolve]);
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.97 }}
-        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
-      >
-        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4">
-          <AlertTriangle
-            className="mt-0.5 h-[18px] w-[18px] shrink-0 text-warning"
-            strokeWidth={1.75}
-          />
-          <div className="min-w-0">
-            <h2 className="text-body font-semibold text-text-primary">
-              {request.title || "Dangerous action"}
-            </h2>
-            <p className="mt-1 text-meta text-text-secondary">
-              <span className="font-medium text-warning">
-                {RISK_LABEL[request.risk] ?? request.risk}
-              </span>
-              {" · "}
-              <span className="font-mono text-text-secondary">{request.tool}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3 px-5 py-4">
-          {request.summary && (
-            <p className="text-ui-lg leading-relaxed text-text-primary">{request.summary}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden rounded-2xl border-2 border-line bg-[rgba(22,22,22,0.88)]"
+    >
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3">
+        <p className="text-ui-lg font-semibold tracking-[-0.01em] text-text-primary">
+          {request.title || "Action needs confirmation"}
+        </p>
+        <p className="mt-0.5 text-ui text-text-muted">
+          <span className="font-mono">{request.tool}</span>
+          {request.risk && request.risk !== "confirm" && (
+            <span className="ml-1.5 text-text-faint">· {request.risk}</span>
           )}
+        </p>
+      </div>
 
-          {request.details?.length > 0 && (
-            <div className="rounded-lg bg-fill-subtle p-3">
-              <ul className="space-y-1.5 text-ui-lg text-text-secondary">
+      {/* Details */}
+      {(request.summary || (request.details?.length ?? 0) > 0 || request.preview) && (
+        <div className="space-y-2 px-4 pb-3">
+          {request.summary && (
+            <p className="text-ui leading-relaxed text-text-secondary">{request.summary}</p>
+          )}
+          {(request.details?.length ?? 0) > 0 && (
+            <div className="rounded-xl bg-fill-subtle px-3 py-2.5">
+              <ul className="space-y-1 text-ui text-text-secondary">
                 {request.details.map((d) => (
                   <li key={d}>{d}</li>
                 ))}
               </ul>
             </div>
           )}
-
           {request.preview && (
-            <pre className="max-h-48 overflow-auto rounded-lg bg-black/40 p-3 font-mono text-meta leading-5 text-text-secondary">
+            <pre className="max-h-32 overflow-auto rounded-xl bg-fill-subtle px-3 py-2.5 font-mono text-[12px] leading-relaxed text-text-secondary">
               {request.preview}
             </pre>
           )}
         </div>
+      )}
 
-        <div className="flex justify-end gap-2 border-t border-hairline px-5 py-3">
-          <button
-            type="button"
-            onClick={() => onResolve(false)}
-            className="rounded-lg px-4 py-2 text-ui-lg font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => onResolve(true)}
-            className="rounded-lg bg-white px-4 py-2 text-ui-lg font-semibold text-black transition-colors hover:bg-white/90"
-          >
-            Run anyway
-          </button>
-        </div>
-      </motion.div>
-    </div>
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-1.5 px-3 pb-3">
+        <button
+          type="button"
+          onClick={() => onResolve(false)}
+          className="rounded-xl px-3 py-2 text-ui font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onResolve(true)}
+          className="rounded-xl bg-white px-3 py-2 text-ui font-semibold text-black transition-colors hover:bg-white/90"
+        >
+          Run anyway
+        </button>
+      </div>
+    </motion.div>
   );
 }

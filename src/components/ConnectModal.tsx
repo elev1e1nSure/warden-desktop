@@ -16,9 +16,12 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     const saved = loadConnection();
     if (saved?.apiKey) setApiKey(saved.apiKey);
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.97 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
+        className="accelerate-scale w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-2xl"
       >
         <div className="border-b border-hairline px-5 py-4">
           <h2 className="text-body font-semibold text-text-primary">Connect OpenRouter</h2>

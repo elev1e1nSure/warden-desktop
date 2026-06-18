@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v4
         with:
@@ -32,25 +32,94 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm build:backend
+
+      - uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-tauri-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-
+
       - run: pnpm build:app
 
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts
-          path: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/msi/*.msi
+          path: src-tauri/target/release/bundle/nsis/*.exe
 
   release:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get changelog since previous tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            git log --pretty=format:"%s" --reverse > changelog.txt
+          else
+            echo "Previous tag: $PREV_TAG"
+            git log --pretty=format:"%s" --reverse "$PREV_TAG..HEAD" > changelog.txt
+          fi
+
+      - name: Generate release notes via OpenRouter
+        id: ai_notes
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          SYSTEM_PROMPT="You write release notes in English for a desktop AI assistant app called Warden. Rules:
+          - Write for end users, not developers — clear and direct
+          - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
+          - SKIP anything internal — rendering layers, GPU promotion, CORS, auth middleware, blur layers, scroll internals, animation internals, CSS fixes, build/CI/test changes. If a non-developer wouldn't notice it or care, skip it.
+          - SKIP pure visual polish changes (tweaked gradients, background effects) unless they meaningfully change the experience
+          - Group changes into sections with an emoji in the header (only include sections that have content):
+            ## ✨ What's New
+            ## ⚡ Improvements
+            ## 🐛 Bug Fixes
+          - Cap each section at 5 bullets maximum — pick only the most impactful ones
+          - Plain bullet lists, no emojis inside bullets
+          - Each bullet: one clear sentence, user-benefit focus
+          - Tone: direct, no marketing fluff"
+
+          USER_PREFIX="Here are the commits since the last release. Write user-facing release notes:"
+
+          jq -n \
+            --arg model "deepseek/deepseek-v4-flash" \
+            --arg system "$SYSTEM_PROMPT" \
+            --arg user_prefix "$USER_PREFIX" \
+            --rawfile changelog changelog.txt \
+            '{
+              model: $model,
+              messages: [
+                {role: "system", content: $system},
+                {role: "user", content: ($user_prefix + "\n\n" + $changelog)}
+              ]
+            }' > request.json
+
+          AI_BODY=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @request.json \
+            | jq -r '.choices[0].message.content // "Release notes unavailable."')
+
+          TAG="${GITHUB_REF_NAME}"
+          DATE=$(date +'%B %d, %Y')
+
+          printf "_%s_\n\n---\n\n%s\n" \
+            "$DATE" "$AI_BODY" > release_notes.md
+
+          echo "=== Generated release notes ==="
+          cat release_notes.md
+
+      - uses: actions/download-artifact@v8
         with:
           name: artifacts
           path: artifacts
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**
-          generate_release_notes: true
+          body_path: release_notes.md

@@ -2,9 +2,23 @@ from __future__ import annotations
 
 import os
 import shutil
+from pathlib import Path
 from typing import Any
 
-from agent.tools.base import Tool, _in_cwd
+from agent.safety._filesystem import is_dangerous_path, is_path_within_workspace
+from agent.tools.base import Tool
+
+
+def _workspace_root() -> Path:
+    return Path.cwd().resolve()
+
+
+def _path_ok(path: str) -> bool:
+    if not path:
+        return False
+    if is_dangerous_path(path):
+        return False
+    return is_path_within_workspace(path, _workspace_root())
 
 
 class FileMoveTool(Tool):
@@ -21,15 +35,15 @@ class FileMoveTool(Tool):
     }
 
     def is_dangerous(self, args: dict[str, Any]) -> bool:
-        return not (_in_cwd(args.get("src", "")) and _in_cwd(args.get("dest", "")))
+        return not (_path_ok(args.get("src", "")) and _path_ok(args.get("dest", "")))
 
     async def execute(self, args: dict[str, Any]) -> str:
         src = args.get("src", "")
         dest = args.get("dest", "")
         if not src or not dest:
             return "error: src and dest are required"
-        if not _in_cwd(src) or not _in_cwd(dest):
-            return "error: path is outside current directory"
+        if not _path_ok(src) or not _path_ok(dest):
+            return "error: path is outside the workspace"
         abs_src = os.path.abspath(src)
         abs_dest = os.path.abspath(dest)
         if not os.path.exists(abs_src):
@@ -61,15 +75,15 @@ class FileCopyTool(Tool):
     }
 
     def is_dangerous(self, args: dict[str, Any]) -> bool:
-        return not (_in_cwd(args.get("src", "")) and _in_cwd(args.get("dest", "")))
+        return not (_path_ok(args.get("src", "")) and _path_ok(args.get("dest", "")))
 
     async def execute(self, args: dict[str, Any]) -> str:
         src = args.get("src", "")
         dest = args.get("dest", "")
         if not src or not dest:
             return "error: src and dest are required"
-        if not _in_cwd(src) or not _in_cwd(dest):
-            return "error: path is outside current directory"
+        if not _path_ok(src) or not _path_ok(dest):
+            return "error: path is outside the workspace"
         abs_src = os.path.abspath(src)
         abs_dest = os.path.abspath(dest)
         if not os.path.exists(abs_src):
