@@ -248,14 +248,14 @@ function Toggle({
       aria-checked={checked}
       aria-label={label}
       onClick={onChange}
-      className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${
+      className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${
         checked ? "bg-emerald-500/80" : "bg-fill-strong"
       }`}
     >
-      <span
-        className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
-        }`}
+      <motion.span
+        animate={{ x: checked ? 16 : 0 }}
+        transition={{ type: "spring", stiffness: 600, damping: 45 }}
+        className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white"
       />
     </button>
   );
@@ -489,29 +489,45 @@ function PermissionSelector({
   onChange: (v: PermissionLevel) => void;
   disabled?: boolean;
 }) {
+  const id = React.useId();
+
   return (
-    <div className="flex rounded-lg border border-hairline overflow-hidden">
+    <div className="flex rounded-lg border border-hairline bg-fill-subtle p-0.5 gap-0.5">
       {PERMISSION_LEVELS.map((level) => {
         const active = value === level.value;
-        const activeClass =
+        const pillColor =
           level.value === "block"
-            ? "bg-red-500/20 text-red-400 border-red-500/30"
+            ? "rgba(239, 68, 68, 0.15)"
             : level.value === "allow"
-              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-              : "bg-fill-active text-text-primary";
+              ? "rgba(52, 211, 153, 0.15)"
+              : "rgba(255, 255, 255, 0.08)";
+        const activeText =
+          level.value === "block"
+            ? "text-red-400"
+            : level.value === "allow"
+              ? "text-emerald-400"
+              : "text-text-primary";
+
         return (
           <button
             key={level.value}
             type="button"
             disabled={disabled}
             onClick={() => onChange(level.value)}
-            className={`px-3 py-1.5 text-ui font-medium transition-colors border-r border-hairline last:border-r-0 ${
-              active
-                ? activeClass
-                : "text-text-muted hover:text-text-secondary hover:bg-fill-hover"
+            style={{ isolation: "isolate" }}
+            className={`relative px-3 py-1.5 text-ui font-medium rounded-md transition-colors duration-150 ${
+              active ? activeText : "text-text-muted hover:text-text-secondary"
             } disabled:opacity-40`}
           >
-            {level.label}
+            {active && (
+              <motion.div
+                layoutId={`${id}-pill`}
+                animate={{ backgroundColor: pillColor }}
+                transition={{ type: "spring", stiffness: 500, damping: 42 }}
+                className="absolute inset-0 rounded-md"
+              />
+            )}
+            <span className="relative z-10">{level.label}</span>
           </button>
         );
       })}
