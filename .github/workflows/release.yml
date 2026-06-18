@@ -78,7 +78,8 @@ jobs:
             ## ✨ What's New
             ## ⚡ Improvements
             ## 🐛 Bug Fixes
-          - Each bullet starts with a single relevant emoji, then one clear sentence
+          - Plain bullet lists, no emojis inside bullets
+          - Each bullet: one clear sentence describing what changed and why it matters
           - Tone: direct and informative, no marketing fluff"
 
           USER_PREFIX="Here are the commits since the last release. Write user-facing release notes:"
