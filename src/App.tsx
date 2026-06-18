@@ -293,8 +293,15 @@ function App() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // 1. Try to fetch the shared secret token from the Tauri shell.
-      //    In dev (without Tauri) this will fail silently.
+      for (let i = 0; i < 90; i++) {
+        if (cancelled) return;
+        if (await api.health()) break;
+        await sleep(1000);
+      }
+      if (cancelled) return;
+
+      // Read the auth token only after the backend is up — the .token file
+      // is written by the backend on startup, so it doesn't exist before that.
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const token = await invoke<string>("get_backend_token");
@@ -303,12 +310,6 @@ function App() {
         // Not running inside Tauri or token not available — dev mode, WARDEN_DEV=1
       }
 
-      for (let i = 0; i < 90; i++) {
-        if (cancelled) return;
-        if (await api.health()) break;
-        await sleep(1000);
-      }
-      if (cancelled) return;
       const s = await refreshStatus();
       await loadChats();
       if (cancelled || !s) return;
