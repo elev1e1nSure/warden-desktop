@@ -699,7 +699,9 @@ const MemoryRow = memo(function MemoryRow({ block }: { block: ToolBlock }) {
   try {
     args = JSON.parse(block.args);
   } catch {}
-  const action = (String(args.action ?? "")).trim().toLowerCase() as MemoryAction;
+  const action = String(args.action ?? "")
+    .trim()
+    .toLowerCase() as MemoryAction;
   const key = String(args.key ?? "").trim();
   const running = block.status === "running";
 

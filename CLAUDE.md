@@ -78,8 +78,3 @@ Full setup details live in [docs/setup.md](docs/setup.md).
 - `backend/dist/`
 - `backend/build/`
 - `src-tauri/target/`
-
-## Tech Debt (introduced in stage 1)
-
-- In `biome.json`, several rules (`useButtonType`, `noSvgWithoutTitle`, `noStaticElementInteractions`, `noArrayIndexKey`) have been downgraded to `warn` — the affected components will be fixed in stage 4 (refactoring and splitting of `App.tsx` and JSX). After stage 4, these rules should be restored to `error`.
-- In `backend/`, around 150 ruff warnings remain (mutable-class-default, unused-import, ambiguous-variable-name, etc.) — we will refactor these alongside test restructuring in stage 5.
