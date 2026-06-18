@@ -105,7 +105,10 @@ export function useStreamSession({
             const idx = prev.findIndex((chat) => chat.id === e.chat_id);
             const timestamp = nowTimestamp();
             if (idx === -1) {
-              return [{ id: e.chat_id, title: e.title, timestamp, messages: [] as Chat["messages"] }, ...prev];
+              return [
+                { id: e.chat_id, title: e.title, timestamp, messages: [] as Chat["messages"] },
+                ...prev,
+              ];
             }
             return prev.map((chat) =>
               chat.id === e.chat_id ? { ...chat, title: e.title, timestamp } : chat,

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Search, Star } from "lucide-react";
+import { Check, ChevronDown, Star, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Model } from "../types";
 
@@ -103,7 +103,9 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
                 const active = model.id === selected.id;
                 const isFav = favorites.includes(model.id);
                 return (
-                  <div
+                  <motion.div
+                    layout
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     key={model.id}
                     className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
                       active ? "bg-fill-active" : "hover:bg-fill-hover"
@@ -112,12 +114,13 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
                     <button
                       type="button"
                       onClick={(e) => toggleFavorite(model.id, e)}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-fill-strong hover:text-text-primary transition-colors"
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="flex shrink-0 items-center justify-center pl-2 pr-1 text-text-muted hover:text-text-primary transition-colors"
                       title={isFav ? "Remove from favorites" : "Add to favorites"}
                     >
                       <Star
-                        className={`h-3.5 w-3.5 transition-colors ${
-                          isFav ? "fill-white text-white" : "text-white/40"
+                        className={`h-3.5 w-3.5 ${
+                          isFav ? "text-white fill-white" : "text-white/40"
                         }`}
                         strokeWidth={1.5}
                       />
@@ -148,7 +151,7 @@ export default function ModelSelector({ models, selected, onSelect }: ModelSelec
                         <span className="h-3.5 w-3.5 shrink-0" />
                       )}
                     </button>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
