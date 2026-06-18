@@ -931,7 +931,7 @@ function App() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.3, ease: EASE }}
-                        className="relative z-10 mb-7 select-none"
+                        className="relative mb-7 select-none"
                       >
                         <div
                           style={{ transform: "translateX(var(--chat-shift, 0px))" }}
