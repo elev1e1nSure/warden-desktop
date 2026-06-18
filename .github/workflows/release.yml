@@ -73,14 +73,16 @@ jobs:
           SYSTEM_PROMPT="You write release notes in English for a desktop AI assistant app called Warden. Rules:
           - Write for end users, not developers — clear and direct
           - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
-          - Skip internal-only changes (CI, tests, linting, build scripts, refactors with no user-visible effect)
+          - SKIP anything internal — rendering layers, GPU promotion, CORS, auth middleware, blur layers, scroll internals, animation internals, CSS fixes, build/CI/test changes. If a non-developer wouldn't notice it or care, skip it.
+          - SKIP pure visual polish changes (tweaked gradients, background effects) unless they meaningfully change the experience
           - Group changes into sections with an emoji in the header (only include sections that have content):
             ## ✨ What's New
             ## ⚡ Improvements
             ## 🐛 Bug Fixes
+          - Cap each section at 5 bullets maximum — pick only the most impactful ones
           - Plain bullet lists, no emojis inside bullets
-          - Each bullet: one clear sentence describing what changed and why it matters
-          - Tone: direct and informative, no marketing fluff"
+          - Each bullet: one clear sentence, user-benefit focus
+          - Tone: direct, no marketing fluff"
 
           USER_PREFIX="Here are the commits since the last release. Write user-facing release notes:"
 
