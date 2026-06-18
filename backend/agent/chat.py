@@ -432,7 +432,9 @@ class ChatSession:
         result["content"] = full_content
         result["tool_calls"] = collected_tool_calls
 
-    async def _execute_tool_call(self, tc, auto_mode: bool) -> AsyncIterator[tuple]:
+    async def _execute_tool_call(
+        self, tc, auto_mode: bool, permissions: dict[str, str] | None = None
+    ) -> AsyncIterator[tuple]:
         async for event in execute_tool_call(
             tc,
             auto_mode,
@@ -441,6 +443,7 @@ class ChatSession:
             question_manager=self.question_manager,
             add_tool_result_fn=self.add_tool_result,
             cu_warned=self._cu_warned,
+            permissions=permissions,
         ):
             yield event
 
@@ -448,6 +451,7 @@ class ChatSession:
         self,
         text: str,
         auto_mode: bool = False,
+        permissions: dict[str, str] | None = None,
         skill_name: str | None = None,
         skill_args: str | None = None,
         files: list[dict[str, str]] | None = None,
@@ -504,7 +508,7 @@ class ChatSession:
                 break
 
             for tc in collected_tool_calls:
-                async for event in self._execute_tool_call(tc, auto_mode):
+                async for event in self._execute_tool_call(tc, auto_mode, permissions=permissions):
                     yield event
 
         if iter_count >= MAX_ITER:

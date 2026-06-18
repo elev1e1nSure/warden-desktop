@@ -41,6 +41,31 @@ async def set_mode(request: web.Request) -> web.Response:
     return web.Response(text="ok")
 
 
+async def permissions_get(request: web.Request) -> web.Response:
+    from agent.safety._policy import PERMISSION_GROUPS
+
+    backend = get_backend(request)
+    result = {group: backend.permissions.get(group, "ask") for group in PERMISSION_GROUPS}
+    log_request("GET", "/permissions", 200)
+    return web.json_response(result)
+
+
+async def permissions_post(request: web.Request) -> web.Response:
+    from agent.safety._policy import PERMISSION_GROUPS
+
+    backend = get_backend(request)
+    data = await request.json()
+    group = data.get("group")
+    value = data.get("value")
+    if group not in PERMISSION_GROUPS or value not in ("block", "ask", "allow"):
+        log_request("POST", "/permissions", 400)
+        return web.Response(status=400, text="invalid group or value")
+    backend.permissions[group] = value
+    backend.save_permissions()
+    log_request("POST", "/permissions", 200)
+    return web.Response(text="ok")
+
+
 async def tools_list(request: web.Request) -> web.Response:
     from agent.tools import REGISTRY
 

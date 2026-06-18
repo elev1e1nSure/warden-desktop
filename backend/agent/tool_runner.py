@@ -104,6 +104,7 @@ async def execute_tool_call(
     question_manager: QuestionManager | None,
     add_tool_result_fn,
     cu_warned: dict | None = None,
+    permissions: dict[str, str] | None = None,
 ) -> AsyncIterator[tuple]:
     """Execute a single tool call. Yields events and records results in history."""
     try:
@@ -179,7 +180,7 @@ async def execute_tool_call(
 
     # ── regular tool execution with safety ──
     mode = "auto" if auto_mode else "ask"
-    decision = assess_tool_call(name, args, mode=mode)
+    decision = assess_tool_call(name, args, mode=mode, permissions=permissions)
     if decision.risk == "blocked":
         add_tool_result_fn(name, f"blocked: {decision.reason}")
         yield ("tool", {"name": name, "args": args_str, "result": f"blocked: {decision.reason}"})

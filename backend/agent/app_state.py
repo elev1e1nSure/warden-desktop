@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -26,6 +27,10 @@ def _auth_token_path() -> Path:
     return _warden_data_dir() / ".token"
 
 
+def _permissions_path() -> Path:
+    return _warden_data_dir() / "permissions.json"
+
+
 class Backend:
     def __init__(self) -> None:
         try:
@@ -38,6 +43,7 @@ class Backend:
         self.llm: OpenAIClient | None = None
         self.chat: ChatSession | None = None
         self.auto_mode: bool = False
+        self.permissions: dict[str, str] = self._load_permissions()
         self.confirmation_manager = ConfirmationManager()
         self.question_manager = QuestionManager()
         self.memory_store = MemoryStore()
@@ -84,6 +90,23 @@ class Backend:
 
     def set_auto_mode(self, enabled: bool) -> None:
         self.auto_mode = enabled
+
+    def _load_permissions(self) -> dict[str, str]:
+        p = _permissions_path()
+        if p.exists():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {}
+
+    def save_permissions(self) -> None:
+        try:
+            _permissions_path().write_text(
+                json.dumps(self.permissions), encoding="utf-8"
+            )
+        except Exception as e:
+            warn(f"could not save permissions: {e}")
 
 
 def get_backend(request: web.Request) -> Backend:

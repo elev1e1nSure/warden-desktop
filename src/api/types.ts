@@ -38,6 +38,10 @@ export interface MemoryState {
 
 export type MemorySnapshot = Record<string, unknown>;
 
+export type PermissionLevel = "block" | "ask" | "allow";
+export type PermissionGroup = "files" | "shell" | "search" | "pc_control" | "processes" | "system";
+export type PermissionsState = Record<PermissionGroup, PermissionLevel>;
+
 export interface ChatSummary {
   id: string;
   title: string;

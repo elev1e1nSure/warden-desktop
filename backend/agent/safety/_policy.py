@@ -10,6 +10,54 @@ from typing import Any
 from agent.safety._filesystem import is_dangerous_path, is_path_within_workspace
 from agent.safety._powershell import classify as classify_powershell
 
+# Maps each tool name to a permission group.
+TOOL_GROUP: dict[str, str] = {
+    "bash": "shell",
+    "powershell": "shell",
+    "file_read": "files",
+    "read": "files",
+    "file_write": "files",
+    "write": "files",
+    "file_delete": "files",
+    "delete": "files",
+    "file_list": "files",
+    "list": "files",
+    "glob": "files",
+    "grep": "files",
+    "edit": "files",
+    "file_move": "files",
+    "file_copy": "files",
+    "apply_patch": "files",
+    "archive": "files",
+    "lsp": "files",
+    "google_search": "search",
+    "youtube_search": "search",
+    "browser_open": "search",
+    "browser_read": "search",
+    "browser_screenshot": "search",
+    "webfetch": "search",
+    "http_request": "search",
+    "browser_click": "search",
+    "browser_fill": "search",
+    "mouse": "pc_control",
+    "keyboard": "pc_control",
+    "screenshot": "pc_control",
+    "clipboard": "pc_control",
+    "window_list": "pc_control",
+    "window_focus": "pc_control",
+    "window_manage": "pc_control",
+    "image_locate": "pc_control",
+    "ocr": "pc_control",
+    "wait_for": "pc_control",
+    "process_list": "processes",
+    "process_kill": "processes",
+    "system_info": "system",
+    "notify": "system",
+}
+
+# Canonical group order for the UI.
+PERMISSION_GROUPS = ["files", "shell", "search", "pc_control", "processes", "system"]
+
 
 @dataclass
 class SafetyDecision:
@@ -60,12 +108,33 @@ def _apply_mode(decision: SafetyDecision, tool_name: str, mode: str) -> SafetyDe
 
 
 def assess_tool_call(
-    tool_name: str, args: dict, cwd: str | None = None, mode: str = "ask"
+    tool_name: str,
+    args: dict,
+    cwd: str | None = None,
+    mode: str = "ask",
+    permissions: dict[str, str] | None = None,
 ) -> SafetyDecision:
     if cwd is None:
         cwd = os.getcwd()
     workspace = Path(cwd).resolve()
     norm = dict(args)
+
+    # Apply per-group permission overrides before the policy runs.
+    if permissions:
+        group = TOOL_GROUP.get(tool_name)
+        if group:
+            perm = permissions.get(group)
+            if perm == "block":
+                return SafetyDecision(
+                    risk="blocked",
+                    reason="disabled in permission settings",
+                    summary="Blocked in settings",
+                    normalized_args=norm,
+                )
+            elif perm == "allow":
+                mode = "auto"
+            elif perm == "ask":
+                mode = "ask"
 
     def _d(risk, reason, summary, details=None):
         return _decide(risk, reason, summary, details, norm, tool_name, mode)

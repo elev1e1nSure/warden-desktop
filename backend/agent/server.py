@@ -33,7 +33,15 @@ from agent.routes.memory import (
 )
 from agent.routes.models import connect_handler, model_set, models_list
 from agent.routes.skills import skill_create, skill_delete, skill_get, skill_update, skills_list
-from agent.routes.system import health, set_mode, shutdown_handler, status, tools_list
+from agent.routes.system import (
+    health,
+    permissions_get,
+    permissions_post,
+    set_mode,
+    shutdown_handler,
+    status,
+    tools_list,
+)
 
 # Origins allowed to call the backend from a browser context. The Tauri
 # shell uses `tauri://localhost` (or `http://tauri.localhost` on Windows);
@@ -139,6 +147,8 @@ async def main() -> Backend:
     app.router.add_post("/confirm", confirm)
     app.router.add_post("/mode", set_mode)
     app.router.add_get("/status", status)
+    app.router.add_get("/permissions", permissions_get)
+    app.router.add_post("/permissions", permissions_post)
     app.router.add_get("/chats", chats_list)
     app.router.add_get("/chats/{id}", chat_get)
     app.router.add_post("/chats/new", chat_new)

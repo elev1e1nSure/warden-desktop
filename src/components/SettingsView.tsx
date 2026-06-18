@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Check, Cpu, Eye, EyeOff, FolderOpen, Globe, Loader2, Monitor, Shield, Terminal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AnimatedSliders from "./AnimatedSliders";
 import AnimatedArrowLeft from "./AnimatedArrowLeft";
@@ -11,11 +11,11 @@ import AnimatedInfo from "./AnimatedInfo";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
-import type { MemoryState, StatusResult } from "../api/types";
+import type { MemoryState, PermissionLevel, PermissionsState, StatusResult } from "../api/types";
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
 
-export type SettingsSection = "general" | "connection" | "agent" | "memory" | "about";
+export type SettingsSection = "general" | "connection" | "agent" | "permissions" | "memory" | "about";
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -33,6 +33,11 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: "general", label: "General", icon: <AnimatedSliders strokeWidth={1.75} /> },
   { id: "connection", label: "Provider", icon: <AnimatedWifi strokeWidth={1.75} /> },
   { id: "agent", label: "Agent", icon: <AnimatedBot strokeWidth={1.75} /> },
+  {
+    id: "permissions",
+    label: "Permissions",
+    icon: <Shield className="h-4 w-4" strokeWidth={1.75} />,
+  },
   { id: "memory", label: "Memory", icon: <AnimatedBrain strokeWidth={1.75} /> },
   { id: "about", label: "About", icon: <AnimatedInfo strokeWidth={1.75} /> },
 ];
@@ -177,6 +182,7 @@ export default function SettingsView({
               />
             )}
             {section === "agent" && <AgentSection status={status} onToggleMode={onToggleMode} />}
+            {section === "permissions" && <PermissionsSection />}
             {section === "memory" && <MemorySection />}
             {section === "about" && <AboutSection />}
           </div>
@@ -419,6 +425,151 @@ function AgentSection({
         >
           <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
         </Field>
+      </FieldGroup>
+    </>
+  );
+}
+
+const PERMISSION_GROUPS: {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    id: "files",
+    label: "Files",
+    description: "Read, write, delete, and search files on disk.",
+    icon: <FolderOpen className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    id: "shell",
+    label: "Shell",
+    description: "Run Bash and PowerShell commands.",
+    icon: <Terminal className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    id: "search",
+    label: "Web & Search",
+    description: "Browse the web, fetch URLs, run web searches.",
+    icon: <Globe className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    id: "pc_control",
+    label: "PC Control",
+    description: "Control mouse, keyboard, screen, clipboard, and windows.",
+    icon: <Monitor className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    id: "processes",
+    label: "Processes",
+    description: "List and kill running processes.",
+    icon: <Cpu className="h-4 w-4" strokeWidth={1.75} />,
+  },
+  {
+    id: "system",
+    label: "System",
+    description: "Read system info and send desktop notifications.",
+    icon: <Shield className="h-4 w-4" strokeWidth={1.75} />,
+  },
+];
+
+const PERMISSION_LEVELS: { value: PermissionLevel; label: string }[] = [
+  { value: "block", label: "Block" },
+  { value: "ask", label: "Ask" },
+  { value: "allow", label: "Allow" },
+];
+
+function PermissionSelector({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: PermissionLevel;
+  onChange: (v: PermissionLevel) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex rounded-lg border border-hairline overflow-hidden">
+      {PERMISSION_LEVELS.map((level) => {
+        const active = value === level.value;
+        const activeClass =
+          level.value === "block"
+            ? "bg-red-500/20 text-red-400 border-red-500/30"
+            : level.value === "allow"
+              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+              : "bg-fill-active text-text-primary";
+        return (
+          <button
+            key={level.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(level.value)}
+            className={`px-3 py-1.5 text-ui font-medium transition-colors border-r border-hairline last:border-r-0 ${
+              active
+                ? activeClass
+                : "text-text-muted hover:text-text-secondary hover:bg-fill-hover"
+            } disabled:opacity-40`}
+          >
+            {level.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PermissionsSection() {
+  const [perms, setPerms] = useState<PermissionsState | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .getPermissions()
+      .then(setPerms)
+      .catch(() => setPerms(null));
+  }, []);
+
+  const handleChange = async (group: string, value: PermissionLevel) => {
+    if (!perms) return;
+    const prev = perms[group as keyof PermissionsState];
+    setPerms({ ...perms, [group]: value });
+    setSaving(group);
+    try {
+      await api.setPermission(group, value);
+    } catch {
+      setPerms({ ...perms, [group]: prev });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <>
+      <SectionHeader title="Permissions" />
+
+      <p className="mb-5 text-ui text-text-muted">
+        Control which capabilities the agent can use. <strong className="text-text-secondary font-medium">Block</strong> disables a
+        group entirely. <strong className="text-text-secondary font-medium">Ask</strong> always prompts before using it.{" "}
+        <strong className="text-text-secondary font-medium">Allow</strong> lets it run without asking.
+      </p>
+
+      <FieldGroup>
+        {PERMISSION_GROUPS.map((group) => {
+          const current = (perms?.[group.id as keyof PermissionsState] ?? "ask") as PermissionLevel;
+          return (
+            <Field key={group.id} label={group.label} description={group.description}>
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-text-muted">{group.icon}</span>
+                <PermissionSelector
+                  value={current}
+                  onChange={(v) => handleChange(group.id, v)}
+                  disabled={!perms || saving === group.id}
+                />
+              </div>
+            </Field>
+          );
+        })}
       </FieldGroup>
     </>
   );

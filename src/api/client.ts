@@ -8,6 +8,8 @@ import type {
   MemorySnapshot,
   MemoryState,
   ModelsResult,
+  PermissionLevel,
+  PermissionsState,
   SkillInfo,
   StatusResult,
 } from "./types";
@@ -103,6 +105,11 @@ export const api = {
     postJSON<{ skill: SkillInfo }>("/skills/update", { name, description, content }),
 
   deleteSkill: (name: string) => postJSON<{ ok: boolean }>("/skills/delete", { name }),
+
+  getPermissions: () => getJSON<PermissionsState>("/permissions"),
+
+  setPermission: (group: string, value: PermissionLevel) =>
+    postJSON("/permissions", { group, value }),
 
   memoryState: () => getJSON<MemoryState>("/memory/state"),
 

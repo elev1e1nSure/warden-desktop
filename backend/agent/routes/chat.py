@@ -233,7 +233,10 @@ async def chat(request: web.Request) -> web.StreamResponse:
                         }
                     )
 
-        stream_kwargs = {"auto_mode": backend.auto_mode}
+        stream_kwargs = {
+            "auto_mode": backend.auto_mode,
+            "permissions": backend.permissions or None,
+        }
         if skill_name:
             stream_kwargs["skill_name"] = skill_name
             stream_kwargs["skill_args"] = skill_args
