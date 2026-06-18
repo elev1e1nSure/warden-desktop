@@ -531,7 +531,9 @@ function PermissionSelector({
               key={level.value}
               type="button"
               disabled={disabled}
-              onClick={() => { if (!active) onChange(level.value); }}
+              onClick={() => {
+                if (!active) onChange(level.value);
+              }}
               style={{ isolation: "isolate" }}
               className={`relative px-3 py-1.5 text-ui font-medium rounded-md ${
                 active ? activeText : "text-text-muted"

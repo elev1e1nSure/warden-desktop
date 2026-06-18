@@ -31,7 +31,7 @@ export default function ConfirmModal({ request, onResolve }: ConfirmModalProps) 
           {request.title || "Action needs confirmation"}
         </p>
         <p className="mt-0.5 text-ui text-text-muted">
-          <span className="font-mono">{request.tool}</span>
+          <span className="font-sans font-normal">{request.tool}</span>
           {request.risk && request.risk !== "confirm" && (
             <span className="ml-1.5 text-text-faint">· {request.risk}</span>
           )}

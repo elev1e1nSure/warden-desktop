@@ -151,156 +151,159 @@ function Sidebar({
 
   return (
     <aside
-      style={{ width, backdropFilter: "blur(25px)", WebkitBackdropFilter: "blur(25px)" }}
+      style={{ width }}
       className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
     >
       <LayoutGroup>
-      {/* Primary nav */}
-      <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
-        <NavButton
-          icon={<AnimatedSquarePen strokeWidth={1.75} />}
-          label="New Chat"
-          onClick={onNewChat}
-        />
-        <NavButton
-          icon={<AnimatedBlocks strokeWidth={1.75} />}
-          label="Skills"
-          active={skillsActive}
-          onClick={onOpenSkills}
-        />
-        <NavButton icon={<Plug strokeWidth={1.75} />} label="MCPs" disabled />
-      </nav>
+        {/* Primary nav */}
+        <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
+          <NavButton
+            icon={<AnimatedSquarePen strokeWidth={1.75} />}
+            label="New Chat"
+            onClick={onNewChat}
+          />
+          <NavButton
+            icon={<AnimatedBlocks strokeWidth={1.75} />}
+            label="Skills"
+            active={skillsActive}
+            onClick={onOpenSkills}
+          />
+          <NavButton icon={<Plug strokeWidth={1.75} />} label="MCPs" disabled />
+        </nav>
 
-      {/* Chats section */}
-      <div className="mt-3 flex min-h-0 flex-1 flex-col px-2">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          <button
-            type="button"
-            onClick={() => setChatsOpen((v) => !v)}
-            className="flex w-full items-center gap-1 px-2 py-1.5 text-ui font-semibold text-text-muted hover:text-text-secondary"
+        {/* Chats section */}
+        <div className="mt-3 flex min-h-0 flex-1 flex-col px-2">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex min-h-0 flex-1 flex-col"
           >
-            Chats
-            <motion.span
-              animate={{ rotate: chatsOpen ? 0 : -90 }}
-              transition={{ duration: 0.15 }}
-              className="flex shrink-0"
+            <button
+              type="button"
+              onClick={() => setChatsOpen((v) => !v)}
+              className="flex w-full items-center gap-1 px-2 py-1.5 text-ui font-semibold text-text-muted hover:text-text-secondary"
             >
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </motion.span>
-          </button>
-
-          <AnimatePresence initial={false}>
-            {chatsOpen && (
-              <motion.div
-                initial={{ maxHeight: 0, opacity: 0 }}
-                animate={{ maxHeight: 800, opacity: 1 }}
-                exit={{ maxHeight: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="min-h-0 flex-1 overflow-y-auto"
-                style={{
-                  maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
-                }}
+              Chats
+              <motion.span
+                animate={{ rotate: chatsOpen ? 0 : -90 }}
+                transition={{ duration: 0.15 }}
+                className="flex shrink-0"
               >
-                <div className="flex flex-col gap-0.5 pt-1 pb-2">
-                  {chats.map((chat) => {
-                    const active = chat.id === activeChatId;
-                    const menuOpen = menuChatId === chat.id;
-                    const renaming = renamingId === chat.id;
+                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </motion.span>
+            </button>
 
-                    return (
-                      // biome-ignore lint/a11y/useSemanticElements: div[role="button"] needed to contain input+button children
-                      <div
-                        key={chat.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => !renaming && onSelectChat(chat.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
-                        }}
-                        className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 hover:bg-fill-hover"
-                        style={{ isolation: "isolate" }}
-                      >
-                        {active && (
-                          <motion.div
-                            layoutId="active-chat-highlight"
-                            className="absolute inset-0 rounded-xl bg-fill-active -z-10"
-                            transition={{ type: "spring", stiffness: 600, damping: 48 }}
-                          />
-                        )}
-                        {renaming ? (
-                          <input
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitRename(chat.id);
-                              if (e.key === "Escape") setRenamingId(null);
-                            }}
-                            onBlur={() => commitRename(chat.id)}
-                            className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
-                          />
-                        ) : (
-                          <button type="button" className="relative z-10 min-w-0 flex-1 text-left">
-                            <span
-                              className={`block truncate text-ui-lg tracking-[-0.01em] ${
-                                active
-                                  ? "font-medium text-text-primary"
-                                  : "font-normal text-text-secondary"
+            <AnimatePresence initial={false}>
+              {chatsOpen && (
+                <motion.div
+                  initial={{ maxHeight: 0, opacity: 0 }}
+                  animate={{ maxHeight: 800, opacity: 1 }}
+                  exit={{ maxHeight: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="min-h-0 flex-1 overflow-y-auto"
+                  style={{
+                    maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                  }}
+                >
+                  <div className="flex flex-col gap-0.5 pt-1 pb-2">
+                    {chats.map((chat) => {
+                      const active = chat.id === activeChatId;
+                      const menuOpen = menuChatId === chat.id;
+                      const renaming = renamingId === chat.id;
+
+                      return (
+                        // biome-ignore lint/a11y/useSemanticElements: div[role="button"] needed to contain input+button children
+                        <div
+                          key={chat.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => !renaming && onSelectChat(chat.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
+                          }}
+                          className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 hover:bg-fill-hover"
+                          style={{ isolation: "isolate" }}
+                        >
+                          {active && (
+                            <motion.div
+                              layoutId="active-chat-highlight"
+                              className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+                              transition={{ type: "spring", stiffness: 600, damping: 48 }}
+                            />
+                          )}
+                          {renaming ? (
+                            <input
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commitRename(chat.id);
+                                if (e.key === "Escape") setRenamingId(null);
+                              }}
+                              onBlur={() => commitRename(chat.id)}
+                              className="relative z-10 min-w-0 flex-1 bg-transparent text-ui-lg font-medium tracking-[-0.01em] text-text-primary outline-none"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className="relative z-10 min-w-0 flex-1 text-left"
+                            >
+                              <span
+                                className={`block truncate text-ui-lg tracking-[-0.01em] ${
+                                  active
+                                    ? "font-medium text-text-primary"
+                                    : "font-normal text-text-secondary"
+                                }`}
+                              >
+                                {chat.title}
+                              </span>
+                            </button>
+                          )}
+
+                          {/* Three-dots trigger */}
+                          {!renaming && (
+                            <button
+                              type="button"
+                              aria-label="Chat options"
+                              ref={(el) => {
+                                menuTriggerRef.current[chat.id] = el;
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuChatId(menuOpen ? null : chat.id);
+                              }}
+                              className={`relative z-10 ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
+                                menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                               }`}
                             >
-                              {chat.title}
-                            </span>
-                          </button>
-                        )}
+                              <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            </button>
+                          )}
 
-                        {/* Three-dots trigger */}
-                        {!renaming && (
-                          <button
-                            type="button"
-                            aria-label="Chat options"
-                            ref={(el) => {
-                              menuTriggerRef.current[chat.id] = el;
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMenuChatId(menuOpen ? null : chat.id);
-                            }}
-                            className={`relative z-10 ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted transition-opacity hover:text-text-secondary ${
-                              menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            }`}
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          </button>
-                        )}
-
-                        {/* Dropdown is rendered into document.body via portal
+                          {/* Dropdown is rendered into document.body via portal
                               so the scroll container / aside / motion nodes
                               can never clip it. */}
-                      </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
 
-      {/* Settings pinned to bottom */}
-      <div className="px-2 pb-2">
-        <NavButton
-          icon={<AnimatedSettings strokeWidth={1.75} />}
-          label="Settings"
-          onClick={onOpenSettings}
-        />
-      </div>
+        {/* Settings pinned to bottom */}
+        <div className="px-2 pb-2">
+          <NavButton
+            icon={<AnimatedSettings strokeWidth={1.75} />}
+            label="Settings"
+            onClick={onOpenSettings}
+          />
+        </div>
       </LayoutGroup>
 
       {createPortal(
