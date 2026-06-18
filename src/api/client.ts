@@ -2,6 +2,7 @@
 
 import type { Block } from "../types";
 import type {
+  AppSettings,
   ChatDetail,
   ChatListResult,
   ConnectResult,
@@ -118,6 +119,10 @@ export const api = {
   clearMemory: () => postJSON<{ cleared: number }>("/memory/clear"),
 
   memorySnapshot: () => getJSON<MemorySnapshot>("/memory/snapshot"),
+
+  getSettings: () => getJSON<AppSettings>("/settings"),
+
+  setSettings: (settings: Partial<AppSettings>) => postJSON<AppSettings>("/settings", settings),
 
   shutdown: () => postJSON("/shutdown"),
 

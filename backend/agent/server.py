@@ -38,6 +38,8 @@ from agent.routes.system import (
     permissions_get,
     permissions_post,
     set_mode,
+    settings_get,
+    settings_post,
     shutdown_handler,
     status,
     tools_list,
@@ -149,6 +151,8 @@ async def main() -> Backend:
     app.router.add_get("/status", status)
     app.router.add_get("/permissions", permissions_get)
     app.router.add_post("/permissions", permissions_post)
+    app.router.add_get("/settings", settings_get)
+    app.router.add_post("/settings", settings_post)
     app.router.add_get("/chats", chats_list)
     app.router.add_get("/chats/{id}", chat_get)
     app.router.add_post("/chats/new", chat_new)

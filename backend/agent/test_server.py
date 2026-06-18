@@ -20,6 +20,9 @@ def _make_backend(auto_mode: bool = False, api_url: str = "") -> MagicMock:
     backend.model = "test-model"
     backend.api_url = api_url
     backend.auto_mode = auto_mode
+    backend.mode = "auto" if auto_mode else "ask"
+    backend.permissions = {}
+    backend.settings = {"disable_system_prompt": False}
     backend.llm = MagicMock()
     backend.confirmation_manager = ConfirmationManager()
     backend.question_manager = QuestionManager()
@@ -44,6 +47,8 @@ def _make_backend(auto_mode: bool = False, api_url: str = "") -> MagicMock:
     backend._new_chat = MagicMock()
     backend._save_active_history = MagicMock()
     backend.set_auto_mode = MagicMock(side_effect=lambda v: setattr(backend, "auto_mode", v))
+    backend.set_mode = MagicMock(side_effect=lambda m: setattr(backend, "mode", m))
+    backend.save_settings = MagicMock()
     return backend
 
 
@@ -69,6 +74,8 @@ def _make_app(backend: MagicMock, shutdown_event: asyncio.Event | None = None) -
     app.router.add_get("/tools", server_module.tools_list)
     app.router.add_post("/confirm", server_module.confirm)
     app.router.add_post("/chat", server_module.chat)
+    app.router.add_get("/settings", server_module.settings_get)
+    app.router.add_post("/settings", server_module.settings_post)
     return app
 
 
@@ -90,6 +97,8 @@ def _make_app_with_auth(
     app.router.add_post("/mode", server_module.set_mode)
     app.router.add_get("/status", server_module.status)
     app.router.add_post("/chat", server_module.chat)
+    app.router.add_get("/settings", server_module.settings_get)
+    app.router.add_post("/settings", server_module.settings_post)
     return app
 
 
@@ -296,7 +305,7 @@ async def test_question_not_found(aiohttp_client):
 # ── chat endpoint ─────────────────────────────────────────────────────────────
 
 
-async def _fake_stream_all_types(text, auto_mode=False):
+async def _fake_stream_all_types(text, auto_mode=False, permissions=None):
     yield ("warden_start", {})
     yield ("token", "hello ")
     yield ("token", "world")
@@ -349,7 +358,7 @@ async def test_chat_all_event_types(aiohttp_client):
 async def test_chat_done_has_token_info(aiohttp_client):
     backend = _make_backend()
 
-    async def _simple_stream(text, auto_mode=False):
+    async def _simple_stream(text, auto_mode=False, permissions=None):
         yield ("token", "hi")
 
     backend.chat.stream = _simple_stream
@@ -369,7 +378,7 @@ async def test_chat_done_has_token_info(aiohttp_client):
 async def test_chat_error_yields_error_event(aiohttp_client):
     backend = _make_backend()
 
-    async def _error_stream(text, auto_mode=False):
+    async def _error_stream(text, auto_mode=False, permissions=None):
         raise RuntimeError("boom")
         yield  # make it a generator
 
@@ -534,3 +543,23 @@ def test_safe_filename_strips_separators():
     assert "/" not in sanitized
     assert "\\" not in sanitized
     assert sanitized != "..\\evil.bat"
+
+
+async def test_settings(aiohttp_client):
+    backend = _make_backend()
+    app = _make_app(backend)
+    client = await aiohttp_client(app)
+
+    # 1. GET settings
+    resp = await client.get("/settings")
+    assert resp.status == 200
+    data = await resp.json()
+    assert data == {"disable_system_prompt": False}
+
+    # 2. POST settings
+    resp = await client.post("/settings", json={"disable_system_prompt": True})
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["disable_system_prompt"] is True
+    assert backend.settings["disable_system_prompt"] is True
+    backend.save_settings.assert_called_once()

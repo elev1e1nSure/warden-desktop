@@ -1,6 +1,6 @@
 [package]
 name = "warden-desktop"
-version = "1.1.0"
+version = "1.2.1"
 description = "Warden Desktop — AI agent desktop shell"
 authors = ["elev1e1nSure"]
 edition = "2021"

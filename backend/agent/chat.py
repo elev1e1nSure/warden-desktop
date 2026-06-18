@@ -169,6 +169,7 @@ class ChatSession:
         memory_store: MemoryStore | None = None,
         session_id: str | None = None,
         history: list[dict[str, Any]] | None = None,
+        settings: dict[str, Any] | None = None,
     ) -> None:
         self.model = model
         self.history: list[dict[str, Any]] = list(history or [])
@@ -181,6 +182,7 @@ class ChatSession:
         self.token_count: int = self._estimate_tokens()
         self.token_limit: int = _guess_context_limit(model)
         self._cu_warned: dict = {"value": False}
+        self.settings: dict = settings if settings is not None else {}
 
     def reset(self) -> None:
         if self.memory_store is not None:
@@ -472,11 +474,6 @@ class ChatSession:
             iter_count += 1
             yield ("warden_start", {})
 
-            system = build_system(self.model)
-            if self.memory_store is not None and self.memory_store.get_enabled():
-                mem_ctx = self.memory_store.get_context_text(session_id=self.session_id)
-                if mem_ctx:
-                    system = mem_ctx + "\n\n" + system
             if turn_context:
                 history = (
                     self.history[:history_insert_at]
@@ -485,7 +482,16 @@ class ChatSession:
                 )
             else:
                 history = self.history
-            messages = [{"role": "system", "content": system}] + history
+
+            if self.settings.get("disable_system_prompt"):
+                messages = history
+            else:
+                system = build_system(self.model)
+                if self.memory_store is not None and self.memory_store.get_enabled():
+                    mem_ctx = self.memory_store.get_context_text(session_id=self.session_id)
+                    if mem_ctx:
+                        system = mem_ctx + "\n\n" + system
+                messages = [{"role": "system", "content": system}] + history
 
             llm_result: dict = {}
             async for event in self._call_llm(messages, llm_result):

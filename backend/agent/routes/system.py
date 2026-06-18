@@ -87,3 +87,18 @@ async def shutdown_handler(request: web.Request) -> web.Response:
     if shutdown_event is not None:
         asyncio.get_event_loop().call_soon(shutdown_event.set)
     return web.Response(text="ok")
+
+
+async def settings_get(request: web.Request) -> web.Response:
+    backend = get_backend(request)
+    log_request("GET", "/settings", 200)
+    return web.json_response(backend.settings)
+
+
+async def settings_post(request: web.Request) -> web.Response:
+    backend = get_backend(request)
+    data = await request.json()
+    backend.settings.update(data)
+    backend.save_settings()
+    log_request("POST", "/settings", 200)
+    return web.json_response(backend.settings)

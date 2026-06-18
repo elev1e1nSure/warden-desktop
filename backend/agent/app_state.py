@@ -31,6 +31,10 @@ def _permissions_path() -> Path:
     return _warden_data_dir() / "permissions.json"
 
 
+def _settings_path() -> Path:
+    return _warden_data_dir() / "settings.json"
+
+
 class Backend:
     def __init__(self) -> None:
         try:
@@ -44,6 +48,7 @@ class Backend:
         self.chat: ChatSession | None = None
         self.mode: str = "ask"  # "ask" | "auto" | "custom"
         self.permissions: dict[str, str] = self._load_permissions()
+        self.settings: dict = self._load_settings()
         self.confirmation_manager = ConfirmationManager()
         self.question_manager = QuestionManager()
         self.memory_store = MemoryStore()
@@ -71,6 +76,7 @@ class Backend:
             memory_store=self.memory_store,
             session_id=session_id,
             history=history,
+            settings=self.settings,
         )
         if persist:
             self.chat_store.ensure_chat(self.chat.session_id)
@@ -113,6 +119,21 @@ class Backend:
             _permissions_path().write_text(json.dumps(self.permissions), encoding="utf-8")
         except Exception as e:
             warn(f"could not save permissions: {e}")
+
+    def _load_settings(self) -> dict:
+        p = _settings_path()
+        if p.exists():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {"disable_system_prompt": False}
+
+    def save_settings(self) -> None:
+        try:
+            _settings_path().write_text(json.dumps(self.settings), encoding="utf-8")
+        except Exception as e:
+            warn(f"could not save settings: {e}")
 
 
 def get_backend(request: web.Request) -> Backend:

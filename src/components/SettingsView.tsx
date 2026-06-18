@@ -22,7 +22,13 @@ import AnimatedInfo from "./AnimatedInfo";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
-import type { MemoryState, PermissionLevel, PermissionsState, StatusResult } from "../api/types";
+import type {
+  AppSettings,
+  MemoryState,
+  PermissionLevel,
+  PermissionsState,
+  StatusResult,
+} from "../api/types";
 import type { Model } from "../types";
 import ModelSelector from "./ModelSelector";
 
@@ -129,6 +135,61 @@ export default function SettingsView({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [perms, setPerms] = useState<PermissionsState | null>(null);
+  const [memoryState, setMemoryState] = useState<MemoryState | null>(null);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [memoryBusy, setMemoryBusy] = useState(false);
+  const [savingPermissionGroup, setSavingPermissionGroup] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getSettings().then(setSettings).catch(() => {});
+    api.getPermissions().then(setPerms).catch(() => {});
+    api.memoryState().then(setMemoryState).catch(() => {});
+  }, []);
+
+  const handleToggleSystemPrompt = async () => {
+    if (!settings || settingsBusy) return;
+    const next = !settings.disable_system_prompt;
+    setSettingsBusy(true);
+    setSettings({ ...settings, disable_system_prompt: next });
+    try {
+      await api.setSettings({ disable_system_prompt: next });
+    } catch {
+      setSettings({ ...settings, disable_system_prompt: !next });
+    } finally {
+      setSettingsBusy(false);
+    }
+  };
+
+  const handleToggleMemory = async () => {
+    if (!memoryState || memoryBusy) return;
+    const next = !memoryState.enabled;
+    setMemoryBusy(true);
+    setMemoryState({ ...memoryState, enabled: next });
+    try {
+      await api.setMemory(next);
+    } catch {
+      setMemoryState({ ...memoryState, enabled: !next });
+    } finally {
+      setMemoryBusy(false);
+    }
+  };
+
+  const handleChangePermission = async (group: string, value: PermissionLevel) => {
+    if (!perms) return;
+    const prev = perms[group as keyof PermissionsState];
+    setPerms({ ...perms, [group]: value });
+    setSavingPermissionGroup(group);
+    try {
+      await api.setPermission(group, value);
+    } catch {
+      setPerms({ ...perms, [group]: prev });
+    } finally {
+      setSavingPermissionGroup(null);
+    }
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCloseRef.current();
@@ -198,9 +259,27 @@ export default function SettingsView({
                 onSelectModel={onSelectModel}
               />
             )}
-            {section === "agent" && <AgentSection status={status} onToggleMode={onToggleMode} />}
-            {section === "permissions" && <PermissionsSection />}
-            {section === "memory" && <MemorySection />}
+            {section === "agent" && (
+              <AgentSection
+                status={status}
+                onToggleMode={onToggleMode}
+                settings={settings}
+                onToggleSystemPrompt={handleToggleSystemPrompt}
+              />
+            )}
+            {section === "permissions" && (
+              <PermissionsSection
+                perms={perms}
+                onChangePermission={handleChangePermission}
+                savingGroup={savingPermissionGroup}
+              />
+            )}
+            {section === "memory" && (
+              <MemorySection
+                state={memoryState}
+                onToggleMemory={handleToggleMemory}
+              />
+            )}
             {section === "about" && <AboutSection />}
           </div>
         </div>
@@ -270,6 +349,7 @@ function Toggle({
       }`}
     >
       <motion.span
+        initial={false}
         animate={{ x: checked ? 16 : 0 }}
         transition={{ type: "spring", stiffness: 600, damping: 45 }}
         className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white"
@@ -362,6 +442,7 @@ function ConnectionSection({
               models={modelList}
               selected={selectedModel}
               onSelect={(m) => onSelectModel(m.id)}
+              align="down"
             />
           ) : (
             <span className="text-ui text-text-muted">—</span>
@@ -425,9 +506,13 @@ function ConnectionSection({
 function AgentSection({
   status,
   onToggleMode,
+  settings,
+  onToggleSystemPrompt,
 }: {
   status: StatusResult | null;
   onToggleMode: () => void;
+  settings: AppSettings | null;
+  onToggleSystemPrompt: () => void;
 }) {
   const auto = status?.mode === "auto";
 
@@ -441,6 +526,21 @@ function AgentSection({
           description="Run tools without asking for confirmation. Off = ask before risky actions."
         >
           <Toggle checked={auto} onChange={onToggleMode} label="Toggle auto mode" />
+        </Field>
+
+        <Field
+          label="Disable system prompt"
+          description="Completely turn off the system prompt of the model (instructions on identity, constraints, tool usage, etc.)."
+        >
+          {settings ? (
+            <Toggle
+              checked={settings.disable_system_prompt}
+              onChange={onToggleSystemPrompt}
+              label="Toggle disable system prompt"
+            />
+          ) : (
+            <div className="h-6 w-10 shrink-0 rounded-full bg-fill-strong opacity-50" />
+          )}
         </Field>
       </FieldGroup>
     </>
@@ -557,31 +657,15 @@ function PermissionSelector({
   );
 }
 
-function PermissionsSection() {
-  const [perms, setPerms] = useState<PermissionsState | null>(null);
-  const [saving, setSaving] = useState<string | null>(null);
-
-  useEffect(() => {
-    api
-      .getPermissions()
-      .then(setPerms)
-      .catch(() => setPerms(null));
-  }, []);
-
-  const handleChange = async (group: string, value: PermissionLevel) => {
-    if (!perms) return;
-    const prev = perms[group as keyof PermissionsState];
-    setPerms({ ...perms, [group]: value });
-    setSaving(group);
-    try {
-      await api.setPermission(group, value);
-    } catch {
-      setPerms({ ...perms, [group]: prev });
-    } finally {
-      setSaving(null);
-    }
-  };
-
+function PermissionsSection({
+  perms,
+  onChangePermission,
+  savingGroup,
+}: {
+  perms: PermissionsState | null;
+  onChangePermission: (group: string, value: PermissionLevel) => void;
+  savingGroup: string | null;
+}) {
   return (
     <>
       <SectionHeader title="Permissions" />
@@ -601,11 +685,24 @@ function PermissionsSection() {
             <Field key={group.id} label={group.label} description={group.description}>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-text-muted">{group.icon}</span>
-                <PermissionSelector
-                  value={current}
-                  onChange={(v) => handleChange(group.id, v)}
-                  disabled={!perms || saving === group.id}
-                />
+                {perms ? (
+                  <PermissionSelector
+                    value={current}
+                    onChange={(v) => onChangePermission(group.id, v)}
+                    disabled={savingGroup === group.id}
+                  />
+                ) : (
+                  <div className="flex rounded-lg border border-hairline bg-fill-subtle p-0.5 gap-0.5 opacity-50">
+                    {PERMISSION_LEVELS.map((level) => (
+                      <div
+                        key={level.value}
+                        className="px-3 py-1.5 text-ui font-medium rounded-md text-text-muted select-none"
+                      >
+                        {level.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </Field>
           );
@@ -615,33 +712,13 @@ function PermissionsSection() {
   );
 }
 
-function MemorySection() {
-  const [state, setState] = useState<MemoryState | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = () => {
-    api
-      .memoryState()
-      .then(setState)
-      .catch(() => setState(null));
-  };
-
-  useEffect(load, []);
-
-  const toggle = async () => {
-    if (!state || busy) return;
-    const next = !state.enabled;
-    setBusy(true);
-    setState({ ...state, enabled: next });
-    try {
-      await api.setMemory(next);
-    } catch {
-      setState({ ...state, enabled: !next });
-    } finally {
-      setBusy(false);
-    }
-  };
-
+function MemorySection({
+  state,
+  onToggleMemory,
+}: {
+  state: MemoryState | null;
+  onToggleMemory: () => void;
+}) {
   return (
     <>
       <SectionHeader title="Memory" />
@@ -651,11 +728,15 @@ function MemorySection() {
           label="Enable memory"
           description="Let the agent remember facts and recall them in future chats."
         >
-          <Toggle
-            checked={Boolean(state?.enabled)}
-            onChange={toggle}
-            label="Toggle long-term memory"
-          />
+          {state ? (
+            <Toggle
+              checked={state.enabled}
+              onChange={onToggleMemory}
+              label="Toggle long-term memory"
+            />
+          ) : (
+            <div className="h-6 w-10 shrink-0 rounded-full bg-fill-strong opacity-50" />
+          )}
         </Field>
       </FieldGroup>
     </>

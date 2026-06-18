@@ -1,8 +1,8 @@
 # Язык программирования "Кот" — дерево-обходной интерпретатор
 # Лексер, Парсер, Интерпретатор — всё в одном файле
 
-import sys
 import re
+import sys
 from enum import Enum
 
 # ─── Лексер ───────────────────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ class Lexer:
                 if self.match("="):
                     self.add_token(TokenType.NEQ)
                 else:
-                    self.error(f"Неожиданный символ '!'")
+                    self.error("Неожиданный символ '!'")
             elif c == "<":
                 if self.match("="):
                     self.add_token(TokenType.LTE)
@@ -936,7 +936,7 @@ def run(source, interpreter=None):
 
 
 def run_file(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         source = f.read()
     interpreter = Interpreter()
     run(source, interpreter)

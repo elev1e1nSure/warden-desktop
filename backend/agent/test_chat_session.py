@@ -185,3 +185,12 @@ class TestChatSessionStream:
             '<skill_content name="demo">' in str(msg.get("content", "")) for msg in request_messages
         )
         assert all("<skill_content" not in str(msg.get("content", "")) for msg in session.history)
+
+    @pytest.mark.asyncio
+    async def test_stream_omits_system_prompt_when_disabled(self) -> None:
+        fake = FakeLLMClient(chunks=[LLMChunk(content="response")])
+        session = ChatSession("test", fake, settings={"disable_system_prompt": True})
+        async for _ in session.stream("hello"):
+            pass
+        request_messages = fake.calls[0]
+        assert all(msg.get("role") != "system" for msg in request_messages)

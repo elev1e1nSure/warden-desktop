@@ -56,9 +56,9 @@ class GoogleSearchTool(Tool):
         if not success:
 
             def _yahoo_search() -> list:
-                import urllib.request
-                import urllib.parse
                 import re
+                import urllib.parse
+                import urllib.request
                 from html import unescape
 
                 url = "https://search.yahoo.com/search?" + urllib.parse.urlencode({"p": query})

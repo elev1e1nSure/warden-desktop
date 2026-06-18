@@ -139,7 +139,7 @@ async def test_blocked_tool(monkeypatch):
     monkeypatch.setattr(
         tr,
         "assess_tool_call",
-        lambda name, args, mode: SafetyDecision("blocked", "unsafe", "details"),
+        lambda name, args, mode, permissions=None: SafetyDecision("blocked", "unsafe", "details"),
     )
     history = []
 
@@ -167,7 +167,7 @@ async def test_confirm_cancelled(monkeypatch):
     monkeypatch.setattr(
         tr,
         "assess_tool_call",
-        lambda name, args, mode: SafetyDecision("confirm", "risky", "details"),
+        lambda name, args, mode, permissions=None: SafetyDecision("confirm", "risky", "details"),
     )
 
     class FakeCM:

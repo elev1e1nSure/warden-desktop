@@ -99,3 +99,7 @@ export type ChatEvent =
 
 export type ConfirmEvent = Extract<ChatEvent, { type: "confirm" }>;
 export type QuestionEvent = Extract<ChatEvent, { type: "question" }>;
+
+export interface AppSettings {
+  disable_system_prompt: boolean;
+}

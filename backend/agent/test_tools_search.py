@@ -28,9 +28,10 @@ class TestGoogleSearchTool:
         assert "example.com" in result
 
     async def test_yahoo_fallback(self):
-        from agent.tools.search import GoogleSearchTool
         import urllib.request as _ur
+
         import agent.tools.search as _search_mod
+        from agent.tools.search import GoogleSearchTool
 
         class FakeResp:
             def __enter__(self):
