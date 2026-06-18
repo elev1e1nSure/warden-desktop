@@ -55,6 +55,20 @@ async def chat_select(request: web.Request) -> web.Response:
     return web.json_response({"chat": record})
 
 
+async def chat_get(request: web.Request) -> web.Response:
+    backend = get_backend(request)
+    session_id = request.match_info.get("id", "")
+    if not session_id:
+        log_request("GET", "/chats/{id}", 400)
+        return web.json_response({"error": "id required"}, status=400)
+    record = backend.chat_store.get_chat(session_id)
+    if record is None:
+        log_request("GET", f"/chats/{session_id}", 404)
+        return web.json_response({"error": "chat not found"}, status=404)
+    log_request("GET", f"/chats/{session_id}", 200)
+    return web.json_response({"chat": record})
+
+
 async def chat_rename(request: web.Request) -> web.Response:
     backend = get_backend(request)
     data = await request.json()

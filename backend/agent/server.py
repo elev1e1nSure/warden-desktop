@@ -19,6 +19,7 @@ from agent.routes.chat import (
 from agent.routes.chats import (
     chat_blocks_save,
     chat_delete,
+    chat_get,
     chat_new,
     chat_rename,
     chat_select,
@@ -139,6 +140,7 @@ async def main() -> Backend:
     app.router.add_post("/mode", set_mode)
     app.router.add_get("/status", status)
     app.router.add_get("/chats", chats_list)
+    app.router.add_get("/chats/{id}", chat_get)
     app.router.add_post("/chats/new", chat_new)
     app.router.add_post("/chats/select", chat_select)
     app.router.add_post("/chats/rename", chat_rename)
@@ -172,14 +174,13 @@ async def main() -> Backend:
 
 
 # backward-compat shims so existing tests still resolve these names via server
-from agent.app_state import get_backend as _get_backend  # noqa: E402
-from agent.routes.chat import (  # noqa: E402
+from agent.app_state import get_backend as _get_backend
+from agent.routes.chat import (
     _FILE_ID_RE,
     _SAFE_FILENAME_RE,
     _client_disconnected,
     _fallback_title,
 )
-
 
 if __name__ == "__main__":
     backend = None
