@@ -8,7 +8,7 @@ default:
 # Install all frontend and backend dependencies
 install:
     pnpm install
-    cd backend; uv sync
+    cd backend; uv sync --extra tools && uv run playwright install chromium
 
 # Run the complete development environment (frontend, backend, and Tauri dev window)
 dev:

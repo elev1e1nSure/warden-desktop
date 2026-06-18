@@ -14,7 +14,7 @@
 </pre>
 
 <p align="center">
-  <strong>AI agent desktop shell with full computer control</strong>
+  <strong>AI agent desktop shell with full computer control</strong> <em>(Windows only)</em>
 </p>
 
 <p align="center">
@@ -36,9 +36,9 @@
 
 ## What it does
 
-Warden gives an AI agent hands. It reads and writes files, runs shell commands, takes screenshots, controls the browser, clicks the mouse, and manages windows — all through a chat interface.
+Warden gives an AI agent hands. It reads and writes files, runs shell commands, takes screenshots, automates a headless browser, clicks the mouse, and manages windows — all through a chat interface.
 
-Works with [OpenRouter](https://openrouter.ai) — bring any model: GPT, Claude, DeepSeek, Gemini.
+Works with [OpenRouter](https://openrouter.ai) — bring any model: GPT, Claude, DeepSeek.
 
 ---
 
@@ -47,7 +47,7 @@ Works with [OpenRouter](https://openrouter.ai) — bring any model: GPT, Claude,
 ```
 Files       read · write · search · archives · patches
 Shell       PowerShell · Bash · risk-based security
-Browser     URLs · screenshots · clicks · forms · YouTube
+Browser     URLs · screenshots · clicks · forms
 Screen      OCR · image search · mouse · keyboard
 System      processes · windows · notifications · clipboard
 Memory      long-term · retrieval · aggregation
@@ -61,6 +61,7 @@ Code        LSP · session todo-list
 |------|----------|
 | **Ask** | Agent asks for confirmation before every action |
 | **Auto** | Executes without confirmation; dangerous operations show a modal |
+| **Custom** | Uses your permission settings; executes without confirmation for allowed tools |
 
 ---
 
@@ -68,10 +69,7 @@ Code        LSP · session todo-list
 
 ### Download installer
 
-Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest) and grab:
-
-- `warden-desktop_x64-setup.exe` — NSIS installer
-- `warden-desktop_x64_en-US.msi` — MSI package
+Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest) and download the latest NSIS installer (`*-setup.exe`).
 
 ### Build from source
 
@@ -96,7 +94,7 @@ pnpm install
 
 # Install backend dependencies (in backend/)
 cd backend
-uv sync
+uv sync --extra tools
 cd ..
 
 # Run the development environment
@@ -106,7 +104,23 @@ pnpm dev:all
 pnpm build:app
 ```
 
-Requires: Node.js 22+, pnpm, Python 3.11+, Rust toolchain, and optionally [just](https://github.com/casey/just).
+Requires: Windows 10+, Node.js 22+, pnpm, Python 3.11+, uv, Rust toolchain, [playwright](https://playwright.dev), and optionally [just](https://github.com/casey/just).
+
+All available commands:
+
+```
+install      Install all dependencies (frontend + backend + browser)
+dev          Run full dev environment (frontend, backend, Tauri)
+dev-frontend Run Vite frontend dev server
+dev-backend  Run Python backend dev server
+lint         Lint both frontend (Biome) and backend (Ruff)
+format       Auto-format both frontend and backend
+check        Typecheck + lint
+test         Run all tests (frontend and backend)
+build-app    Build desktop installer
+build-backend Build backend executable (PyInstaller)
+clean        Remove build artifacts and cached files
+```
 
 ---
 
@@ -132,9 +146,9 @@ Architecture, data flow, and source map → see [docs/README.md](docs/README.md)
 |-------|-------------|
 | Frontend | React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion |
 | Desktop | Tauri 2 (Rust) |
-| Backend | Python · aiohttp · uv |
+| Backend | Python · aiohttp |
 | LLM | OpenRouter (OpenAI-compatible API) |
-| Build | pnpm · PyInstaller · NSIS/MSI |
+| Build | pnpm · PyInstaller · NSIS |
 
 ---
 

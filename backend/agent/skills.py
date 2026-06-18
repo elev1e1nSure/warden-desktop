@@ -22,6 +22,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from agent.paths import warden_data_dir
+
 log = logging.getLogger(__name__)
 
 MAX_SKILL_BYTES = 64 * 1024  # hard cap; beyond this, the body is truncated
@@ -48,7 +50,7 @@ def _skill_roots() -> list[Path]:
         home / ".codex" / "skills",
         home / ".agents" / "skills",
         home / ".claude" / "skills",
-        home / ".warden" / "skills",
+        warden_data_dir() / "skills",
         Path.cwd() / "skills",
         Path.cwd() / ".claude" / "skills",
         Path.cwd() / ".warden" / "skills",
@@ -217,7 +219,7 @@ def wrap_skill_content(skill: Skill) -> str:
 
 
 def _user_skill_dir(name: str) -> Path:
-    return Path.home() / ".warden" / "skills" / name
+    return warden_data_dir() / "skills" / name
 
 
 def _skill_to_dict(skill: Skill, *, include_content: bool = False) -> dict:

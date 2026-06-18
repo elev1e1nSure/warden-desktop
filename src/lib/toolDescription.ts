@@ -84,6 +84,7 @@ export function toolDescription(b: ToolBlock): string {
     case "google_search":
       return `Searched Google: "${cut(str("query"), 40)}"`;
 
+    case "webfetch":
     case "web_fetch":
       return `Fetched ${cut(str("url"), 52)}`;
 
@@ -222,6 +223,7 @@ export function toolDescription(b: ToolBlock): string {
       return name ? `Used skill "${cut(name, 40)}"` : "Used skill";
     }
 
+    case "todowrite":
     case "todo_write":
       return "Updated task list";
 
@@ -298,6 +300,7 @@ export function toolRunningLabel(b: ToolBlock): string {
       return query ? `Searching Google for "${cut(query, 32)}"…` : "Searching Google…";
     }
 
+    case "webfetch":
     case "web_fetch":
       return "Fetching URL…";
 

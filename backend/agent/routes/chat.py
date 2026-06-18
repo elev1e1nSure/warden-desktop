@@ -185,9 +185,12 @@ async def chat(request: web.Request) -> web.StreamResponse:
     try:
         was_empty = len(backend.chat.history) == 0
         assistant_parts: list[str] = []
-        if was_empty and text.strip():
+        if was_empty and (text.strip() or file_ids):
             backend.chat_store.ensure_chat(backend.chat.session_id)
             title = _fallback_title(text)
+            if not text.strip() and file_ids:
+                first_fid = file_ids[0]
+                title = first_fid.split("_", 1)[1] if "_" in first_fid else first_fid
             backend.chat_store.set_title(backend.chat.session_id, title, "user")
             await response.write(
                 (

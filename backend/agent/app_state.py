@@ -13,26 +13,20 @@ from agent.llm_client import OpenAIClient
 from agent.logger import warn
 from agent.memory.aggregator import MemoryAggregator
 from agent.memory.store import MemoryStore
+from agent.paths import warden_data_dir
 from agent.tools import _cleanup_old_screenshots, _get_screenshot_dir
 
 
-def _warden_data_dir() -> Path:
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or str(Path.home())
-    p = Path(base) / "warden"
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-
 def _auth_token_path() -> Path:
-    return _warden_data_dir() / ".token"
+    return warden_data_dir() / ".token"
 
 
 def _permissions_path() -> Path:
-    return _warden_data_dir() / "permissions.json"
+    return warden_data_dir() / "permissions.json"
 
 
 def _settings_path() -> Path:
-    return _warden_data_dir() / "settings.json"
+    return warden_data_dir() / "settings.json"
 
 
 class Backend:

@@ -1,7 +1,10 @@
 {
   "name": "warden-desktop",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.1-beta",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "packageManager": "pnpm@11.6.0",
   "scripts": {

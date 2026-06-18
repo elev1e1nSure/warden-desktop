@@ -6,12 +6,14 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from agent.paths import warden_data_dir
+
 
 def _db_path() -> Path:
     override = os.environ.get("WARDEN_CHAT_DB")
     if override:
         return Path(override)
-    return Path.home() / ".warden" / "chats.db"
+    return warden_data_dir() / "chats.db"
 
 
 class ChatStore:

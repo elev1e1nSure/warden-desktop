@@ -1,3 +1,17 @@
+import React, { useState } from "react";
+import { Clipboard, Check } from "lucide-react";
+
+const getTextContent = (node: React.ReactNode): string => {
+  if (!node) return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getTextContent).join("");
+  if (React.isValidElement(node))
+    return getTextContent(
+      (node as React.ReactElement<{ children?: React.ReactNode }>).props.children,
+    );
+  return "";
+};
+
 /* Shared markdown components. We map raw tags to our design tokens so
    headings/lists/tables/code blocks all match the sidebar palette. */
 export const mdComponents = {
@@ -90,12 +104,37 @@ export const mdComponents = {
       </code>
     );
   },
-  pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
-    <pre
-      {...props}
-      className="my-3 overflow-x-auto rounded-xl bg-fill-subtle p-4 text-ui leading-[1.55] text-code-text ring-1 ring-hairline"
-    />
-  ),
+  pre: (props: React.HTMLAttributes<HTMLPreElement>) => {
+    const [copied, setCopied] = useState(false);
+    const text = getTextContent(props.children);
+
+    const handleCopy = () => {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+      <div className="group relative my-3">
+        <pre
+          {...props}
+          className="overflow-x-auto rounded-xl bg-fill-subtle p-4 pr-12 text-ui leading-[1.55] text-code-text ring-1 ring-hairline"
+        />
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-[rgba(22,22,22,0.85)] p-1.5 text-text-muted opacity-0 transition-all hover:bg-fill-hover hover:text-text-primary hover:scale-105 active:scale-95 group-hover:opacity-100"
+          title="Copy code"
+        >
+          {copied ? (
+            <Check className="h-[18px] w-[18px] text-emerald-500" strokeWidth={2} />
+          ) : (
+            <Clipboard className="h-[18px] w-[18px]" strokeWidth={2} />
+          )}
+        </button>
+      </div>
+    );
+  },
   del: (props: React.HTMLAttributes<HTMLModElement>) => (
     <del {...props} className="text-text-muted line-through" />
   ),

@@ -123,13 +123,16 @@ async def execute_tool_call(
         return
 
     args = parse_args(raw_args)
+    import json
+
+    args_json = json.dumps(args, ensure_ascii=False)
     args_str = ", ".join(f"{k}={v}" for k, v in args.items())
 
     # ── computer use: one-time session warning (bypasses auto mode) ──
     if name in _CU_TOOLS and cu_warned is not None and not cu_warned["value"]:
         if confirmation_manager is None:
             add_tool_result_fn(name, "cancelled: no confirmation manager")
-            yield ("tool", {"name": name, "args": args_str, "result": "cancelled"})
+            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
             return
         call_id, _ = confirmation_manager.register()
         yield (
@@ -141,7 +144,7 @@ async def execute_tool_call(
                 "title": _CU_WARNING_TITLE,
                 "summary": "feature is early — results may be inaccurate",
                 "details": _CU_WARNING_DETAILS,
-                "args": args_str,
+                "args": args_json,
                 "preview": args_str,
                 "default": "cancel",
             },
@@ -149,7 +152,7 @@ async def execute_tool_call(
         ok = await confirmation_manager.wait(call_id)
         if not ok:
             add_tool_result_fn(name, "cancelled by user")
-            yield ("tool", {"name": name, "args": args_str, "result": "cancelled"})
+            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
             return
         cu_warned["value"] = True
 
@@ -157,12 +160,15 @@ async def execute_tool_call(
     if name == "question":
         if question_manager is None:
             add_tool_result_fn(name, "error: no question manager")
-            yield ("tool", {"name": name, "args": args_str, "result": "error: no question manager"})
+            yield (
+                "tool",
+                {"name": name, "args": args_json, "result": "error: no question manager"},
+            )
             return
         questions = args.get("questions", [])
         if not questions:
             add_tool_result_fn(name, "error: no questions provided")
-            yield ("tool", {"name": name, "args": args_str, "result": "error: no questions"})
+            yield ("tool", {"name": name, "args": args_json, "result": "error: no questions"})
             return
         call_id, _ = question_manager.register(questions)
         yield ("question", {"id": call_id, "questions": questions})
@@ -174,7 +180,7 @@ async def execute_tool_call(
             for q, a in zip(questions, answers)
         )
         result_str = f"User answered: {formatted}"
-        yield ("tool", {"name": name, "args": args_str, "result": result_str})
+        yield ("tool", {"name": name, "args": args_json, "result": result_str})
         add_tool_result_fn(name, result_str, tool_call_id)
         return
 
@@ -183,13 +189,13 @@ async def execute_tool_call(
     decision = assess_tool_call(name, args, mode=mode, permissions=permissions)
     if decision.risk == "blocked":
         add_tool_result_fn(name, f"blocked: {decision.reason}")
-        yield ("tool", {"name": name, "args": args_str, "result": f"blocked: {decision.reason}"})
+        yield ("tool", {"name": name, "args": args_json, "result": f"blocked: {decision.reason}"})
         return
 
     if decision.risk == "confirm":
         if confirmation_manager is None:
             add_tool_result_fn(name, "cancelled: no confirmation manager")
-            yield ("tool", {"name": name, "args": args_str, "result": "cancelled"})
+            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
             return
         call_id, _ = confirmation_manager.register()
         confirm_payload = {
@@ -199,7 +205,7 @@ async def execute_tool_call(
             "title": decision.summary,
             "summary": decision.reason,
             "details": decision.details,
-            "args": args_str,
+            "args": args_json,
             "preview": _resolve_preview(args, args_str),
             "default": "cancel",
         }
@@ -207,10 +213,10 @@ async def execute_tool_call(
         ok = await confirmation_manager.wait(call_id)
         if not ok:
             add_tool_result_fn(name, "cancelled by user")
-            yield ("tool", {"name": name, "args": args_str, "result": "cancelled"})
+            yield ("tool", {"name": name, "args": args_json, "result": "cancelled"})
             return
 
-    yield ("tool_start", {"name": name, "args": args_str})
+    yield ("tool_start", {"name": name, "args": args_json})
     try:
         result_val = await asyncio.wait_for(tool.execute(args), timeout=60)
     except TimeoutError:
@@ -229,7 +235,7 @@ async def execute_tool_call(
     if isinstance(result_str, str) and not diff_str:
         result_str = _truncate(result_str)
     log_tool(name, args_str, result_str[:200] if result_str else None)
-    payload: dict = {"name": name, "args": args_str, "result": result_str}
+    payload: dict = {"name": name, "args": args_json, "result": result_str}
     if diff_str:
         payload["diff"] = diff_str
     yield ("tool", payload)

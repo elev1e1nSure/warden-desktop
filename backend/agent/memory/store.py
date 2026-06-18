@@ -6,12 +6,14 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from agent.paths import warden_data_dir
+
 
 def _db_path() -> Path:
     override = os.environ.get("WARDEN_MEMORY_DB")
     if override:
         return Path(override)
-    return Path.home() / ".warden" / "memory.db"
+    return warden_data_dir() / "memory.db"
 
 
 class MemoryStore:
