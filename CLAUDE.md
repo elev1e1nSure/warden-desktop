@@ -22,6 +22,7 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 - If product scope changes, update [docs/project.md](docs/project.md).
 
 ### Sources Of Truth
+- Always refer to and rely on the documentation in [docs/](docs/) if you need to understand or look up anything about the project setup, architecture, or flow.
 - Project overview: [docs/project.md](docs/project.md)
 - Architecture and runtime flow: [docs/architecture.md](docs/architecture.md)
 - Setup and build details: [docs/setup.md](docs/setup.md)
