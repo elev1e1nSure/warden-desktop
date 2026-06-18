@@ -20,6 +20,7 @@ export default function ModelSelector({
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
@@ -67,6 +68,14 @@ export default function ModelSelector({
     if (open) {
       // Focus the filter as the menu opens so the user can type straight away.
       requestAnimationFrame(() => inputRef.current?.focus());
+
+      // Scroll active model to the center of the list
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const activeEl = listRef.current?.querySelector('[data-active="true"]');
+          activeEl?.scrollIntoView({ block: "center", behavior: "auto" });
+        });
+      });
     } else {
       setQuery("");
     }
@@ -100,6 +109,7 @@ export default function ModelSelector({
             </div>
             <div className="mx-1 mb-1 mt-0.5 h-px bg-hairline" />
             <div
+              ref={listRef}
               className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto no-scrollbar"
               style={{
                 maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
@@ -117,6 +127,7 @@ export default function ModelSelector({
                     layout
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     key={model.id}
+                    data-active={active}
                     className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
                       active ? "bg-fill-active" : "hover:bg-fill-hover"
                     }`}
