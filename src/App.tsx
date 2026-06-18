@@ -21,11 +21,12 @@ import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
-import Toaster, { toast } from "./components/Toaster";
+import Toaster from "./components/Toaster";
+import { useBlocks } from "./hooks/useBlocks";
 import { useUpdater } from "./hooks/useUpdater";
 import { useWindowSpansFull } from "./hooks/useWindowSpansFull";
 import { EASE } from "./motion";
-import type { Block, Chat, Model } from "./types";
+import type { Chat, Model } from "./types";
 
 type AppView = "chat" | "skills" | "settings";
 
@@ -54,19 +55,12 @@ const cleanLLMTokens = (str: string): string => {
   );
 };
 
-// Reasoning blocks are opened eagerly (as the live "Thinking…" indicator) and
-// stay empty on iterations where the model emits no reasoning. Drop those before
-// they reach state we persist or render long-term — they carry nothing.
-const stripEmptyThink = (blocks: Block[]): Block[] =>
-  blocks.filter((b) => b.kind !== "think" || b.text.trim().length > 0);
-
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const [status, setStatus] = useState<StatusResult | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [confirmReq, setConfirmReq] = useState<ConfirmEvent | null>(null);
   const [questionReq, setQuestionReq] = useState<QuestionEvent | null>(null);
@@ -77,20 +71,16 @@ function App() {
   const windowSpansFull = useWindowSpansFull();
 
   // blocksRef mirrors state so event handlers stay pure (StrictMode-safe).
-  const blocksRef = useRef<Block[]>([]);
-  const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
-  const persistTimerRef = useRef<number | null>(null);
-  // True when blocks have been modified by user actions and need to be saved.
-  // False after loading blocks from DB or resetting — prevents startup from
-  // wiping saved blocks by writing an empty array before content is loaded.
-  const blocksDirtyRef = useRef(false);
   const assistantIdRef = useRef<string | null>(null);
   const thinkIdRef = useRef<string | null>(null);
   const toolIdRef = useRef<string | null>(null);
   // Holds the model the user just picked while the /model/set call is still
   // in flight, so a stale /status response can't flash the old model back.
   const pendingModelRef = useRef<string | null>(null);
+
+  const { blocks, blocksRef, commit, loadBlocks, genId, flushActiveChatBlocks, stripEmptyThink } =
+    useBlocks(activeChatId);
 
   const connected = Boolean(status?.connected);
   const hasBlocks = blocks.length > 0;
@@ -121,20 +111,6 @@ function App() {
     }),
     [status?.model],
   );
-
-  // commit: marks blocks as dirty (needs saving). Use for user actions / stream events.
-  const commit = useCallback((next: Block[]) => {
-    blocksDirtyRef.current = true;
-    blocksRef.current = next;
-    setBlocks(next);
-  }, []);
-  // loadBlocks: replaces blocks WITHOUT marking dirty. Use when loading from DB.
-  const loadBlocks = useCallback((next: Block[]) => {
-    blocksDirtyRef.current = false;
-    blocksRef.current = next;
-    setBlocks(next);
-  }, []);
-  const genId = useCallback(() => `b${++idRef.current}`, []);
 
   // Persist the sidebar width so it survives restarts.
   useEffect(() => {
@@ -191,35 +167,6 @@ function App() {
       return null;
     }
   }, []);
-
-  useEffect(() => {
-    if (!activeChatId || !blocksDirtyRef.current) return;
-    if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
-    const id = activeChatId;
-    const snapshot = stripEmptyThink(blocks);
-    persistTimerRef.current = window.setTimeout(() => {
-      persistTimerRef.current = null;
-      blocksDirtyRef.current = false;
-      void api.saveChatBlocks(id, snapshot).catch((err) => {
-        if (process.env.NODE_ENV !== "production") console.error("saveChatBlocks failed:", err);
-      });
-    }, 300);
-    return () => {
-      if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    };
-  }, [activeChatId, blocks]);
-
-  const flushActiveChatBlocks = useCallback(async () => {
-    const id = activeChatId;
-    if (!id || !blocksDirtyRef.current) return;
-    if (persistTimerRef.current) {
-      window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    }
-    blocksDirtyRef.current = false;
-    await api.saveChatBlocks(id, stripEmptyThink(blocksRef.current));
-  }, [activeChatId]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -937,7 +884,7 @@ function App() {
                 </div>
               </div>
             </main>
-        </motion.div>
+          </motion.div>
         </div>
 
         <AnimatePresence>
