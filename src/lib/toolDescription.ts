@@ -6,10 +6,14 @@ export const cut = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max)
 
 export function toolDescription(b: ToolBlock): string {
   let args: Record<string, unknown> = {};
-  try {
-    args = JSON.parse(b.args);
-  } catch {
-    // use empty args
+  if (typeof b.args === "object" && b.args !== null) {
+    args = b.args as Record<string, unknown>;
+  } else if (typeof b.args === "string") {
+    try {
+      args = JSON.parse(b.args);
+    } catch {
+      // use empty args
+    }
   }
 
   const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
@@ -147,8 +151,15 @@ export function toolDescription(b: ToolBlock): string {
     case "edit":
       return `Edited ${base(str("path"))}`;
 
-    case "glob":
-      return `Found files: ${cut(str("pattern"), 46)}`;
+    case "glob": {
+      const pattern = str("pattern");
+      const res = b.result ? b.result.trim() : "";
+      if (res && res !== "(no matches)") {
+        const files = res.split("\n").join(", ");
+        return `Found files: ${cut(files, 52)}`;
+      }
+      return pattern ? `Found no files for "${pattern}"` : "Found no files";
+    }
 
     case "grep": {
       const pattern = str("pattern");
@@ -220,6 +231,178 @@ export function toolDescription(b: ToolBlock): string {
       const name = b.name.replace(/_/g, " ");
       const label = name.charAt(0).toUpperCase() + name.slice(1);
       return val ? `${label}: ${val}` : label;
+    }
+  }
+}
+
+export function toolRunningLabel(b: ToolBlock): string {
+  let args: Record<string, unknown> = {};
+  if (typeof b.args === "object" && b.args !== null) {
+    args = b.args as Record<string, unknown>;
+  } else if (typeof b.args === "string") {
+    try {
+      args = JSON.parse(b.args);
+    } catch {
+      // use empty args
+    }
+  }
+
+  const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
+
+  switch (b.name) {
+    case "screenshot":
+      return "Taking screenshot…";
+
+    case "mouse": {
+      const action = str("action", "click");
+      if (action === "move") return "Moving mouse…";
+      if (action === "scroll") return "Scrolling…";
+      if (action === "drag") return "Dragging…";
+      return "Clicking…";
+    }
+
+    case "keyboard": {
+      const action = str("action", "type");
+      if (action === "press") return "Pressing keys…";
+      return "Typing…";
+    }
+
+    case "clipboard": {
+      const action = str("action", "read");
+      if (action === "write") return "Copying to clipboard…";
+      return "Reading clipboard…";
+    }
+
+    case "browser_open":
+      return "Opening browser…";
+
+    case "browser_read":
+      return "Reading web page…";
+
+    case "browser_screenshot":
+      return "Taking browser screenshot…";
+
+    case "browser_click":
+      return "Clicking element…";
+
+    case "browser_fill":
+      return "Filling form…";
+
+    case "youtube_search": {
+      const query = str("query");
+      return query ? `Searching YouTube for "${cut(query, 32)}"…` : "Searching YouTube…";
+    }
+
+    case "google_search": {
+      const query = str("query");
+      return query ? `Searching Google for "${cut(query, 32)}"…` : "Searching Google…";
+    }
+
+    case "web_fetch":
+      return "Fetching URL…";
+
+    case "http_request":
+      return "Sending HTTP request…";
+
+    case "window_list":
+      return "Listing windows…";
+
+    case "window_focus":
+      return "Focusing window…";
+
+    case "window_manage":
+      return "Managing window…";
+
+    case "process_list":
+      return "Listing processes…";
+
+    case "process_kill":
+      return "Killing process…";
+
+    case "ocr":
+      return "Reading text from screen…";
+
+    case "image_locate":
+      return "Locating image…";
+
+    case "wait_for":
+      return "Waiting…";
+
+    case "file_read":
+      return "Reading file…";
+
+    case "file_write":
+      return "Writing file…";
+
+    case "file_delete":
+      return "Deleting file…";
+
+    case "file_list":
+      return "Listing directory…";
+
+    case "file_move":
+      return "Moving file…";
+
+    case "file_copy":
+      return "Copying file…";
+
+    case "edit":
+      return "Editing file…";
+
+    case "glob": {
+      const pattern = str("pattern");
+      return pattern ? `Finding files matching "${cut(pattern, 32)}"…` : "Finding files…";
+    }
+
+    case "grep": {
+      const pattern = str("pattern");
+      return pattern ? `Searching for "${cut(pattern, 32)}"…` : "Searching files…";
+    }
+
+    case "bash":
+    case "powershell":
+      return "Running command…";
+
+    case "apply_patch":
+      return "Applying patch…";
+
+    case "archive":
+      return "Archiving…";
+
+    case "system_info":
+      return "Getting system info…";
+
+    case "notify":
+      return "Sending notification…";
+
+    case "memory": {
+      const action = str("action");
+      if (action === "set") return "Remembering…";
+      if (action === "get" || action === "list") return "Reading memory…";
+      if (action === "delete") return "Forgetting…";
+      if (action === "clear") return "Clearing memory…";
+      return "Using memory…";
+    }
+
+    case "lsp":
+      return "Running LSP…";
+
+    case "question":
+      return "Asking a question…";
+
+    case "skill":
+      return "Using skill…";
+
+    case "todowrite":
+    case "todo_write":
+      return "Updating task list…";
+
+    default: {
+      const name = b.name.replace(/[_-]/g, " ").trim();
+      if (name) {
+        return `${name.charAt(0).toUpperCase()}${name.slice(1)}…`;
+      }
+      return "Running…";
     }
   }
 }

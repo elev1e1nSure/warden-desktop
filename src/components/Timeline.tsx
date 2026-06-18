@@ -1,11 +1,33 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, BookPlus, ChevronDown, Layers, Loader2, Minus, X } from "lucide-react";
+import {
+  Bell,
+  BookOpen,
+  BookPlus,
+  Camera,
+  ChevronDown,
+  Clipboard,
+  FileText,
+  Globe,
+  HelpCircle,
+  Info,
+  Keyboard,
+  Layers,
+  ListTodo,
+  Loader2,
+  Minus,
+  MousePointer,
+  Search,
+  Settings,
+  Sparkles,
+  Terminal,
+  X,
+} from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { useThrottledValue } from "../hooks/useThrottledValue";
-import { cut, toolDescription } from "../lib/toolDescription";
+import { toolDescription, toolRunningLabel } from "../lib/toolDescription";
 import { mdComponents } from "./markdown";
 import { blockEnter, collapse, EASE, labelFade } from "../motion";
 import type { Block } from "../types";
@@ -14,43 +36,23 @@ import type { Block } from "../types";
 
 type ToolBlock = Extract<Block, { kind: "tool" }>;
 
-type Group =
-  | { kind: "single"; block: Block }
-  | { kind: "tools"; items: ToolBlock[] }
-  | { kind: "memory"; block: ToolBlock };
+type Group = { kind: "single"; block: Block } | { kind: "tool"; block: ToolBlock };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function groupBlocks(blocks: Block[]): Group[] {
   const out: Group[] = [];
-  let i = 0;
-  while (i < blocks.length) {
-    const b = blocks[i];
-    if (!b) break;
+  for (const b of blocks) {
     if (b.kind === "tool") {
-      if (b.name === "memory") {
-        out.push({ kind: "memory", block: b });
-        i++;
-      } else {
-        const run: ToolBlock[] = [];
-        while (i < blocks.length) {
-          const next = blocks[i];
-          if (next?.kind !== "tool" || next.name === "memory") break;
-          run.push(next);
-          i++;
-        }
-        if (run.length > 0) out.push({ kind: "tools", items: run });
-      }
+      out.push({ kind: "tool", block: b });
     } else {
       out.push({ kind: "single", block: b });
-      i++;
     }
   }
   return out;
 }
 
 function groupKey(g: Group): string {
-  if (g.kind === "tools") return g.items[0]?.id ?? "";
   return g.block.id;
 }
 
@@ -223,7 +225,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
         type="button"
         onClick={() => expandable && setOpen((v) => !v)}
         disabled={!expandable}
-        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-secondary transition-colors hover:text-text-primary disabled:cursor-default disabled:hover:text-text-secondary"
+        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
       >
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           {expandable && (
@@ -244,7 +246,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
               <motion.span
                 key="thinking"
                 {...labelFade}
-                className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
+                className="absolute inset-0 flex items-center whitespace-nowrap font-medium"
               >
                 Thinking
                 <span className="ml-0.5 inline-flex">
@@ -302,177 +304,143 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
   );
 });
 
-// ─── memory row ─────────────────────────────────────────────────────────────
+// ─── tool row ───────────────────────────────────────────────────────────────
 
-type MemoryAction = "set" | "get" | "delete" | "list" | "clear";
-
-const MEMORY_META: Record<
-  MemoryAction,
-  { icon: React.ReactNode; running: string; done: (key?: string) => string }
-> = {
-  set: {
-    icon: <BookPlus className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Remembering…",
-    done: (key) => (key ? `Remembered "${cut(key, 36)}"` : "Saved to memory"),
-  },
-  get: {
-    icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Reading memory…",
-    done: (key) => (key ? `Read "${cut(key, 36)}"` : "Read memory"),
-  },
-  delete: {
-    icon: <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Forgetting…",
-    done: (key) => (key ? `Forgot "${cut(key, 36)}"` : "Removed from memory"),
-  },
-  list: {
-    icon: <Layers className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Reading memory…",
-    done: () => "Listed memory",
-  },
-  clear: {
-    icon: <X className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Clearing memory…",
-    done: () => "Cleared memory",
-  },
-};
-
-const MemoryRow = memo(function MemoryRow({ block }: { block: ToolBlock }) {
+function getToolIcon(toolName: string, argsStr: string) {
   let args: Record<string, unknown> = {};
   try {
-    args = JSON.parse(block.args);
+    args = JSON.parse(argsStr);
   } catch {}
-  const action = String(args.action ?? "")
-    .trim()
-    .toLowerCase() as MemoryAction;
-  const key = String(args.key ?? "").trim();
-  const running = block.status === "running";
 
-  const meta = MEMORY_META[action] ?? {
-    icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />,
-    running: "Memory…",
-    done: () => "Memory operation",
-  };
+  const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
 
-  const minWidth = running ? "min-w-[128px]" : "min-w-[96px]";
+  switch (toolName) {
+    case "google_search":
+    case "youtube_search":
+    case "grep":
+    case "glob":
+      return <Search className="h-3.5 w-3.5" strokeWidth={1.75} />;
 
-  return (
-    <div className="py-0.5">
-      <div className="flex items-center gap-1.5 text-ui-lg text-text-muted">
-        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-text-faint">
-          {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : meta.icon}
-        </span>
+    case "browser_open":
+    case "browser_read":
+    case "browser_click":
+    case "browser_fill":
+    case "web_fetch":
+    case "http_request":
+      return <Globe className="h-3.5 w-3.5" strokeWidth={1.75} />;
 
-        <span className={`relative inline-flex h-[18px] ${minWidth} items-center`}>
-          <AnimatePresence initial={false}>
-            {running ? (
-              <motion.span
-                key="running"
-                {...labelFade}
-                className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
-              >
-                {meta.running}
-              </motion.span>
-            ) : (
-              <motion.span
-                key="done"
-                {...labelFade}
-                className="absolute inset-0 flex items-center whitespace-nowrap"
-              >
-                {meta.done(key || undefined)}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </span>
-      </div>
-    </div>
-  );
-});
+    case "file_read":
+    case "file_write":
+    case "file_delete":
+    case "file_list":
+    case "file_move":
+    case "file_copy":
+    case "edit":
+    case "apply_patch":
+    case "archive":
+      return <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />;
 
-const ToolGroup = memo(
-  function ToolGroup({ items }: { items: ToolBlock[] }) {
-    const [open, setOpen] = useState(false);
-    const running = items.some((t) => t.status === "running");
-    const n = items.length;
+    case "bash":
+    case "powershell":
+      return <Terminal className="h-3.5 w-3.5" strokeWidth={1.75} />;
 
-    const label = `Ran ${n} command${n === 1 ? "" : "s"}`;
+    case "screenshot":
+    case "browser_screenshot":
+    case "ocr":
+    case "image_locate":
+      return <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "mouse":
+      return <MousePointer className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "keyboard":
+      return <Keyboard className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "clipboard":
+      return <Clipboard className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "todowrite":
+    case "todo_write":
+      return <ListTodo className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "question":
+      return <HelpCircle className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "notify":
+      return <Bell className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "system_info":
+      return <Info className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "lsp":
+    case "window_list":
+    case "window_focus":
+    case "window_manage":
+    case "process_list":
+    case "process_kill":
+      return <Settings className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "skill":
+      return <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
+    case "memory": {
+      const action = str("action").toLowerCase();
+      if (action === "set") return <BookPlus className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      if (action === "delete") return <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      if (action === "clear") return <X className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      if (action === "list") return <Layers className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />;
+    }
+
+    default:
+      return <Settings className="h-3.5 w-3.5" strokeWidth={1.75} />;
+  }
+}
+
+const ToolRow = memo(
+  function ToolRow({ block }: { block: ToolBlock }) {
+    const running = block.status === "running";
+    const runningLabel = toolRunningLabel(block);
+    const doneLabel = toolDescription(block);
+    const icon = getToolIcon(block.name, block.args);
 
     return (
-      <div className="py-0.5">
-        <button
-          type="button"
-          onClick={() => !running && setOpen((v) => !v)}
-          disabled={running}
-          className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
-        >
+      <div className="-ml-5 py-0.5">
+        <div className="flex items-center gap-1.5 text-ui-lg text-text-muted font-medium">
           <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-            {running ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <motion.span
-                initial={false}
-                animate={{ rotate: open ? 0 : -90 }}
-                transition={{ duration: 0.18, ease: EASE }}
-                className="flex"
-              >
-                <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-              </motion.span>
-            )}
+            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}
           </span>
 
-          <span className="relative inline-flex h-[18px] min-w-[112px] items-center">
+          <span className="relative inline-flex h-[18px] min-w-[120px] items-center">
             <AnimatePresence initial={false}>
               {running ? (
                 <motion.span
                   key="running"
                   {...labelFade}
-                  className="shimmer-text absolute inset-0 flex items-center whitespace-nowrap font-medium"
+                  className="absolute inset-0 flex items-center whitespace-nowrap font-medium"
                 >
-                  Running…
+                  {runningLabel}
                 </motion.span>
               ) : (
                 <motion.span
-                  key="ran"
+                  key="done"
                   {...labelFade}
                   className="absolute inset-0 flex items-center whitespace-nowrap"
                 >
-                  {label}
+                  {doneLabel}
                 </motion.span>
               )}
             </AnimatePresence>
           </span>
-        </button>
-
-        <AnimatePresence initial={false}>
-          {open && !running && (
-            <motion.div {...collapse} className="overflow-hidden">
-              <ul className="mt-1 flex flex-col gap-0.5">
-                {items.map((t) => (
-                  <li key={t.id} className="text-ui leading-[1.65] text-text-muted">
-                    {toolDescription(t)}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
     );
   },
-  (prev, next) => {
-    if (prev.items.length !== next.items.length) return false;
-    return prev.items.every((item, i) => {
-      const nextItem = next.items[i];
-      return (
-        nextItem &&
-        item.id === nextItem.id &&
-        item.status === nextItem.status &&
-        item.result === nextItem.result &&
-        item.diff === nextItem.diff &&
-        item.args === nextItem.args
-      );
-    });
-  },
+  (prev, next) =>
+    prev.block.id === next.block.id &&
+    prev.block.status === next.block.status &&
+    prev.block.result === next.block.result &&
+    prev.block.args === next.block.args,
 );
 
 // ─── main ────────────────────────────────────────────────────────────────────
@@ -527,8 +495,7 @@ function Timeline({
               {g.kind === "single" && g.block.kind === "error" && (
                 <p className="text-ui text-danger">{g.block.text}</p>
               )}
-              {g.kind === "tools" && <ToolGroup items={g.items} />}
-              {g.kind === "memory" && <MemoryRow block={g.block} />}
+              {g.kind === "tool" && <ToolRow block={g.block} />}
             </motion.div>
           ))}
         </AnimatePresence>
