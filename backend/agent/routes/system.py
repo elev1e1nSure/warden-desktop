@@ -22,7 +22,7 @@ async def status(request: web.Request) -> web.Response:
         "model": backend.model,
         "provider": "openrouter",
         "connected": backend.llm is not None,
-        "mode": "auto" if backend.auto_mode else "ask",
+        "mode": backend.mode,
         "cwd": os.getcwd(),
         "token_count": backend.chat.token_count if backend.chat else 0,
         "token_limit": backend.chat.token_limit if backend.chat else 0,
@@ -34,10 +34,12 @@ async def status(request: web.Request) -> web.Response:
 async def set_mode(request: web.Request) -> web.Response:
     backend = get_backend(request)
     data = await request.json()
-    backend.set_auto_mode(bool(data.get("auto", False)))
-    mode = "AUTO" if backend.auto_mode else "SAFE"
+    if "mode" in data:
+        backend.set_mode(str(data["mode"]))
+    else:
+        backend.set_auto_mode(bool(data.get("auto", False)))
     log_request("POST", "/mode", 200)
-    info(f"mode changed to {mode}")
+    info(f"mode changed to {backend.mode}")
     return web.Response(text="ok")
 
 

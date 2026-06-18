@@ -45,6 +45,8 @@ interface InputBarProps {
   placeholder?: string;
   auto?: boolean;
   hasCustomPermissions?: boolean;
+  mode?: "ask" | "auto" | "custom";
+  onSetMode?: (mode: "ask" | "auto" | "custom") => void;
   onToggleMode?: () => void;
   models: Model[];
   selectedModel: Model;
@@ -87,6 +89,8 @@ function InputBar({
   placeholder,
   auto,
   hasCustomPermissions,
+  mode,
+  onSetMode,
   onToggleMode,
   models,
   selectedModel,
@@ -470,13 +474,13 @@ function InputBar({
                 <Paperclip className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </Tooltip>
-            {onToggleMode !== undefined && (
+            {(onSetMode !== undefined || onToggleMode !== undefined) && (
               <div className="ml-2">
                 <ModeToggle
-                  auto={Boolean(auto)}
+                  mode={mode ?? (auto ? "auto" : "ask")}
                   hasCustomPermissions={hasCustomPermissions}
                   disabled={streaming}
-                  onToggle={onToggleMode}
+                  onSetMode={onSetMode ?? (() => onToggleMode?.())}
                   onOpen={closePicker}
                 />
               </div>

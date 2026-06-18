@@ -42,7 +42,7 @@ class Backend:
         self.api_key: str = os.environ.get("OPENROUTER_API_KEY", "")
         self.llm: OpenAIClient | None = None
         self.chat: ChatSession | None = None
-        self.auto_mode: bool = False
+        self.mode: str = "ask"  # "ask" | "auto" | "custom"
         self.permissions: dict[str, str] = self._load_permissions()
         self.confirmation_manager = ConfirmationManager()
         self.question_manager = QuestionManager()
@@ -88,8 +88,16 @@ class Backend:
     async def setup(self) -> None:
         return
 
+    @property
+    def auto_mode(self) -> bool:
+        return self.mode == "auto"
+
     def set_auto_mode(self, enabled: bool) -> None:
-        self.auto_mode = enabled
+        self.mode = "auto" if enabled else "ask"
+
+    def set_mode(self, mode: str) -> None:
+        if mode in ("ask", "auto", "custom"):
+            self.mode = mode
 
     def _load_permissions(self) -> dict[str, str]:
         p = _permissions_path()
@@ -102,9 +110,7 @@ class Backend:
 
     def save_permissions(self) -> None:
         try:
-            _permissions_path().write_text(
-                json.dumps(self.permissions), encoding="utf-8"
-            )
+            _permissions_path().write_text(json.dumps(self.permissions), encoding="utf-8")
         except Exception as e:
             warn(f"could not save permissions: {e}")
 

@@ -218,16 +218,22 @@ function App() {
   // message exists or a turn is streaming, we switch to the conversation layout.
   const emptyState = activeChatId === null;
 
+  const handleSetMode = useCallback(
+    async (mode: "ask" | "auto" | "custom") => {
+      if (!status) return;
+      try {
+        await api.setMode(mode);
+        setStatus({ ...status, mode });
+      } catch {
+        // leave the current mode visible if the backend rejects the change
+      }
+    },
+    [status],
+  );
+
   const handleToggleMode = useCallback(async () => {
-    if (!status) return;
-    const auto = status.mode !== "auto";
-    try {
-      await api.setMode(auto);
-      setStatus({ ...status, mode: auto ? "auto" : "ask" });
-    } catch {
-      // leave the current mode visible if the backend rejects the change
-    }
-  }, [status]);
+    await handleSetMode(status?.mode === "auto" ? "ask" : "auto");
+  }, [status, handleSetMode]);
 
   const handleSelectModel = useCallback(
     async (name: string) => {
@@ -287,7 +293,7 @@ function App() {
 
       // Saving the outgoing chat writes to a different id than the one we're
       // loading, so it doesn't need to block the switch — fire and forget.
-      void flushActiveChatBlocks().catch(() => { });
+      void flushActiveChatBlocks().catch(() => {});
 
       // Render from cache immediately when we've shown this chat before — no
       // waiting on the backend. The select call below still runs to swap the
@@ -641,6 +647,8 @@ function App() {
                           placeholder={connected ? "Message warden..." : "Connect a model first"}
                           auto={status?.mode === "auto"}
                           hasCustomPermissions={hasCustomPermissions}
+                          mode={(status?.mode ?? "ask") as "ask" | "auto" | "custom"}
+                          onSetMode={connected ? handleSetMode : undefined}
                           onToggleMode={connected ? handleToggleMode : undefined}
                           models={modelList}
                           selectedModel={selectedModel}

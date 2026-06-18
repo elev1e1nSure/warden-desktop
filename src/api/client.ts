@@ -72,7 +72,7 @@ export const api = {
 
   setModel: (model: string) => postJSON("/model/set", { model }),
 
-  setMode: (auto: boolean) => postJSON("/mode", { auto }),
+  setMode: (mode: "ask" | "auto" | "custom") => postJSON("/mode", { mode }),
 
   confirm: (id: string, ok: boolean) => postJSON("/confirm", { id, ok }),
 

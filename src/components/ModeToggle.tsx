@@ -1,11 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, MessageCircle, SlidersHorizontal, Zap } from "lucide-react";
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import Tooltip from "./Tooltip";
 
 type ModeValue = "ask" | "auto" | "custom";
 
-const MODES: { value: ModeValue; label: string; Icon: React.FC<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }>; description: string }[] = [
+const MODES: {
+  value: ModeValue;
+  label: string;
+  Icon: React.FC<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }>;
+  description: string;
+}[] = [
   {
     value: "ask",
     label: "Ask",
@@ -27,14 +33,20 @@ const MODES: { value: ModeValue; label: string; Icon: React.FC<React.SVGProps<SV
 ];
 
 interface ModeToggleProps {
-  auto: boolean;
+  mode: ModeValue;
   hasCustomPermissions?: boolean;
   disabled?: boolean;
-  onToggle: () => void;
+  onSetMode: (mode: ModeValue) => void;
   onOpen?: () => void;
 }
 
-export default function ModeToggle({ auto, hasCustomPermissions, disabled, onToggle, onOpen }: ModeToggleProps) {
+export default function ModeToggle({
+  mode,
+  hasCustomPermissions,
+  disabled,
+  onSetMode,
+  onOpen,
+}: ModeToggleProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -47,15 +59,14 @@ export default function ModeToggle({ auto, hasCustomPermissions, disabled, onTog
     return () => document.removeEventListener("mousedown", down);
   }, [open]);
 
-  const activeValue: ModeValue = auto ? "auto" : hasCustomPermissions ? "custom" : "ask";
-
   const handleSelect = (value: ModeValue) => {
-    const wantsAuto = value === "auto";
-    if (wantsAuto !== auto) onToggle();
+    if (value !== mode) onSetMode(value);
     setOpen(false);
   };
 
-  const current = MODES.find((m) => m.value === activeValue)!;
+  // mode is always one of the three known values, find() won't miss
+  // biome-ignore lint/style/noNonNullAssertion: mode is constrained to ModeValue
+  const current = MODES.find((m) => m.value === mode)!;
 
   return (
     <div ref={ref} className="relative">
@@ -70,7 +81,7 @@ export default function ModeToggle({ auto, hasCustomPermissions, disabled, onTog
             className="accelerate-scale absolute bottom-full left-0 z-50 mb-2 w-44 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
           >
             {MODES.map(({ value, label, Icon }) => {
-              const active = value === activeValue;
+              const active = value === mode;
               const isCustomUnavailable = value === "custom" && !hasCustomPermissions;
 
               return (
@@ -80,9 +91,7 @@ export default function ModeToggle({ auto, hasCustomPermissions, disabled, onTog
                   disabled={isCustomUnavailable}
                   onClick={() => handleSelect(value)}
                   className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
-                    isCustomUnavailable
-                      ? "opacity-30 cursor-not-allowed"
-                      : "hover:bg-fill-hover"
+                    isCustomUnavailable ? "opacity-30 cursor-not-allowed" : "hover:bg-fill-hover"
                   }`}
                 >
                   <Icon
@@ -143,9 +152,9 @@ export default function ModeToggle({ auto, hasCustomPermissions, disabled, onTog
           }}
           disabled={disabled}
           className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
-            activeValue === "auto"
+            mode === "auto"
               ? "text-accent hover:bg-fill-hover"
-              : activeValue === "custom"
+              : mode === "custom"
                 ? "text-amber-400 hover:bg-fill-hover"
                 : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}

@@ -5,7 +5,7 @@ export interface StatusResult {
   model: string;
   provider: string;
   connected: boolean;
-  mode: "ask" | "auto";
+  mode: "ask" | "auto" | "custom";
   cwd: string;
   token_count: number;
   token_limit: number;
