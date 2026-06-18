@@ -1,124 +1,199 @@
-# Запуск и сборка
+# Launch and Build
 
-Проект рассчитан на Windows PowerShell.
+The project is designed to run on Windows PowerShell.
 
-## Требования
+## Requirements
 
-- Node.js и pnpm.
-- Rust toolchain для Tauri.
+- Node.js and pnpm.
+- Rust toolchain for Tauri.
 - Python 3.11+.
-- [uv](https://docs.astral.sh/uv/) для управления Python-зависимостями и виртуальным окружением.
+- [uv](https://docs.astral.sh/uv/) for Python dependency and virtual environment management.
+- Optionally: [just](https://github.com/casey/just) for convenient command running.
 
-## Установка frontend-зависимостей
+## Quick Start with Just (Recommended)
+
+If you have `just` installed, you can use the following commands from the root directory:
+
+- **Install all dependencies** (both frontend and backend):
+  ```powershell
+  just install
+  ```
+- **Start the development environment** (Vite frontend, Python backend, and Tauri dev window):
+  ```powershell
+  just dev
+  ```
+- **Run all code checks** (TypeScript typecheck and lints):
+  ```powershell
+  just check
+  ```
+- **Run all tests** (both frontend and backend):
+  ```powershell
+  just test
+  ```
+- **Build the desktop application**:
+  ```powershell
+  just build-app
+  ```
+- **Clean temporary build files and caches**:
+  ```powershell
+  just clean
+  ```
+
+To view the list of all available commands, run `just` without arguments.
+
+## Manual Dependency Installation
+
+You can also install all dependencies manually:
+```powershell
+pnpm install
+cd backend
+uv sync
+```
+
+Or step-by-step:
+
+### Install Frontend Dependencies
 
 ```powershell
 pnpm install
 ```
 
-Если PowerShell блокирует `pnpm.ps1`, используй:
+If PowerShell blocks execution of `pnpm.ps1`, use:
 
 ```powershell
 pnpm.cmd install
 ```
 
-## Установка backend-зависимостей
+### Install Backend Dependencies
 
 ```powershell
+cd backend
 uv sync
 ```
 
-из папки `backend/`. Команда создаёт `.venv` и ставит runtime + dev зависимости из `pyproject.toml`/`uv.lock`.
+This creates a `.venv` folder and installs runtime and development dependencies specified in `pyproject.toml` and `uv.lock`.
 
-Опциональные extras:
+Optional dependency extras:
 
 ```powershell
 uv sync --extra tools    # pyautogui, playwright, html2text
-uv sync --extra build    # pyinstaller (для сборки exe)
+uv sync --extra build    # pyinstaller (for building the executable)
 ```
 
-## Запуск только frontend
+## Running for Development
+
+To launch the complete environment, run:
+```powershell
+just dev
+```
+
+Or run the components individually:
+
+### Run Frontend Only
 
 ```powershell
-pnpm dev
+just dev-frontend   # or: pnpm dev
 ```
 
-Это запускает Vite dev server. Сам по себе он не поднимает backend.
+This starts the Vite dev server. It does not start the Python backend.
 
-## Запуск backend для разработки
+### Run Backend Only
 
 ```powershell
-pnpm dev:backend
+just dev-backend    # or: pnpm dev:backend
 ```
 
-Скрипт запускает:
+This runs `uv run python -m agent.server` from the `backend/` directory. `uv` will automatically activate the `.venv` virtual environment.
 
-```text
-uv run python -m agent.server
-```
-
-из папки `backend/`. uv автоматически активирует `.venv`.
-
-## Запуск desktop-приложения вместе с backend
+### Run Desktop App with Backend (Manual)
 
 ```powershell
 pnpm dev:all
 ```
 
-Этот сценарий запускает одновременно:
-
+This script concurrently launches:
 - Python backend;
-- Tauri desktop app;
+- Tauri desktop shell;
 - Vite frontend dev server.
 
-## Сборка frontend
+## Building Frontend
 
 ```powershell
-pnpm build
+just build-frontend   # or: pnpm build
 ```
 
-Команда выполняет TypeScript check и Vite build. Результат попадает в `dist/`.
+This runs the TypeScript check and builds the Vite frontend. The output is placed in the `dist/` directory.
 
-## Линт и проверки
+## Lints and Checks
 
+Recommended commands:
+```powershell
+just check            # Check TypeScript types and run all lints (frontend + backend)
+just lint             # Run lints only (Biome + Ruff)
+just format           # Auto-format code (Biome + Ruff)
+just test             # Run all tests
+```
+
+Manual check commands:
 ```powershell
 pnpm lint           # Biome lint (frontend)
 pnpm format         # Biome format --write
 pnpm typecheck      # tsc --noEmit
-pnpm check          # Biome: lint + format + import-sort
+pnpm check          # Biome: lint, format, and import sort
 
-uv run ruff check backend       # Python lint
-uv run ruff format backend      # Python format
-uv run pytest                   # Backend тесты (из backend/)
+uv run ruff check .            # Python lint (run in backend/)
+uv run ruff format .            # Python format (run in backend/)
+uv run pytest                   # Backend tests (run in backend/)
 ```
 
-## Сборка backend exe
+## Running Tests
 
 ```powershell
-pnpm build:backend
+just test            # All tests (frontend + backend)
+just test-frontend   # Frontend only (vitest)
+just test-backend    # Backend only (pytest, run in backend/)
 ```
 
-Скрипт:
-
-1. вызывает `uv sync --extra tools --extra build`;
-2. собирает `warden-backend.exe` через `uv run pyinstaller`;
-3. кладёт exe в `src-tauri/binaries/`.
-
-## Сборка desktop-приложения
+Backend tests require being in the `backend/` directory:
 
 ```powershell
-pnpm build:app
+cd backend
+uv run pytest
+uv run pytest -q --no-cov       # Faster: skip coverage
+uv run pytest agent/test_server.py  # Single file
 ```
 
-Команда сначала собирает backend, потом запускает Tauri build с конфигом:
+Coverage threshold is 79%. To generate a coverage report:
 
-```text
-src-tauri/tauri.bundle.conf.json
+```powershell
+cd backend
+uv run pytest --cov=agent --cov-report=html
+# Open htmlcov/index.html in a browser
 ```
 
-## Частые места для проверки
+## Building Backend Executable
 
-- Backend health: `http://localhost:8765/health`.
-- REST client frontend: `src/api/client.ts`.
+```powershell
+just build-backend    # or: pnpm build:backend
+```
+
+This script:
+1. Installs backend dependencies including optional tools and build extras (`uv sync --extra tools --extra build`).
+2. Builds the `warden-backend.exe` executable using `uv run pyinstaller`.
+3. Places the compiled executable inside the `src-tauri/binaries/` directory.
+
+## Building Desktop Application
+
+```powershell
+just build-app        # or: pnpm build:app
+```
+
+This command first builds the backend executable, then starts the Tauri build using the custom config file `src-tauri/tauri.bundle.conf.json`.
+
+## Common Verification Points
+
+- Backend health check: `http://localhost:8765/health`.
+- REST client frontend wrappers: `src/api/client.ts`.
 - Streaming client frontend: `src/api/stream.ts`.
-- Backend server: `backend/agent/server.py`.
-- Tauri config: `src-tauri/tauri.conf.json`.
+- Backend server entry point: `backend/agent/server.py`.
+- Tauri configuration: `src-tauri/tauri.conf.json`.

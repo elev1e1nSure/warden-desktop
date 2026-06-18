@@ -1,69 +1,127 @@
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { type CSSProperties, type UIEvent, useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
+import {
+  type CSSProperties,
+  type UIEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { api } from "./api/client";
-import { loadConnection } from "./api/session";
-import { streamChat } from "./api/stream";
-import type { ChatEvent, ConfirmEvent, QuestionEvent, StatusResult } from "./api/types";
+import type { StatusResult } from "./api/types";
 import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
-import InputBar, { type AttachedFile } from "./components/InputBar";
+import InputBar from "./components/InputBar";
 import QuestionModal from "./components/QuestionModal";
+import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
-import StatusBar from "./components/StatusBar";
+import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
-import { headingPop, panelFromLeft, panelFromRight } from "./motion";
-import type { Block, Chat } from "./types";
+import Toaster from "./components/Toaster";
+import { useAppInit } from "./hooks/useAppInit";
+import { useBlocks } from "./hooks/useBlocks";
+import { useStreamSession } from "./hooks/useStreamSession";
+import { useUpdater } from "./hooks/useUpdater";
+import { useWindowSpansFull } from "./hooks/useWindowSpansFull";
+import { EASE } from "./motion";
+import type { Block, Chat, Model } from "./types";
 
-type AppView = "chat" | "skills";
+type AppView = "chat" | "skills" | "settings";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const nowTimestamp = () =>
-  new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const SIDEBAR_WIDTH_KEY = "warden.sidebarWidth";
+const loadSidebarWidth = (): number => {
+  const raw = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  return Number.isFinite(raw) && raw >= 180 && raw <= 400 ? raw : 272;
+};
+
+const WELCOME_PHRASES = [
+  "Where should we begin?",
+  "What shall we build today?",
+  "Ready to orchestrate some tasks?",
+  "Let's automate the routine.",
+  "What's on the horizon?",
+];
 
 function App() {
-  const [sidebarWidth, setSidebarWidth] = useState(272);
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
   const [status, setStatus] = useState<StatusResult | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [streaming, setStreaming] = useState(false);
-  const [confirmReq, setConfirmReq] = useState<ConfirmEvent | null>(null);
-  const [questionReq, setQuestionReq] = useState<QuestionEvent | null>(null);
   const [showConnect, setShowConnect] = useState(false);
   const [gen, setGen] = useState(0);
   const [view, setView] = useState<AppView>("chat");
   const [followTimeline, setFollowTimeline] = useState(true);
-  const [windowSpansFull, setWindowSpansFull] = useState(false);
+  const windowSpansFull = useWindowSpansFull();
 
-  // blocksRef mirrors state so event handlers stay pure (StrictMode-safe).
-  const blocksRef = useRef<Block[]>([]);
-  const idRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
-  const persistTimerRef = useRef<number | null>(null);
-  const assistantIdRef = useRef<string | null>(null);
-  const thinkIdRef = useRef<string | null>(null);
-  const toolIdRef = useRef<string | null>(null);
   // Holds the model the user just picked while the /model/set call is still
   // in flight, so a stale /status response can't flash the old model back.
   const pendingModelRef = useRef<string | null>(null);
 
-  const connected = Boolean(status?.connected);
-  const hasBlocks = blocks.length > 0;
+  // Per-chat block cache. Re-opening a conversation renders from here instantly
+  // instead of waiting on the backend round-trip (that wait was the switch lag);
+  // the backend select still runs in the background to swap the active session.
+  const chatBlocksCacheRef = useRef<Map<string, Block[]>>(new Map());
+  // Latest activeChatId for async reconciliation — so a select that resolves
+  // after the user has already moved on doesn't overwrite the new chat.
+  const activeChatIdRef = useRef<string | null>(null);
+  // Tracks chat IDs currently being prefetched in the background to avoid duplicate requests.
+  const prefetchingIdsRef = useRef<Set<string>>(new Set());
 
-  const commit = (next: Block[]) => {
-    blocksRef.current = next;
-    setBlocks(next);
-  };
-  const genId = () => `b${++idRef.current}`;
+  const { blocks, blocksRef, commit, loadBlocks, genId, flushActiveChatBlocks, stripEmptyThink } =
+    useBlocks(activeChatId);
+
+  const connected = Boolean(status?.connected);
+
+  const welcomePhrase = useMemo(() => {
+    const idx = Math.floor(Math.random() * WELCOME_PHRASES.length);
+    return WELCOME_PHRASES[idx] ?? WELCOME_PHRASES[0];
+  }, []);
+
+  const modelList: Model[] = useMemo(
+    () =>
+      models.map((m) => ({
+        id: m,
+        name: m,
+        description: "",
+      })),
+    [models],
+  );
+
+  const selectedModel: Model = useMemo(
+    () => ({
+      id: status?.model ?? "",
+      name: status?.model || "No model",
+      description: "",
+    }),
+    [status?.model],
+  );
+
+  // Keep the ref in sync for async reconciliation after a chat switch.
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
+  // Persist the sidebar width so it survives restarts.
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+    } catch {
+      // storage unavailable — non-fatal
+    }
+  }, [sidebarWidth]);
 
   const loadModels = useCallback(async () => {
     try {
       const res = await api.listModels();
-      setModels(res.models ?? []);
+      const list = res.models ?? [];
+      setModels(list);
+      return list;
     } catch {
       setModels([]);
+      return [];
     }
   }, []);
 
@@ -84,6 +142,26 @@ function App() {
     }
   }, []);
 
+  const prefetchChats = useCallback(async (chatIds: string[]) => {
+    await Promise.all(
+      chatIds.map(async (id) => {
+        if (chatBlocksCacheRef.current.has(id) || prefetchingIdsRef.current.has(id)) {
+          return;
+        }
+        prefetchingIdsRef.current.add(id);
+        try {
+          const res = await api.getChat(id);
+          const next = res.chat.blocks ?? [];
+          chatBlocksCacheRef.current.set(id, next);
+        } catch (err) {
+          console.error(`Failed to prefetch chat ${id}:`, err);
+        } finally {
+          prefetchingIdsRef.current.delete(id);
+        }
+      })
+    );
+  }, []);
+
   const loadChats = useCallback(async () => {
     try {
       const res = await api.listChats();
@@ -95,37 +173,15 @@ function App() {
             ? res.active_chat_id
             : null,
       );
+      // Prefetch blocks for all chats in the background
+      const chatIds = res.chats.map((chat) => chat.id);
+      void prefetchChats(chatIds);
       return res;
     } catch {
       setChats([]);
       return null;
     }
-  }, []);
-
-  useEffect(() => {
-    if (!activeChatId) return;
-    if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
-    const id = activeChatId;
-    const snapshot = blocks;
-    persistTimerRef.current = window.setTimeout(() => {
-      persistTimerRef.current = null;
-      void api.saveChatBlocks(id, snapshot).catch(() => {});
-    }, 300);
-    return () => {
-      if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    };
-  }, [activeChatId, blocks]);
-
-  const flushActiveChatBlocks = useCallback(async () => {
-    const id = activeChatId;
-    if (!id) return;
-    if (persistTimerRef.current) {
-      window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    }
-    await api.saveChatBlocks(id, blocksRef.current);
-  }, [activeChatId]);
+  }, [prefetchChats]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -133,305 +189,35 @@ function App() {
     setFollowTimeline(nearBottom);
   }, []);
 
-  // When the window is maximised or fullscreen, the chrome (sidebar) becomes a
-  // small fraction of the screen. Centering the empty-state heading and the
-  // input bar inside `main` then looks visually off-center relative to the
-  // app. Shift them left by half the sidebar width so they sit at the
-  // window's true centre. Plain floating windows stay centred inside `main`.
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const win = getCurrentWindow();
-        const sync = async () => {
-          if (cancelled) return;
-          const [fs, mx] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
-          if (!cancelled) setWindowSpansFull(fs || mx);
-        };
-        await sync();
-        const u1 = await win.listen("tauri://enter-fullscreen", () => {
-          if (!cancelled) setWindowSpansFull(true);
-        });
-        const u2 = await win.listen("tauri://leave-fullscreen", () => {
-          if (cancelled) return;
-          // leave-fullscreen doesn't tell us if we then sit maximised
-          void win.isMaximized().then((mx) => {
-            if (!cancelled) setWindowSpansFull(mx);
-          });
-        });
-        const u3 = await win.listen("tauri://maximize", () => {
-          if (!cancelled) setWindowSpansFull(true);
-        });
-        const u4 = await win.listen("tauri://unmaximize", () => {
-          if (cancelled) return;
-          void win.isFullscreen().then((fs) => {
-            if (!cancelled) setWindowSpansFull(fs);
-          });
-        });
-        unlisten = () => {
-          u1();
-          u2();
-          u3();
-          u4();
-        };
-      } catch {
-        // not running inside Tauri (e.g. plain `vite dev`) — keep default
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+  useAppInit({ refreshStatus, loadModels, loadChats });
+  useUpdater();
 
-  // Wait for the backend to come up, then load status.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      for (let i = 0; i < 90; i++) {
-        if (cancelled) return;
-        if (await api.health()) break;
-        await sleep(1000);
-      }
-      if (cancelled) return;
-      const s = await refreshStatus();
-      await loadChats();
-      if (cancelled || !s) return;
-      if (s.connected) {
-        await loadModels();
-        if (s.model) return;
-      }
-      // Auto-reconnect with the last used credentials so a model never has to
-      // be picked on launch. No modal is forced — connect via the status bar.
-      const saved = loadConnection();
-      if (saved) {
-        try {
-          const r = await api.connect(saved.apiKey);
-          if (!cancelled && r.ok) {
-            await refreshStatus();
-            await loadModels();
-            await loadChats();
-          }
-        } catch {
-          // ignore — user can connect manually
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshStatus, loadModels, loadChats]);
+  const {
+    streaming,
+    confirmReq,
+    questionReq,
+    handleSend,
+    handleStop,
+    handleConfirm,
+    handleAnswer,
+  } = useStreamSession({
+    connected,
+    blocksRef,
+    commit,
+    genId,
+    stripEmptyThink,
+    refreshStatus,
+    loadChats,
+    setFollowTimeline,
+    setActiveChatId,
+    setChats,
+  });
 
-  const appendText = (
-    slot: React.MutableRefObject<string | null>,
-    kind: "assistant" | "think",
-    text: string,
-  ) => {
-    const cur = slot.current;
-    const list = blocksRef.current;
-    if (cur) {
-      commit(
-        list.map((b) => (b.id === cur && b.kind === kind ? { ...b, text: b.text + text } : b)),
-      );
-    } else {
-      const id = genId();
-      slot.current = id;
-      if (kind === "assistant") {
-        commit([...list, { id, kind, text }]);
-      } else {
-        commit([...list, { id, kind, text }]);
-      }
-    }
-  };
+  // Empty state = the welcome screen with the input centred. The moment any
+  // message exists or a turn is streaming, we switch to the conversation layout.
+  const emptyState = activeChatId === null;
 
-  const onEvent = (e: ChatEvent) => {
-    switch (e.type) {
-      case "warden_start":
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        break;
-      case "title":
-        setActiveChatId(e.chat_id);
-        setChats((prev) => {
-          const idx = prev.findIndex((chat) => chat.id === e.chat_id);
-          const timestamp = nowTimestamp();
-          if (idx === -1) {
-            return [{ id: e.chat_id, title: e.title, timestamp, messages: [] }, ...prev];
-          }
-          return prev.map((chat) =>
-            chat.id === e.chat_id ? { ...chat, title: e.title, timestamp } : chat,
-          );
-        });
-        break;
-      case "token":
-        appendText(assistantIdRef, "assistant", e.text);
-        break;
-      case "think": {
-        const cur = thinkIdRef.current;
-        const list = blocksRef.current;
-        if (cur) {
-          commit(
-            list.map((b) =>
-              b.id === cur && b.kind === "think" ? { ...b, text: b.text + e.text } : b,
-            ),
-          );
-        } else {
-          const id = genId();
-          thinkIdRef.current = id;
-          const assistantId = assistantIdRef.current;
-          if (assistantId) {
-            const idx = list.findIndex((b) => b.id === assistantId);
-            const next = [...list];
-            next.splice(idx, 0, { id, kind: "think", text: e.text });
-            commit(next);
-          } else {
-            commit([...list, { id, kind: "think", text: e.text }]);
-          }
-        }
-        break;
-      }
-      case "tool_start": {
-        const id = genId();
-        toolIdRef.current = id;
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        commit([
-          ...blocksRef.current,
-          { id, kind: "tool", name: e.name, args: e.args, status: "running" },
-        ]);
-        break;
-      }
-      case "tool": {
-        const running = toolIdRef.current;
-        if (running) {
-          toolIdRef.current = null;
-          commit(
-            blocksRef.current.map((b) =>
-              b.id === running && b.kind === "tool"
-                ? { ...b, result: e.result, diff: e.diff, status: "done" }
-                : b,
-            ),
-          );
-        } else {
-          commit([
-            ...blocksRef.current,
-            {
-              id: genId(),
-              kind: "tool",
-              name: e.name,
-              args: e.args,
-              result: e.result,
-              diff: e.diff,
-              status: "done",
-            },
-          ]);
-        }
-        assistantIdRef.current = null;
-        thinkIdRef.current = null;
-        break;
-      }
-      case "confirm":
-        setConfirmReq(e);
-        break;
-      case "question":
-        setQuestionReq(e);
-        break;
-      case "done":
-        break;
-      case "error":
-        assistantIdRef.current = null;
-        commit([...blocksRef.current, { id: genId(), kind: "error", text: e.text.trim() }]);
-        break;
-    }
-  };
-
-  const handleSend = async (text: string, files: AttachedFile[]) => {
-    if (streaming || !connected) return;
-    assistantIdRef.current = null;
-    thinkIdRef.current = null;
-    toolIdRef.current = null;
-
-    let fileIds: string[] = [];
-    let uploadFailed = false;
-    if (files.length > 0) {
-      try {
-        const results = await Promise.all(files.map((f) => api.uploadFile(f.file)));
-        fileIds = results.filter(Boolean);
-      } catch {
-        uploadFailed = true;
-      }
-    }
-
-    if (uploadFailed && !text) {
-      commit([
-        ...blocksRef.current,
-        {
-          id: genId(),
-          kind: "error",
-          text: "File upload failed; nothing was sent.",
-        },
-      ]);
-      return;
-    }
-
-    if (files.length > 0) {
-      commit([
-        ...blocksRef.current,
-        {
-          id: genId(),
-          kind: "user",
-          text: text || `[${files.length} file(s) attached]`,
-        },
-      ]);
-    } else {
-      commit([...blocksRef.current, { id: genId(), kind: "user", text }]);
-    }
-
-    setFollowTimeline(true);
-    setStreaming(true);
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const payload: { text: string; files?: string[] } = { text };
-    if (fileIds.length > 0) payload.files = fileIds;
-    streamChat(payload, onEvent, ctrl.signal).finally(() => {
-      setStreaming(false);
-      abortRef.current = null;
-      refreshStatus();
-      loadChats();
-    }).catch(() => {});
-  };
-
-  const handleStop = () => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setStreaming(false);
-    setConfirmReq(null);
-    setQuestionReq(null);
-  };
-
-  const handleConfirm = async (ok: boolean) => {
-    const req = confirmReq;
-    try {
-      if (req) await api.confirm(req.id, ok);
-      setConfirmReq(null);
-    } catch {
-      // keep modal open so the user can retry or cancel
-    }
-  };
-
-  const handleAnswer = async (answers: string[][]) => {
-    const req = questionReq;
-    try {
-      if (req) await api.answerQuestion(req.id, answers);
-      setQuestionReq(null);
-    } catch {
-      // keep modal open so the user can retry or cancel
-    }
-  };
-
-  const handleToggleMode = async () => {
+  const handleToggleMode = useCallback(async () => {
     if (!status) return;
     const auto = status.mode !== "auto";
     try {
@@ -440,69 +226,104 @@ function App() {
     } catch {
       // leave the current mode visible if the backend rejects the change
     }
-  };
+  }, [status]);
 
-  const handleSelectModel = async (name: string) => {
-    if (!name || name === status?.model) return;
-    // Reflect the choice instantly — switching should never wait on the
-    // network round-trip. The in-flight model is tracked so a status refresh
-    // can't clobber it before the backend confirms.
-    pendingModelRef.current = name;
-    setStatus((prev) => (prev ? { ...prev, model: name } : prev));
-    try {
-      await api.setModel(name);
-    } catch {
-      // Switch failed — reconcile with whatever the backend actually has.
+  const handleSelectModel = useCallback(
+    async (name: string) => {
+      if (!name || name === status?.model) return;
+      // Reflect the choice instantly — switching should never wait on the
+      // network round-trip. The in-flight model is tracked so a status refresh
+      // can't clobber it before the backend confirms.
+      pendingModelRef.current = name;
+      setStatus((prev) => (prev ? { ...prev, model: name } : prev));
+      try {
+        await api.setModel(name);
+        localStorage.setItem("warden.lastModel", name);
+      } catch {
+        // Switch failed — reconcile with whatever the backend actually has.
+        pendingModelRef.current = null;
+        await refreshStatus();
+        return;
+      }
       pendingModelRef.current = null;
-      await refreshStatus();
-      return;
-    }
-    pendingModelRef.current = null;
-  };
+    },
+    [status, refreshStatus],
+  );
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
-      await flushActiveChatBlocks();
       handleStop();
-      await api.reset();
+
+      // Snapshot the chat we're leaving so coming back to it is instant.
+      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+
+      // Optimistically switch to empty welcome layout instantly
       setActiveChatId(null);
-      commit([]);
+      loadBlocks([]);
       setFollowTimeline(true);
       setGen((g) => g + 1);
+
+      // Persist the outgoing chat in the background — it must not delay the
+      // empty state from showing.
+      await flushActiveChatBlocks();
+      await api.reset();
       await loadChats();
     } catch {
       // keep the current chat intact if reset fails
     }
-  };
+  }, [activeChatId, blocksRef, flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
 
-  const handleSelectChat = async (id: string) => {
-    if (id === activeChatId) return;
-    try {
-      await flushActiveChatBlocks();
+  const handleSelectChat = useCallback(
+    async (id: string) => {
+      if (id === activeChatId) return;
       handleStop();
-      const res = await api.selectChat(id);
-      const blocks = res.chat.blocks ?? [];
-      if (blocks.length === 0) {
-        await api.deleteChat(id);
-        setActiveChatId(null);
-        commit([]);
-        setFollowTimeline(true);
+
+      // Snapshot the chat we're leaving so coming back to it is instant.
+      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+
+      // Optimistically switch chat selection in sidebar
+      setActiveChatId(id);
+
+      // Saving the outgoing chat writes to a different id than the one we're
+      // loading, so it doesn't need to block the switch — fire and forget.
+      void flushActiveChatBlocks().catch(() => {});
+
+      // Render from cache immediately when we've shown this chat before — no
+      // waiting on the backend. The select call below still runs to swap the
+      // active session, but the conversation is already on screen.
+      const cached = chatBlocksCacheRef.current.get(id);
+      if (cached) {
+        loadBlocks(cached);
         setGen((g) => g + 1);
-        await refreshStatus();
-        await loadChats();
-        return;
+        setFollowTimeline(true);
+      } else {
+        // Clear the blocks optimistically so the previous chat's contents are not shown while loading.
+        loadBlocks([]);
+        setGen((g) => g + 1);
+        setFollowTimeline(true);
       }
-      setActiveChatId(res.chat.id);
-      commit(blocks);
-      setFollowTimeline(true);
-      setGen((g) => g + 1);
-      await refreshStatus();
-      await loadChats();
-    } catch {
-      // leave the current chat selected if the switch fails
-    }
-  };
-  const handleRenameChat = async (id: string, title: string) => {
+
+      try {
+        const res = await api.selectChat(id);
+        const next = res.chat.blocks ?? [];
+        chatBlocksCacheRef.current.set(id, next);
+        // On a cache hit the conversation is already shown — only non-active
+        // chats are cached and nothing but the active chat ever streams, so the
+        // cache can't be stale. Render the server's blocks only on a cache miss,
+        // and only if the user hasn't already moved to another chat.
+        if (!cached && activeChatIdRef.current === id) {
+          loadBlocks(next);
+          setGen((g) => g + 1);
+          setFollowTimeline(true);
+        }
+      } catch {
+        // leave whatever is shown (cache) if the switch fails
+      }
+    },
+    [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, blocksRef],
+  );
+
+  const handleRenameChat = useCallback(async (id: string, title: string) => {
     if (!title.trim()) return;
     try {
       await api.renameChat(id, title.trim());
@@ -510,181 +331,317 @@ function App() {
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
-  const handleDeleteChat = async (id: string) => {
-    try {
-      await api.deleteChat(id);
-      if (id === activeChatId) {
-        setActiveChatId(null);
-        commit([]);
-        setGen((g) => g + 1);
+  const handleDeleteChat = useCallback(
+    async (id: string) => {
+      try {
+        await api.deleteChat(id);
+        chatBlocksCacheRef.current.delete(id);
+        if (id === activeChatId) {
+          setActiveChatId(null);
+          loadBlocks([]);
+          setGen((g) => g + 1);
+        }
+        await loadChats();
+      } catch {
+        /* ignore */
       }
-      await loadChats();
-    } catch {
-      /* ignore */
-    }
-  };
+    },
+    [activeChatId, loadBlocks, loadChats],
+  );
 
-  const handleConnected = async () => {
+  const handleConnected = useCallback(async () => {
     try {
       setShowConnect(false);
       await refreshStatus();
-      await loadModels();
+      const list = await loadModels();
+      const savedModel = localStorage.getItem("warden.lastModel");
+      if (savedModel && list.includes(savedModel)) {
+        try {
+          await api.setModel(savedModel);
+          await refreshStatus();
+        } catch {
+          // ignore
+        }
+      }
       await loadChats();
     } catch {
       // reconnect modal stays closed; status refresh will retry later
     }
-  };
+  }, [refreshStatus, loadModels, loadChats]);
 
   const handleCloseSkills = useCallback(() => setView("chat"), []);
+  const handleCloseSettings = useCallback(() => setView("chat"), []);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll timeline when content changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: blocks and streaming are triggers for scroll height recalculation
+  useEffect(() => {
+    if (!followTimeline) return;
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [blocks, streaming, followTimeline]);
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
-        <div className="flex min-h-0 flex-1">
-          <AnimatePresence mode="wait" initial={false}>
-            {view === "skills" ? (
-              <motion.div key="skills" {...panelFromRight} className="flex min-h-0 flex-1">
-                <SkillsView onClose={handleCloseSkills} />
-              </motion.div>
-            ) : (
-              <motion.div key="chat" {...panelFromLeft} className="flex min-h-0 flex-1">
-                <Sidebar
-                  chats={chats}
-                  activeChatId={activeChatId}
-                  width={sidebarWidth}
-                  skillsActive={false}
-                  onSelectChat={(id) => {
-                    setView("chat");
-                    void handleSelectChat(id);
-                  }}
-                  onNewChat={() => {
-                    setView("chat");
-                    void handleNewChat();
-                  }}
-                  onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
-                  onRenameChat={(id, title) => {
-                    void handleRenameChat(id, title);
-                  }}
-                  onDeleteChat={(id) => {
-                    void handleDeleteChat(id);
-                  }}
-                />
+      <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+        <div className="flex min-h-0 flex-1 relative">
+          <motion.div
+            animate={{
+              opacity: view === "skills" ? 1 : 0,
+              scale: view === "skills" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "skills" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
+          >
+            <SkillsView
+              onClose={handleCloseSkills}
+              ready={connected}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
+          </motion.div>
+          <motion.div
+            animate={{
+              opacity: view === "settings" ? 1 : 0,
+              scale: view === "settings" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "settings" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
+          >
+            <SettingsView
+              onClose={handleCloseSettings}
+              status={status}
+              connected={connected}
+              models={models}
+              onSelectModel={handleSelectModel}
+              onToggleMode={handleToggleMode}
+              onOpenSkills={() => setView("skills")}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
+          </motion.div>
+          <motion.div
+            animate={{
+              opacity: view === "chat" ? 1 : 0,
+              scale: view === "chat" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "chat" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
+          >
+            {/* Ambient orbs at layout level so they show through the glass sidebar */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
+              <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
+              <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
+            </div>
+            <Sidebar
+              chats={chats}
+              activeChatId={activeChatId}
+              width={sidebarWidth}
+              skillsActive={false}
+              onSelectChat={(id) => {
+                setView("chat");
+                void handleSelectChat(id);
+              }}
+              onNewChat={() => {
+                setView("chat");
+                void handleNewChat();
+              }}
+              onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
+              onOpenSettings={() => setView("settings")}
+              onRenameChat={(id, title) => {
+                void handleRenameChat(id, title);
+              }}
+              onDeleteChat={(id) => {
+                void handleDeleteChat(id);
+              }}
+            />
 
-                {/* Resize handle — sits on top of main's border-l */}
-                {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
-                <div
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    const startX = e.clientX;
-                    const startW = sidebarWidth;
-                    const onMove = (ev: MouseEvent) =>
-                      setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-                    const onUp = () => {
-                      document.removeEventListener("mousemove", onMove);
-                      document.removeEventListener("mouseup", onUp);
-                    };
-                    document.addEventListener("mousemove", onMove);
-                    document.addEventListener("mouseup", onUp);
-                  }}
-                  className="relative z-10 w-0 shrink-0 cursor-col-resize"
-                >
-                  <div className="absolute inset-y-0 -left-2 -right-2" />
-                </div>
+            {/* Resize handle — sits on top of main's border-l */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startW = sidebarWidth;
+                const onMove = (ev: MouseEvent) =>
+                  setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
+                const onUp = () => {
+                  document.removeEventListener("mousemove", onMove);
+                  document.removeEventListener("mouseup", onUp);
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+              }}
+              className="relative z-10 w-0 shrink-0 cursor-col-resize"
+            >
+              <div className="absolute inset-y-0 -left-2 -right-2" />
+            </div>
 
-                <main
-                  style={{ "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px" } as CSSProperties}
-                  className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl bg-bg"
-                >
-                  <motion.div
-                    key="chat"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.12 }}
-                    className="flex min-h-0 flex-1 flex-col"
-                  >
-                    <StatusBar
-                      status={status}
-                      connected={connected}
-                      models={models}
-                      onSelectModel={handleSelectModel}
-                      onOpenConnect={() => setShowConnect(true)}
+            <main
+              style={
+                {
+                  "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
+                } as CSSProperties
+              }
+              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
+            >
+              {/* Chat surface. The input bar is a single element that travels
+                  between centre (empty state) and bottom (conversation) via a
+                  layout="position" animation, so opening a new chat and sending
+                  the first message use the exact same motion. The timeline,
+                  starfield, welcome heading and bottom scrim cross-fade around it. */}
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+                {/* Empty-state starfield */}
+                <AnimatePresence>
+                  {emptyState && (
+                    <motion.div
+                      key="starfield"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      className="absolute inset-0 z-0"
+                    >
+                      <StarfieldBackdrop />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Timeline */}
+                <AnimatePresence>
+                  {!emptyState && (
+                    <motion.div
+                      key="timeline"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      ref={scrollContainerRef}
+                      onScroll={handleTimelineScroll}
+                      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
+                    >
+                      {/* Switching chats swaps the whole conversation as one unit
+                          (keyed by generation) rather than letting every block
+                          reconcile and re-animate — that per-block churn was the
+                          jank. The new conversation mounts straight away and grows
+                          in from the composer with a soft scale; there is no exit
+                          on the outgoing one, so there's no blank gap (the flicker)
+                          between them. Empty↔chat is handled by the outer layer
+                          above and left untouched. */}
+                      <motion.div
+                        key={gen}
+                        initial={{ opacity: 0, scale: 0.975 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.22, ease: EASE }}
+                        style={{ transformOrigin: "50% 100%" }}
+                      >
+                        <Timeline blocks={blocks} generation={gen} streaming={streaming} />
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Bottom scrim so messages fade out under the floating input */}
+                <AnimatePresence>
+                  {!emptyState && (
+                    <motion.div
+                      key="scrim"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-40 bg-gradient-to-t from-bg via-bg/95 to-transparent"
                     />
+                  )}
+                </AnimatePresence>
 
-                    {/* Timeline */}
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      {(hasBlocks || streaming) && (
-                        <motion.div
-                          key="timeline"
-                          onScroll={handleTimelineScroll}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
+                {/* Overlay holding the welcome heading + input. The input's
+                    vertical position is driven purely by two flex spacers: equal
+                    weight centres it (empty state), collapsing the bottom one
+                    drops it to the bottom (conversation). Because the motion is
+                    state-driven, not layout-measured, sidebar resizing never
+                    disturbs it — only the empty↔conversation switch animates. */}
+                <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center px-6">
+                  <div className="w-full flex-1" />
+
+                  <AnimatePresence>
+                    {emptyState && (
+                      <motion.div
+                        key="welcome"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.3, ease: EASE }}
+                        className="relative mb-7 select-none"
+                      >
+                        <div
+                          style={{ transform: "translateX(var(--chat-shift, 0px))" }}
+                          className="text-center"
                         >
-                          <Timeline
-                            blocks={blocks}
-                            generation={gen}
-                            thinking={
-                              streaming &&
-                              (blocks.length === 0 ||
-                                blocks.at(-1)?.kind === "user")
-                            }
-                            follow={followTimeline}
-                          />
-                        </motion.div>
+                          <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
+                            {connected ? welcomePhrase : "warden"}
+                          </h1>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="pointer-events-auto w-full max-w-3xl">
+                    <AnimatePresence mode="wait">
+                      {confirmReq ? (
+                        <ConfirmModal
+                          key="confirm"
+                          request={confirmReq}
+                          onResolve={handleConfirm}
+                        />
+                      ) : questionReq ? (
+                        <QuestionModal
+                          key="question"
+                          request={questionReq}
+                          onSubmit={handleAnswer}
+                        />
+                      ) : (
+                        <InputBar
+                          key="input"
+                          onSend={handleSend}
+                          onStop={handleStop}
+                          streaming={streaming}
+                          disabled={!connected}
+                          placeholder={connected ? "Message warden..." : "Connect a model first"}
+                          auto={status?.mode === "auto"}
+                          onToggleMode={connected ? handleToggleMode : undefined}
+                          models={modelList}
+                          selectedModel={selectedModel}
+                          onSelectModel={handleSelectModel}
+                          connected={connected}
+                          onOpenConnect={() => setShowConnect(true)}
+                        />
                       )}
                     </AnimatePresence>
+                  </div>
 
-                    {/* Input zone */}
-                    <motion.div
-                      className={
-                        hasBlocks
-                          ? "shrink-0 px-6 pt-2 pb-6"
-                          : "flex flex-1 flex-col items-center justify-center px-6"
-                      }
-                    >
-                      <AnimatePresence mode="popLayout">
-                        {!hasBlocks && (
-                          <motion.div {...headingPop} className="mb-7 select-none">
-                            <div
-                              style={{ transform: "translateX(var(--chat-shift, 0px))" }}
-                              className="text-center"
-                            >
-                              <h1 className="text-display font-semibold tracking-[-0.02em] text-text-primary">
-                                {connected ? "Where should we begin?" : "warden"}
-                              </h1>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <InputBar
-                        onSend={handleSend}
-                        onStop={handleStop}
-                        streaming={streaming}
-                        disabled={!connected || Boolean(confirmReq) || Boolean(questionReq)}
-                        placeholder={connected ? "Message warden..." : "Connect a model first"}
-                        auto={status?.mode === "auto"}
-                        onToggleMode={connected ? handleToggleMode : undefined}
-                      />
-                    </motion.div>
-                  </motion.div>
-                </main>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <motion.div
+                    className="w-full shrink-0"
+                    style={{ minHeight: 24 }}
+                    initial={false}
+                    animate={{ flexGrow: emptyState ? 1 : 0 }}
+                    transition={{ duration: 0.5, ease: EASE }}
+                  />
+                </div>
+              </div>
+            </main>
+          </motion.div>
         </div>
 
-        <AnimatePresence>
-          {confirmReq && <ConfirmModal request={confirmReq} onResolve={handleConfirm} />}
-        </AnimatePresence>
-        <AnimatePresence>
-          {questionReq && <QuestionModal request={questionReq} onSubmit={handleAnswer} />}
-        </AnimatePresence>
         <AnimatePresence>
           {showConnect && (
             <ConnectModal
@@ -693,6 +650,7 @@ function App() {
             />
           )}
         </AnimatePresence>
+        <Toaster />
       </div>
     </MotionConfig>
   );

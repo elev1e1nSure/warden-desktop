@@ -28,6 +28,12 @@ export type Block =
   | { id: string; kind: "error"; text: string }
   | {
       id: string;
+      kind: "image";
+      name: string;
+      url: string;
+    }
+  | {
+      id: string;
       kind: "tool";
       name: string;
       args: string;

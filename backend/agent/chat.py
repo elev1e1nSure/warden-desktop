@@ -397,11 +397,16 @@ class ChatSession:
                             in_think = False
         except Exception as e:
             if _is_vision_error(e) and _has_images(messages):
-                yield (
-                    "token",
-                    "\nSorry, this model doesn't support images. Retrying without them...",
-                )
                 stripped = _strip_images(messages)
+                last_user = stripped[-1] if stripped else None
+                if (
+                    last_user
+                    and last_user.get("role") == "user"
+                    and not last_user.get("content", "").strip()
+                ):
+                    last_user["content"] = (
+                        "I attached some images but it looks like this model cannot process them."
+                    )
                 try:
                     async for chunk in self._client.chat(
                         model=self.model,

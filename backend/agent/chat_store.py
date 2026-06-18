@@ -124,6 +124,7 @@ class ChatStore:
         title_source: str | None = None,
         history: list[dict[str, Any]] | None = None,
         blocks: list[dict[str, Any]] | None = None,
+        model: str | None = None,
     ) -> None:
         self.ensure_chat(session_id)
         sets = ["updated_at = CURRENT_TIMESTAMP"]
@@ -140,6 +141,9 @@ class ChatStore:
         if blocks is not None:
             sets.append("blocks = ?")
             params.append(json.dumps(blocks, ensure_ascii=False))
+        if model is not None:
+            sets.append("model = ?")
+            params.append(model)
         params.append(session_id)
         with self._conn() as conn:
             conn.execute(
@@ -153,6 +157,9 @@ class ChatStore:
 
     def set_blocks(self, session_id: str, blocks: list[dict[str, Any]]) -> None:
         self.save_chat(session_id, blocks=blocks)
+
+    def set_model(self, session_id: str, model: str) -> None:
+        self.save_chat(session_id, model=model)
 
     def rename_chat(self, session_id: str, title: str) -> bool:
         title = title.strip()
@@ -226,6 +233,7 @@ class ChatStore:
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
             "timestamp": _display_time(row["updated_at"]),
+            "model": row["model"],
         }
         if include_payload:
             data["history"] = _loads(row["history"])

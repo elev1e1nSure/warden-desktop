@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -213,3 +214,84 @@ def wrap_skill_content(skill: Skill) -> str:
         f"</skill_files>\n"
         f"</skill_content>"
     )
+
+
+def _user_skill_dir(name: str) -> Path:
+    return Path.home() / ".warden" / "skills" / name
+
+
+def _skill_to_dict(skill: Skill, *, include_content: bool = False) -> dict:
+    d: dict = {
+        "name": skill.name,
+        "description": skill.description,
+        "location": skill.location,
+    }
+    if include_content:
+        d["content"] = skill.content
+    return d
+
+
+def create_skill(name: str, description: str, content: str) -> Skill | None:
+    """Create a new skill under ~/.warden/skills/<name>/SKILL.md."""
+    if not _validate_name(name):
+        log.warning("skill: create failed — invalid name %r", name)
+        return None
+    dir_path = _user_skill_dir(name)
+    if dir_path.exists():
+        log.warning("skill: create failed — %s already exists", dir_path)
+        return None
+    encoded = content.encode("utf-8")
+    if len(encoded) > MAX_SKILL_BYTES:
+        log.warning("skill: create failed — content too large (%d bytes)", len(encoded))
+        return None
+    dir_path.mkdir(parents=True, exist_ok=False)
+    skill_md = dir_path / "SKILL.md"
+    frontmatter = f"---\nname: {name}\ndescription: {description}\n---\n\n"
+    skill_md.write_text(frontmatter + content, encoding="utf-8")
+    log.info("skill: created %r", name)
+    return _parse_skill_file(skill_md)
+
+
+def update_skill(name: str, description: str | None, content: str | None) -> Skill | None:
+    """Update an existing skill. Only user skills (~/.warden/skills/) can be updated."""
+    if not _validate_name(name):
+        log.warning("skill: update failed — invalid name %r", name)
+        return None
+    skill = find_skill(name)
+    if skill is None:
+        log.warning("skill: update failed — %r not found", name)
+        return None
+    if _user_skill_dir(name).resolve() != Path(skill.directory).resolve():
+        log.warning("skill: update failed — %r is not a user skill", name)
+        return None
+    if content is not None and len(content.encode("utf-8")) > MAX_SKILL_BYTES:
+        log.warning("skill: update failed — content too large")
+        return None
+    desc = description if description is not None else skill.description
+    body = content if content is not None else skill.content
+    frontmatter = f"---\nname: {name}\ndescription: {desc}\n---\n\n"
+    skill_md = Path(skill.directory) / "SKILL.md"
+    skill_md.write_text(frontmatter + body, encoding="utf-8")
+    log.info("skill: updated %r", name)
+    return _parse_skill_file(skill_md)
+
+
+def delete_skill(name: str) -> bool:
+    """Delete a user skill directory. Only user skills (~/.warden/skills/) can be deleted."""
+    if not _validate_name(name):
+        log.warning("skill: delete failed — invalid name %r", name)
+        return False
+    dir_path = _user_skill_dir(name).resolve()
+    if not dir_path.is_dir():
+        log.warning("skill: delete failed — %s not a directory", dir_path)
+        return False
+    skill = find_skill(name)
+    if skill is None:
+        log.warning("skill: delete failed — %r not found", name)
+        return False
+    if dir_path != Path(skill.directory).resolve():
+        log.warning("skill: delete failed — %r is not a user skill", name)
+        return False
+    shutil.rmtree(dir_path)
+    log.info("skill: deleted %r", name)
+    return True

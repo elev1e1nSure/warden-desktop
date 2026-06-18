@@ -30,14 +30,32 @@ def _decide(
 
 
 def _apply_mode(decision: SafetyDecision, tool_name: str, mode: str) -> SafetyDecision:
-    if mode == "auto" and decision.risk == "confirm" and tool_name not in ("file_delete", "delete"):
-        return SafetyDecision(
-            risk="safe",
-            reason=decision.reason,
-            summary=decision.summary,
-            details=decision.details,
-            normalized_args=decision.normalized_args,
-        )
+    # In auto mode, `confirm` is normally promoted to `safe` so the agent can
+    # run without prompting on every step. A few operations stay gated even in
+    # auto mode because they can escape the workspace or are destructive:
+    #   - file_delete / delete                 — always destructive
+    #   - file_write / edit / apply_patch       — when the target path is
+    #                                              outside the workspace (the
+    #                                              decision reason carries the
+    #                                              "outside workspace" marker)
+    #   - file_read / file_list                 — outside workspace reads stay
+    #                                              gated so secrets (.env,
+    #                                              ~/.ssh, browser cookies) are
+    #                                              not silently exfiltrated
+    if mode == "auto" and decision.risk == "confirm":
+        # apply_patch can target arbitrary paths inside the patch text that
+        # the safety layer cannot inspect ahead of time, so it always stays
+        # gated in auto mode.
+        always_gated = tool_name in ("file_delete", "delete", "apply_patch")
+        outside_workspace = "outside workspace" in decision.reason
+        if not always_gated and not outside_workspace:
+            return SafetyDecision(
+                risk="safe",
+                reason=decision.reason,
+                summary=decision.summary,
+                details=decision.details,
+                normalized_args=decision.normalized_args,
+            )
     return decision
 
 
@@ -95,6 +113,62 @@ def assess_tool_call(
         if not is_path_within_workspace(path, workspace):
             return _d("confirm", "reads outside workspace", "Reading file outside workspace")
         return _d("safe", "read-only", "Reading file")
+
+    # edit (in-place string replacement in a file)
+    if tool_name == "edit":
+        path = str(norm.get("path", ""))
+        if is_dangerous_path(path):
+            return _d(
+                "blocked",
+                "dangerous path",
+                "File path is outside allowed scope",
+                ["UNC path, device path, or traversal detected"],
+            )
+        if not is_path_within_workspace(path, workspace):
+            return _d("confirm", "writes outside workspace", "Editing file outside workspace")
+        return _d("confirm", "modifies files", "Editing file inside workspace")
+
+    # glob (file discovery by pattern)
+    if tool_name == "glob":
+        path = str(norm.get("path") or ".")
+        if is_dangerous_path(path):
+            return _d(
+                "blocked",
+                "dangerous path",
+                "Path is outside allowed scope",
+                ["UNC path, device path, or traversal detected"],
+            )
+        if not is_path_within_workspace(path, workspace):
+            return _d("confirm", "lists outside workspace", "Globbing outside workspace")
+        return _d("safe", "read-only", "Globbing inside workspace")
+
+    # grep (content search)
+    if tool_name == "grep":
+        path = str(norm.get("path") or ".")
+        if is_dangerous_path(path):
+            return _d(
+                "blocked",
+                "dangerous path",
+                "Path is outside allowed scope",
+                ["UNC path, device path, or traversal detected"],
+            )
+        if not is_path_within_workspace(path, workspace):
+            return _d("confirm", "reads outside workspace", "Searching outside workspace")
+        return _d("safe", "read-only", "Searching inside workspace")
+
+    # lsp (language server queries — read-only by design)
+    if tool_name == "lsp":
+        path = str(norm.get("path") or norm.get("root") or ".")
+        if is_dangerous_path(path):
+            return _d(
+                "blocked",
+                "dangerous path",
+                "Path is outside allowed scope",
+                ["UNC path, device path, or traversal detected"],
+            )
+        if not is_path_within_workspace(path, workspace):
+            return _d("confirm", "reads outside workspace", "LSP query outside workspace")
+        return _d("safe", "read-only", "LSP query inside workspace")
 
     # file_list
     if tool_name in ("file_list", "list"):
