@@ -540,6 +540,7 @@ function PermissionSelector({
               {active && (
                 <motion.div
                   layoutId="pill"
+                  initial={false}
                   animate={{ backgroundColor: pillColor }}
                   transition={{ type: "spring", stiffness: 500, damping: 42 }}
                   className="absolute inset-0 rounded-md pointer-events-none"
