@@ -7,8 +7,8 @@ flowchart TD
   User["User"] --> UI["React UI<br/>src/"]
   UI --> API["REST + NDJSON client<br/>src/api/"]
   API --> Backend["Python backend<br/>backend/agent/"]
-  Backend --> LLM["LLM provider<br/>OpenRouter (OpenAI-compatible API)"]
-  Backend --> Tools["Tools<br/>filesystem, shell, browser, screen, memory"]
+  Backend --> LLM["LLM provider<br/>OpenAI-compatible API (OpenRouter и др.)"]
+  Backend --> Tools["Tools<br/>archive, browser, files, http, input, lsp,<br/>memory, misc, move, patch, process,<br/>screen, search, shell, system, window"]
   UI --> Tauri["Tauri shell<br/>src-tauri/"]
   Tauri --> OS["Desktop window / OS integration"]
 ```
@@ -25,6 +25,8 @@ Important directories:
 
 - `src/components/` — UI components: sidebar, timeline, input, modals.
 - `src/api/` — API client to communicate with the backend.
+- `src/hooks/` — React hooks: streaming session, app initialization, updater, etc.
+- `src/lib/` — Utilities and helpers.
 - `src/types.ts` — UI message and block type definitions.
 - `src/index.css`, `src/App.css` — application styles.
 
@@ -54,7 +56,16 @@ Tauri is responsible for the desktop window wrapper, window configuration, syste
 - `src-tauri/src/` — Rust entry point of the desktop application. Rust spawns the Python backend and reads the backend token via `get_backend_token` command.
 - `src-tauri/icons/` — application icons.
 
-The application window is named `warden`. Its default window size is `1100x720` with a minimum size of `720x480`.
+The application window is named `Warden`. Its default window size is `1100x720` with a minimum size of `720x480`.
+
+### Authentication
+
+The backend uses a shared secret token (`X-Warden-Token`) for API authentication:
+
+- Token is generated on backend start and written to `~/.local/share/warden/.token`.
+- Tauri shell reads it via `get_backend_token` command and includes in all API requests.
+- CORS is enforced: only allowlisted origins can access the API (`tauri://localhost`, `http://localhost:1420`, `http://127.0.0.1:1420`).
+- Dev mode (`WARDEN_DEV=1`) bypasses token requirement for local development.
 
 ### Python Backend
 
@@ -72,6 +83,61 @@ The backend exposes an HTTP API for the desktop UI and drives the agent runtime 
 - safety policies.
 
 The desktop UI does not run tools directly. It sends messages to the backend and renders the stream of events sent back by the agent.
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check (no auth) |
+| POST | `/chat` | Streaming chat (NDJSON) |
+| POST | `/reset` | Reset chat session |
+| POST | `/upload` | File upload |
+| POST | `/confirm` | Confirm dangerous action |
+| POST | `/question` | Answer question prompt |
+| POST | `/compact` | Compact chat context |
+| GET | `/status` | Backend status (model, mode, tokens) |
+| POST | `/connect` | Connect LLM provider |
+| GET | `/models` | List available models |
+| POST | `/model/set` | Set active model |
+| POST | `/mode` | Set mode (ask/auto/custom) |
+| GET | `/settings` | App settings |
+| POST | `/settings` | Update settings |
+| GET | `/permissions` | Permission levels |
+| POST | `/permissions` | Update permission |
+| GET | `/chats` | List chats |
+| GET | `/chats/{id}` | Get chat with blocks |
+| POST | `/chats/new` | Create new chat |
+| POST | `/chats/select` | Switch active chat |
+| POST | `/chats/rename` | Rename chat |
+| POST | `/chats/delete` | Delete chat |
+| POST | `/chats/blocks` | Save chat blocks |
+| GET | `/skills` | List skills |
+| GET | `/skill/{name}` | Get skill content |
+| POST | `/skills/create` | Create skill |
+| POST | `/skills/update` | Update skill |
+| POST | `/skills/delete` | Delete skill |
+| GET | `/tools` | List available tools |
+| GET | `/memory/state` | Memory enabled status |
+| POST | `/memory/state` | Enable/disable memory |
+| POST | `/memory/clear` | Clear memory |
+| GET | `/memory/snapshot` | Get memory snapshot |
+| POST | `/shutdown` | Graceful shutdown |
+
+Backend modules:
+
+- `server.py` — HTTP server (aiohttp), CORS, auth middleware, route registration.
+- `routes/` — Endpoint handlers: `chat`, `chats`, `memory`, `models`, `skills`, `system`.
+- `chat.py` — Chat session orchestration, streaming, tool loop.
+- `llm_client.py` — OpenAI-compatible LLM client (handles OpenRouter, reasoning, tool calls).
+- `tool_runner.py` — Tool execution engine.
+- `tools/` — Individual tool implementations: `archive`, `browser`, `files`, `http`, `input`, `lsp`, `memory`, `misc`, `move`, `patch`, `process`, `screen`, `search`, `shell`, `system`, `window`.
+- `safety/` — Safety policies: `_filesystem` (path restrictions), `_policy` (capability gates), `_powershell` (PowerShell constraints).
+- `memory/` — Long-term memory: `aggregator`, `extractor`, `store`.
+- `confirmations.py` — Confirmation and question prompt handling.
+- `chat_store.py` — Chat persistence.
+- `app_state.py` — Backend global state.
+- `prompt.py` — System prompt construction.
+- `paths.py` — Path resolution utilities.
 
 ## Message Flow
 
@@ -95,8 +161,9 @@ sequenceDiagram
 
 ## Source Map
 
-- UI behavior — `src/App.tsx`, `src/main.tsx`, and `src/components/`.
-- Backend endpoints — `backend/agent/server.py`.
-- Streaming protocol — `src/api/stream.ts` and backend chat routes.
-- Build scripts — `package.json`, `scripts/`, `src-tauri/`.
+- UI behavior — `src/App.tsx`, `src/main.tsx`, `src/components/`, `src/hooks/`.
+- Backend endpoints — `backend/agent/server.py` and `backend/agent/routes/`.
+- Streaming protocol — `src/api/stream.ts` and `backend/agent/routes/chat.py`.
+- Auth & middleware — `backend/agent/server.py` (`_cors_middleware`, `_auth_middleware`).
+- Build scripts — `package.json`, `scripts/`, `src-tauri/`, `justfile`.
 - Agent internals — `backend/agent/`.

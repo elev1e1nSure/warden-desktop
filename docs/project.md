@@ -19,6 +19,10 @@ The project currently integrates several components:
 - Answer clarifying questions from the agent.
 - View and enable skills.
 - Control the execution mode (Ask vs. Auto).
+- Upload files to attach to messages.
+- Configure permission levels for tool categories.
+- Enable and manage long-term memory.
+- Compact chat context to reduce token usage.
 
 ## Scope of this Repository
 
@@ -34,7 +38,7 @@ The `backend/` folder contains the agent runtime:
 
 - `backend/agent/` — Python backend server and logic;
 - `backend/pyproject.toml` — Python dependencies (managed with `uv`);
-- `backend/run_backend.py` — entry point script for PyInstaller;
-- `backend/.warden/skills/` — project skills.
+- `backend/run_backend.py` — entry point script for PyInstaller builds;
+- `.warden/skills/` — project skills at repository root.
 
-The desktop UI is the sole frontend for the Python backend (Go CLI was removed in an earlier release).
+The desktop UI is the sole frontend for the Python backend.

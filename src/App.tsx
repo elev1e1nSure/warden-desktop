@@ -486,7 +486,7 @@ function App() {
               }}
             />
 
-            {/* Resize handle — sits on top of main's border-l */}
+            {/* Resize handle — sits between sidebar and main */}
             {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
             <div
               onMouseDown={(e) => {
@@ -513,7 +513,7 @@ function App() {
                   "--chat-shift": windowSpansFull ? `${-(sidebarWidth / 2)}px` : "0px",
                 } as CSSProperties
               }
-              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
+              className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden"
             >
               {/* Ambient orbs scoped to the content area only */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">

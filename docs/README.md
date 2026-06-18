@@ -22,10 +22,16 @@ docs/
 
 ```text
 warden-desktop/
-  backend/         # Python backend: agent runtime, tools, memory, skills
-  src/             # React UI for the desktop application
-  src-tauri/       # Tauri shell, window, desktop application compilation
-  scripts/         # dev/build scripts for the backend
-  public/          # static frontend assets
-  dist/            # frontend build output
+  .warden/         # skills storage
+  backend/         # Python backend: agent runtime, tools, memory
+  src/             # React UI
+  src-tauri/       # Tauri shell and desktop compilation
+  scripts/         # dev/build scripts
+  public/          # static frontend assets (favicon, icon)
+  justfile         # project build tasks
+  AGENTS.md        # agent instructions
+  CLAUDE.md        # Claude desktop agent config
+  biome.json       # frontend linter/formatter
+  package.json     # frontend dependencies and scripts
+  pyproject.toml   # backend dependencies (uv)
 ```
