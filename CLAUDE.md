@@ -2,6 +2,10 @@
 
 Project notes for agents working in this repo. Keep this file as guardrails and pointers; do not duplicate the full docs here.
 
+## Language
+
+- Commit messages and code comments must be in English only.
+
 ## Sources Of Truth
 
 - Project overview: [docs/project.md](docs/project.md)
