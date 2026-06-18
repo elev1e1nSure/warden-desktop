@@ -1,17 +1,13 @@
+import * as React from "react";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Bot,
-  Brain,
-  Check,
-  Eye,
-  EyeOff,
-  Info,
-  Loader2,
-  SlidersHorizontal,
-  Wifi,
-} from "lucide-react";
+import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import AnimatedSliders from "./AnimatedSliders";
+import AnimatedArrowLeft from "./AnimatedArrowLeft";
+import AnimatedWifi from "./AnimatedWifi";
+import AnimatedBot from "./AnimatedBot";
+import AnimatedBrain from "./AnimatedBrain";
+import AnimatedInfo from "./AnimatedInfo";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
@@ -34,12 +30,68 @@ interface SettingsViewProps {
 }
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
-  { id: "general", label: "General", icon: <SlidersHorizontal strokeWidth={1.75} /> },
-  { id: "connection", label: "Provider", icon: <Wifi strokeWidth={1.75} /> },
-  { id: "agent", label: "Agent", icon: <Bot strokeWidth={1.75} /> },
-  { id: "memory", label: "Memory", icon: <Brain strokeWidth={1.75} /> },
-  { id: "about", label: "About", icon: <Info strokeWidth={1.75} /> },
+  { id: "general", label: "General", icon: <AnimatedSliders strokeWidth={1.75} /> },
+  { id: "connection", label: "Provider", icon: <AnimatedWifi strokeWidth={1.75} /> },
+  { id: "agent", label: "Agent", icon: <AnimatedBot strokeWidth={1.75} /> },
+  { id: "memory", label: "Memory", icon: <AnimatedBrain strokeWidth={1.75} /> },
+  { id: "about", label: "About", icon: <AnimatedInfo strokeWidth={1.75} /> },
 ];
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
+    >
+      <AnimatedArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} isHovered={hovered} />
+      <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
+    </button>
+  );
+}
+
+interface SettingsNavButtonProps {
+  id: SettingsSection;
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}
+
+function SettingsNavButton({ label, icon, active, onClick }: SettingsNavButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none hover:bg-fill-hover ${
+        active ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
+      }`}
+      style={{ isolation: "isolate" }}
+    >
+      {active && (
+        <motion.div
+          layoutId="active-settings-highlight"
+          className="absolute inset-0 rounded-xl bg-fill-active -z-10"
+          transition={{ type: "spring", stiffness: 600, damping: 48 }}
+        />
+      )}
+      <span className="relative z-10 shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon, { isHovered: hovered || active } as any)
+          : icon}
+      </span>
+      <span className="relative z-10 truncate text-ui-lg font-medium tracking-[-0.01em]">
+        {label}
+      </span>
+    </button>
+  );
+}
 
 export default function SettingsView({
   onClose,
@@ -72,44 +124,21 @@ export default function SettingsView({
           className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
         >
           <nav className="flex flex-col px-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
-            >
-              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
-            </button>
+            <BackButton onClick={onClose} />
 
             <div className="h-4" />
 
             <div className="flex flex-col gap-0.5">
-              {SECTIONS.map((s) => {
-                const active = s.id === section;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSection(s.id)}
-                    className={`group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none hover:bg-fill-hover ${
-                      active ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
-                    }`}
-                    style={{ isolation: "isolate" }}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="active-settings-highlight"
-                        className="absolute inset-0 rounded-xl bg-fill-active -z-10"
-                        transition={{ type: "spring", stiffness: 600, damping: 48 }}
-                      />
-                    )}
-                    <span className="relative z-10 shrink-0 [&>svg]:h-4 [&>svg]:w-4">{s.icon}</span>
-                    <span className="relative z-10 truncate text-ui-lg font-medium tracking-[-0.01em]">
-                      {s.label}
-                    </span>
-                  </button>
-                );
-              })}
+              {SECTIONS.map((s) => (
+                <SettingsNavButton
+                  key={s.id}
+                  id={s.id}
+                  label={s.label}
+                  icon={s.icon}
+                  active={s.id === section}
+                  onClick={() => setSection(s.id)}
+                />
+              ))}
             </div>
           </nav>
         </div>

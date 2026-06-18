@@ -1,17 +1,11 @@
+import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Check,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Search,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Blocks, Check, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import AnimatedTrash from "./AnimatedTrash";
+import AnimatedPencil from "./AnimatedPencil";
+import AnimatedArrowLeft from "./AnimatedArrowLeft";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -100,6 +94,86 @@ const skillsMdComponents = {
     />
   ),
 };
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
+    >
+      <AnimatedArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} isHovered={hovered} />
+      <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
+    </button>
+  );
+}
+
+interface DropdownButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+function DropdownButton({ icon, label, onClick, danger }: DropdownButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover ${
+        danger
+          ? "text-danger hover:text-danger-hover"
+          : "text-text-secondary hover:text-text-primary"
+      }`}
+    >
+      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon, { isHovered: hovered } as any)
+          : icon}
+      </span>
+      <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function FormBackButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
+    >
+      <AnimatedArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} isHovered={hovered} />
+    </button>
+  );
+}
+
+function FormDeleteButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-ui font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
+    >
+      <AnimatedTrash className="h-3.5 w-3.5" strokeWidth={2.25} isHovered={hovered} />
+      Delete
+    </button>
+  );
+}
 
 export default function SkillsView({
   onClose,
@@ -238,14 +312,7 @@ export default function SkillsView({
         >
           <nav className="flex flex-col px-2 pt-2">
             {/* Back — full nav item, same as Settings */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
-            >
-              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
-            </button>
+            <BackButton onClick={onClose} />
 
             <div className="h-3" />
 
@@ -421,7 +488,7 @@ export default function SkillsView({
             </div>
           ) : loadState === "ok" && skills.length > 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3">
-              <Sparkles className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
+              <Blocks className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
               <p className="text-title font-semibold tracking-[-0.02em] text-text-muted">
                 Select a skill
               </p>
@@ -453,32 +520,27 @@ export default function SkillsView({
               }}
               className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
             >
-              <button
-                type="button"
+              <DropdownButton
+                icon={
+                  <AnimatedPencil
+                    className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
+                    strokeWidth={2.25}
+                  />
+                }
+                label="Edit"
                 onClick={() => handleEdit(menuSkillName)}
-                className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-text-secondary hover:text-text-primary"
-              >
-                <Pencil
-                  className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
-                  strokeWidth={1.75}
-                />
-                <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
-                  Edit
-                </span>
-              </button>
-              <button
-                type="button"
+              />
+              <DropdownButton
+                icon={
+                  <AnimatedTrash
+                    className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
+                    strokeWidth={2.25}
+                  />
+                }
+                label="Delete"
+                danger
                 onClick={() => handleDelete(menuSkillName)}
-                className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-danger hover:text-danger-hover"
-              >
-                <Trash2
-                  className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
-                  strokeWidth={1.75}
-                />
-                <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
-                  Delete
-                </span>
-              </button>
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>,
@@ -505,6 +567,7 @@ function SkillForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const isCreate = !existing;
 
   const handleSave = async () => {
@@ -538,13 +601,7 @@ function SkillForm({
   return (
     <div className="px-8 py-7">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-fill-hover hover:text-text-secondary"
-        >
-          <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.75} />
-        </button>
+        <FormBackButton onClick={onCancel} />
         <h2 className="flex-1 text-title font-semibold tracking-[-0.02em] text-text-primary">
           {isCreate ? "New Skill" : `Edit ${existing.name}`}
         </h2>
@@ -654,14 +711,7 @@ function SkillForm({
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-ui font-medium text-text-secondary transition-colors hover:bg-fill-hover hover:text-text-primary"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      Delete
-                    </button>
+                    <FormDeleteButton onClick={() => setShowDeleteConfirm(true)} />
                   </motion.div>
                 )}
               </AnimatePresence>

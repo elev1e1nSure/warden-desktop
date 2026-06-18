@@ -1,17 +1,14 @@
+import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronDown,
-  MoreHorizontal,
-  Pencil,
-  Plug,
-  Settings,
-  Sparkles,
-  SquarePen,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, MoreHorizontal, Plug } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Chat } from "../types";
+import AnimatedBlocks from "./AnimatedBlocks";
+import AnimatedSquarePen from "./AnimatedSquarePen";
+import AnimatedSettings from "./AnimatedSettings";
+import AnimatedTrash from "./AnimatedTrash";
+import AnimatedPencil from "./AnimatedPencil";
 
 interface SidebarProps {
   chats: Chat[];
@@ -31,22 +28,65 @@ interface NavButtonProps {
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  active?: boolean;
 }
 
-function NavButton({ icon, label, onClick, disabled }: NavButtonProps) {
+function NavButton({ icon, label, onClick, disabled, active }: NavButtonProps) {
+  const [hovered, setHovered] = useState(false);
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
         disabled
           ? "cursor-default text-text-faint"
-          : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
+          : active
+            ? "bg-fill-active text-text-primary"
+            : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
       }`}
     >
-      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
+      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon, { isHovered: hovered || active } as any)
+          : icon}
+      </span>
       <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+interface DropdownButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+function DropdownButton({ icon, label, onClick, danger }: DropdownButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover ${
+        danger
+          ? "text-danger hover:text-danger-hover"
+          : "text-text-secondary hover:text-text-primary"
+      }`}
+    >
+      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon, { isHovered: hovered } as any)
+          : icon}
+      </span>
+      <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
         {label}
       </span>
     </button>
@@ -108,23 +148,17 @@ function Sidebar({
     >
       {/* Primary nav */}
       <nav className="flex flex-col gap-px overflow-hidden px-2 pt-2">
-        <NavButton icon={<SquarePen strokeWidth={1.75} />} label="New Chat" onClick={onNewChat} />
-        <button
-          type="button"
+        <NavButton
+          icon={<AnimatedSquarePen strokeWidth={1.75} />}
+          label="New Chat"
+          onClick={onNewChat}
+        />
+        <NavButton
+          icon={<AnimatedBlocks strokeWidth={1.75} />}
+          label="Skills"
+          active={skillsActive}
           onClick={onOpenSkills}
-          className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
-            skillsActive
-              ? "bg-fill-active text-text-primary"
-              : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
-          }`}
-        >
-          <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
-            <Sparkles strokeWidth={1.75} />
-          </span>
-          <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
-            Skills
-          </span>
-        </button>
+        />
         <NavButton icon={<Plug strokeWidth={1.75} />} label="MCPs" disabled />
       </nav>
 
@@ -253,7 +287,7 @@ function Sidebar({
       {/* Settings pinned to bottom */}
       <div className="px-2 pb-2">
         <NavButton
-          icon={<Settings strokeWidth={1.75} />}
+          icon={<AnimatedSettings strokeWidth={1.75} />}
           label="Settings"
           onClick={onOpenSettings}
         />
@@ -286,39 +320,34 @@ function Sidebar({
                       }}
                       className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
                     >
-                      <button
-                        type="button"
+                      <DropdownButton
+                        icon={
+                          <AnimatedPencil
+                            className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
+                            strokeWidth={2.25}
+                          />
+                        }
+                        label="Rename"
                         onClick={() => {
                           setRenamingId(chat.id);
                           setRenameValue(chat.title);
                           setMenuChatId(null);
                         }}
-                        className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-text-secondary hover:text-text-primary"
-                      >
-                        <Pencil
-                          className="h-3.5 w-3.5 shrink-0 text-text-muted group-hover:text-text-secondary"
-                          strokeWidth={1.75}
-                        />
-                        <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
-                          Rename
-                        </span>
-                      </button>
-                      <button
-                        type="button"
+                      />
+                      <DropdownButton
+                        icon={
+                          <AnimatedTrash
+                            className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
+                            strokeWidth={2.25}
+                          />
+                        }
+                        label="Delete"
+                        danger
                         onClick={() => {
                           onDeleteChat(chat.id);
                           setMenuChatId(null);
                         }}
-                        className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover text-danger hover:text-danger-hover"
-                      >
-                        <Trash2
-                          className="h-3.5 w-3.5 shrink-0 text-danger opacity-70 group-hover:opacity-100"
-                          strokeWidth={1.75}
-                        />
-                        <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
-                          Delete
-                        </span>
-                      </button>
+                      />
                     </motion.div>
                   </div>
                 );
