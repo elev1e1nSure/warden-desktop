@@ -1,5 +1,4 @@
-// REST wrappers around the local Python backend.
-
+import ky, { HTTPError } from "ky";
 import type { Block } from "../types";
 import type {
   AppSettings,
@@ -17,7 +16,6 @@ import type {
 
 export const API_BASE = "http://127.0.0.1:8765";
 
-// Module-level token cache, populated by `initAuthToken()` on startup.
 let authToken: string | null = null;
 
 export function setAuthToken(token: string): void {
@@ -28,37 +26,53 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
   return authToken ? { ...extra, "X-Warden-Token": authToken } : extra;
 }
 
+const client = ky.create({
+  prefix: API_BASE,
+  timeout: 30_000,
+  retry: 0,
+  hooks: {
+    beforeRequest: [
+      ({ request }) => {
+        if (authToken) request.headers.set("X-Warden-Token", authToken);
+      },
+    ],
+  },
+});
+
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(API_BASE + path, {
-    headers: authHeaders({ "Content-Type": "application/json" }),
-  });
-  if (!res.ok) throw new Error(`GET ${path} -> ${res.status}`);
-  return (await res.json()) as T;
+  try {
+    return await client.get(path).json<T>();
+  } catch (err) {
+    if (err instanceof HTTPError) {
+      throw new Error(`GET ${path} -> ${err.response.status}`);
+    }
+    throw err;
+  }
 }
 
 async function postJSON<T = unknown>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(API_BASE + path, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(text || `POST ${path} -> ${res.status}`);
-  }
-  if (!text) return undefined as T;
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    return text as unknown as T;
+    const res = await client.post(path, body !== undefined ? { json: body } : {});
+    const text = await res.text();
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as unknown as T;
+    }
+  } catch (err) {
+    if (err instanceof HTTPError) {
+      const text = await err.response.text().catch(() => "");
+      throw new Error(text || `POST ${path} -> ${err.response.status}`);
+    }
+    throw err;
   }
 }
 
 export const api = {
-  /** Returns true when the backend answers /health. */
   async health(): Promise<boolean> {
     try {
-      const res = await fetch(`${API_BASE}/health`);
+      const res = await client.get("health");
       return res.ok;
     } catch {
       return false;
@@ -129,13 +143,8 @@ export const api = {
   async uploadFile(file: File): Promise<string> {
     const form = new FormData();
     form.append("files", file);
-    const res = await fetch(`${API_BASE}/upload`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: form,
-    });
-    if (!res.ok) throw new Error(`upload failed: ${res.status}`);
-    const data = (await res.json()) as { files: { id: string }[] };
+    const res = await client.post("upload", { body: form });
+    const data = await res.json<{ files: { id: string }[] }>();
     return data.files[0]?.id ?? "";
   },
 };
