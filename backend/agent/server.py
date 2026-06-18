@@ -5,7 +5,7 @@ import secrets
 
 from aiohttp import web
 
-from agent.app_state import Backend, _auth_token_path, _warden_data_dir
+from agent.app_state import Backend, _auth_token_path
 from agent.logger import info, success, warn
 from agent.logger import request as log_request
 from agent.routes.chat import (
