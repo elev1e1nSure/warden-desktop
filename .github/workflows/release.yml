@@ -126,13 +126,19 @@ jobs:
 
       - name: Generate latest.json for updater
         run: |
+          SIG_FILE=$(ls artifacts/*.sig 2>/dev/null | head -1)
+          if [ -z "$SIG_FILE" ]; then
+            echo "No .sig file found — skipping latest.json (TAURI_SIGNING_PRIVATE_KEY not configured)"
+            exit 0
+          fi
+
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
           REPO="${GITHUB_REPOSITORY}"
 
           INSTALLER=$(ls artifacts/*.exe | head -1)
           INSTALLER_NAME=$(basename "$INSTALLER")
-          SIG=$(cat artifacts/*.sig)
+          SIG=$(cat "$SIG_FILE")
           PUB_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           NOTES=$(cat release_notes.md)
           DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${INSTALLER_NAME}"
@@ -159,5 +165,5 @@ jobs:
         with:
           files: |
             artifacts/**
-            latest.json
+            latest.json*
           body_path: release_notes.md
