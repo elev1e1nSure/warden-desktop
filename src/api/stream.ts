@@ -1,5 +1,5 @@
 // NDJSON streaming client for POST /chat.
-import { API_BASE } from "./client";
+import { API_BASE, authHeaders } from "./client";
 import type { ChatEvent } from "./types";
 
 export interface ChatPayload {
@@ -22,7 +22,7 @@ export async function streamChat(
   try {
     res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
       signal,
     });
@@ -70,5 +70,11 @@ export async function streamChat(
     if (err instanceof Error && err.name === "AbortError") return;
     onEvent({ type: "error", text: String(err) });
     onEvent({ type: "done", token_count: 0, token_limit: 0 });
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // ignore
+    }
   }
 }

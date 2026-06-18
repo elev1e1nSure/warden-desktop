@@ -1,31 +1,31 @@
 # Warden Desktop Docs
 
-Это короткая карта проекта. Здесь нет правил для контрибьюторов; эти документы нужны, чтобы быстро понять, что это за приложение, из каких частей оно собрано и как его запустить.
+This is a short project map. There are no contributor rules here; these documents exist to help you quickly understand what the application does, how its components are assembled, and how to run it.
 
-## Что читать
+## What to Read
 
-- [project.md](project.md) — что делает проект и где его границы.
-- [architecture.md](architecture.md) — как связаны desktop UI, Tauri и backend.
-- [setup.md](setup.md) — как поднять проект локально и собрать приложение.
+- [project.md](project.md) — what the project does and where its boundaries are.
+- [architecture.md](architecture.md) — how the desktop UI, Tauri wrapper, and backend are connected.
+- [setup.md](setup.md) — how to set up the project locally and build the application.
 
-## Структура документации
+## Documentation Structure
 
 ```text
 docs/
-  README.md        # входная точка
-  project.md       # о проекте
-  architecture.md  # как устроено
-  setup.md         # как запустить и собрать
+  README.md        # entry point
+  project.md       # about the project
+  architecture.md  # how it works
+  setup.md         # how to run and build
 ```
 
-## Быстрая карта проекта
+## Quick Project Map
 
 ```text
 warden-desktop/
   backend/         # Python backend: agent runtime, tools, memory, skills
-  src/             # React UI для desktop-приложения
-  src-tauri/       # Tauri shell, окно, сборка desktop-приложения
-  scripts/         # dev/build scripts для backend
-  public/          # статические frontend assets
-  dist/            # результат frontend build
+  src/             # React UI for the desktop application
+  src-tauri/       # Tauri shell, window, desktop application compilation
+  scripts/         # dev/build scripts for the backend
+  public/          # static frontend assets
+  dist/            # frontend build output
 ```

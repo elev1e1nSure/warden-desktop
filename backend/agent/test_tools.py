@@ -27,7 +27,8 @@ def test_file_list_tool_blocks_outside_workspace(monkeypatch) -> None:
     monkeypatch.chdir(base)
 
     out = asyncio.run(FileListTool().execute({"path": str(outside)}))
-    assert "outside allowed scope" in out
+    assert "outside" in out
+    assert "workspace" in out
 
 
 def test_file_list_tool_skips_symlink_escape(monkeypatch) -> None:

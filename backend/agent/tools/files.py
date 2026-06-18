@@ -9,7 +9,23 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from agent.safety._filesystem import is_dangerous_path, is_path_within_workspace
 from agent.tools.base import Tool, ToolResult, _diff_full, _diff_stats, _in_cwd
+
+
+def _workspace_root() -> Path:
+    return Path.cwd().resolve()
+
+
+def _ensure_within_workspace(path: str) -> str | None:
+    """Return an error string if `path` escapes the workspace, else None."""
+    if not path:
+        return "error: path is required"
+    if is_dangerous_path(path):
+        return "error: path is outside allowed scope"
+    if not is_path_within_workspace(path, _workspace_root()):
+        return "error: path is outside the workspace"
+    return None
 
 
 class FileReadTool(Tool):
@@ -45,6 +61,12 @@ class FileReadTool(Tool):
         limit = args.get("limit")
         if offset < 1:
             offset = 1
+        # Defence-in-depth: the safety layer already gates reads outside the
+        # workspace, but refuse here too so a misconfigured policy or a direct
+        # caller cannot read arbitrary files (e.g. ~/.ssh/id_rsa, .env).
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
         try:
             try:
                 if os.path.getsize(path) > 50 * 1024 * 1024:
@@ -97,7 +119,11 @@ class GlobTool(Tool):
 
     async def execute(self, args: dict[str, Any]) -> str:
         pattern = args.get("pattern", "")
-        base = pathlib.Path(args.get("path") or ".").resolve()
+        base_input = args.get("path") or "."
+        guard = _ensure_within_workspace(base_input)
+        if guard is not None:
+            return guard
+        base = pathlib.Path(base_input).resolve()
 
         def _mtime(p: pathlib.Path) -> float:
             try:
@@ -150,6 +176,10 @@ class GrepTool(Tool):
         path = args.get("path") or "."
         glob_filter = args.get("glob", "")
         nocase = args.get("case_insensitive", False)
+
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
 
         rg = shutil.which("rg")
         if rg:
@@ -237,6 +267,9 @@ class EditTool(Tool):
         new = args.get("new_string", "")
         if not old:
             return "error: old_string is empty"
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
@@ -281,6 +314,9 @@ class FileWriteTool(Tool):
     async def execute(self, args: dict[str, Any]) -> str:
         path = args.get("path", "")
         content = args.get("content", "")
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
         try:
             d = os.path.dirname(os.path.abspath(path))
             if d:
@@ -311,10 +347,11 @@ class FileDeleteTool(Tool):
 
     async def execute(self, args: dict[str, Any]) -> str:
         path = args.get("path", "")
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
         try:
             abs_path = os.path.abspath(path)
-            if not _in_cwd(path):
-                return "error: cannot delete files outside current directory"
             if not os.path.exists(abs_path):
                 return f"error: not found: {path}"
             if os.path.isdir(abs_path):
@@ -332,13 +369,14 @@ class FileListTool(Tool):
 
     async def execute(self, args: dict[str, Any]) -> str:
         path = args.get("path", ".")
+        guard = _ensure_within_workspace(path)
+        if guard is not None:
+            return guard
         try:
             from agent.safety._filesystem import is_path_within_workspace
 
             target = Path(path).resolve()
-            workspace = Path.cwd().resolve()
-            if not is_path_within_workspace(target, workspace):
-                return "error: path is outside allowed scope"
+            workspace = _workspace_root()
             with os.scandir(path) as entries_iter:
                 entries = sorted(entries_iter, key=lambda e: e.name.lower())
             dirs, files = [], []
