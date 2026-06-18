@@ -22,6 +22,7 @@ import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
 import Toaster, { toast } from "./components/Toaster";
+import { useWindowSpansFull } from "./hooks/useWindowSpansFull";
 import { EASE } from "./motion";
 import type { Block, Chat, Model } from "./types";
 
@@ -72,7 +73,7 @@ function App() {
   const [gen, setGen] = useState(0);
   const [view, setView] = useState<AppView>("chat");
   const [followTimeline, setFollowTimeline] = useState(true);
-  const [windowSpansFull, setWindowSpansFull] = useState(false);
+  const windowSpansFull = useWindowSpansFull();
 
   // blocksRef mirrors state so event handlers stay pure (StrictMode-safe).
   const blocksRef = useRef<Block[]>([]);
@@ -223,70 +224,6 @@ function App() {
     const el = e.currentTarget;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     setFollowTimeline(nearBottom);
-  }, []);
-
-  // When the window is maximised or fullscreen, the chrome (sidebar) becomes a
-  // small fraction of the screen. Centering the empty-state heading and the
-  // input bar inside `main` then looks visually off-center relative to the
-  // app. Shift them left by half the sidebar width so they sit at the
-  // window's true centre. Plain floating windows stay centred inside `main`.
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let cancelled = false;
-    let timeoutId: number | undefined;
-
-    (async () => {
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const win = getCurrentWindow();
-        const sync = async () => {
-          if (cancelled) return;
-          try {
-            const [fs, mx] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
-            if (!cancelled) setWindowSpansFull(fs || mx);
-          } catch {
-            // not running inside Tauri or window API failed — keep default
-          }
-        };
-
-        const debouncedSync = () => {
-          if (timeoutId) window.clearTimeout(timeoutId);
-          timeoutId = window.setTimeout(sync, 150);
-        };
-
-        await sync();
-        if (cancelled) return;
-
-        const u1 = await win.listen("tauri://enter-fullscreen", debouncedSync);
-        if (cancelled) return;
-        const u2 = await win.listen("tauri://leave-fullscreen", debouncedSync);
-        if (cancelled) return;
-        const u3 = await win.listen("tauri://maximize", debouncedSync);
-        if (cancelled) return;
-        const u4 = await win.listen("tauri://unmaximize", debouncedSync);
-        if (cancelled) return;
-        const u5 = await win.listen("tauri://resize", debouncedSync);
-
-        window.addEventListener("resize", debouncedSync);
-
-        unlisten = () => {
-          u1();
-          u2();
-          u3();
-          u4();
-          u5();
-          window.removeEventListener("resize", debouncedSync);
-        };
-      } catch {
-        // not running inside Tauri (e.g. plain `vite dev`) — keep default
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (timeoutId) window.clearTimeout(timeoutId);
-      unlisten?.();
-    };
   }, []);
 
   // Wait for the backend to come up, then load status.
@@ -786,12 +723,14 @@ function App() {
     <MotionConfig reducedMotion="user">
       <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
         <div className="flex min-h-0 flex-1 relative">
-          <div
-            className={
-              view === "skills"
-                ? "flex min-h-0 flex-1"
-                : "absolute inset-0 opacity-0 pointer-events-none"
-            }
+          <motion.div
+            animate={{
+              opacity: view === "skills" ? 1 : 0,
+              scale: view === "skills" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "skills" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
           >
             <SkillsView
               onClose={handleCloseSkills}
@@ -799,13 +738,15 @@ function App() {
               sidebarWidth={sidebarWidth}
               setSidebarWidth={setSidebarWidth}
             />
-          </div>
-          <div
-            className={
-              view === "settings"
-                ? "flex min-h-0 flex-1"
-                : "absolute inset-0 opacity-0 pointer-events-none"
-            }
+          </motion.div>
+          <motion.div
+            animate={{
+              opacity: view === "settings" ? 1 : 0,
+              scale: view === "settings" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "settings" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
           >
             <SettingsView
               onClose={handleCloseSettings}
@@ -818,13 +759,15 @@ function App() {
               sidebarWidth={sidebarWidth}
               setSidebarWidth={setSidebarWidth}
             />
-          </div>
-          <div
-            className={
-              view === "chat"
-                ? "relative overflow-hidden flex min-h-0 flex-1"
-                : "absolute inset-0 opacity-0 pointer-events-none"
-            }
+          </motion.div>
+          <motion.div
+            animate={{
+              opacity: view === "chat" ? 1 : 0,
+              scale: view === "chat" ? 1 : 0.98,
+            }}
+            transition={{ duration: 0.2, ease: EASE }}
+            style={{ pointerEvents: view === "chat" ? "auto" : "none" }}
+            className="absolute inset-0 flex overflow-hidden"
           >
             {/* Ambient orbs at layout level so they show through the glass sidebar */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -1028,7 +971,7 @@ function App() {
                 </div>
               </div>
             </main>
-          </div>
+        </motion.div>
         </div>
 
         <AnimatePresence>
