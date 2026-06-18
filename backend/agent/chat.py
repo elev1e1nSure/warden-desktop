@@ -23,7 +23,39 @@ _EMOJI_RE = re.compile(
     flags=re.UNICODE,
 )
 
-_TOOLS = [t.tool_definition() for t in REGISTRY.values()]
+_CU_TOOLS = {"screenshot", "mouse", "keyboard"}
+_ALL_TOOLS = [t.tool_definition() for t in REGISTRY.values()]
+
+
+def _is_vision_model(model: str) -> bool:
+    """Detect if a model supports vision/image input."""
+    lower = model.lower()
+    vision_indicators = (
+        "vision",
+        "gpt-4o",
+        "gpt-4-turbo",
+        "claude-3",
+        "claude-3.5",
+        "gemini-1.5",
+        "gemini-2",
+        "r1",
+        "qwq",
+        "o3",
+        "o4",
+        "image",
+        "multimodal",
+        "see",
+    )
+    return any(indicator in lower for indicator in vision_indicators)
+
+
+def _get_tools_for_model(model: str) -> list[dict]:
+    """Return appropriate tools list based on model capabilities."""
+    if _is_vision_model(model):
+        return _ALL_TOOLS
+    return [t for t in _ALL_TOOLS if t["function"]["name"] not in _CU_TOOLS]
+
+
 MAX_ITER = 20
 
 _COMPACT_PROMPT = (
@@ -181,7 +213,6 @@ class ChatSession:
         self._extractor = MemoryExtractor()
         self.token_count: int = self._estimate_tokens()
         self.token_limit: int = _guess_context_limit(model)
-        self._cu_warned: dict = {"value": False}
         self.settings: dict = settings if settings is not None else {}
 
     def reset(self) -> None:
@@ -338,12 +369,13 @@ class ChatSession:
         in_think = False
         collected_tool_calls: list = []
         collected_reasoning_details: list[dict[str, Any]] = []
+        tools = _get_tools_for_model(self.model)
 
         try:
             async for chunk in self._client.chat(
                 model=self.model,
                 messages=messages,
-                tools=_TOOLS,
+                tools=tools,
             ):
                 if chunk.usage_tokens:
                     result["usage_tokens"] = chunk.usage_tokens
@@ -413,7 +445,7 @@ class ChatSession:
                     async for chunk in self._client.chat(
                         model=self.model,
                         messages=stripped,
-                        tools=_TOOLS,
+                        tools=tools,
                     ):
                         if chunk.usage_tokens:
                             result["usage_tokens"] = chunk.usage_tokens
@@ -444,7 +476,6 @@ class ChatSession:
             confirmation_manager=self.confirmation_manager,
             question_manager=self.question_manager,
             add_tool_result_fn=self.add_tool_result,
-            cu_warned=self._cu_warned,
             permissions=permissions,
         ):
             yield event
