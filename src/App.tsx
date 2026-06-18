@@ -158,7 +158,7 @@ function App() {
         } finally {
           prefetchingIdsRef.current.delete(id);
         }
-      })
+      }),
     );
   }, []);
 
@@ -442,6 +442,8 @@ function App() {
               <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
               <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
             </div>
+            {/* Frosted-glass layer — blurs orbs to push them visually behind glass */}
+            <div className="glass-orb-overlay" aria-hidden="true" />
             <Sidebar
               chats={chats}
               activeChatId={activeChatId}
