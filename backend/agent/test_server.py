@@ -57,6 +57,7 @@ def _make_app(backend: MagicMock, shutdown_event: asyncio.Event | None = None) -
     app.router.add_post("/mode", server_module.set_mode)
     app.router.add_get("/status", server_module.status)
     app.router.add_get("/chats", server_module.chats_list)
+    app.router.add_get("/chats/{id}", server_module.chat_get)
     app.router.add_post("/chats/new", server_module.chat_new)
     app.router.add_post("/chats/select", server_module.chat_select)
     app.router.add_post("/chats/rename", server_module.chat_rename)
@@ -194,6 +195,29 @@ async def test_chat_delete_active_resets_to_blank_draft(aiohttp_client):
     assert resp.status == 200
     backend.chat_store.delete_chat.assert_called_once_with("chat-1")
     backend._new_chat.assert_called_once_with(finalize_current=False)
+
+
+async def test_chat_get_ok(aiohttp_client):
+    backend = _make_backend()
+    backend.chat_store.get_chat.return_value = {"id": "chat-1", "title": "Test Chat", "blocks": []}
+    app = _make_app(backend)
+    client = await aiohttp_client(app)
+
+    resp = await client.get("/chats/chat-1")
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["chat"]["id"] == "chat-1"
+    backend.chat_store.get_chat.assert_called_once_with("chat-1")
+
+
+async def test_chat_get_not_found(aiohttp_client):
+    backend = _make_backend()
+    backend.chat_store.get_chat.return_value = None
+    app = _make_app(backend)
+    client = await aiohttp_client(app)
+
+    resp = await client.get("/chats/chat-1")
+    assert resp.status == 404
 
 
 # ── compact ───────────────────────────────────────────────────────────────────

@@ -83,6 +83,7 @@ export const api = {
   newChat: () => postJSON<{ chat: ChatDetail }>("/chats/new"),
 
   selectChat: (id: string) => postJSON<{ chat: ChatDetail }>("/chats/select", { id }),
+  getChat: (id: string) => getJSON<{ chat: ChatDetail }>(`/chats/${id}`),
 
   saveChatBlocks: (id: string, blocks: Block[]) => postJSON("/chats/blocks", { id, blocks }),
 

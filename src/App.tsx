@@ -26,7 +26,7 @@ import { useStreamSession } from "./hooks/useStreamSession";
 import { useUpdater } from "./hooks/useUpdater";
 import { useWindowSpansFull } from "./hooks/useWindowSpansFull";
 import { EASE } from "./motion";
-import type { Chat, Model } from "./types";
+import type { Block, Chat, Model } from "./types";
 
 type AppView = "chat" | "skills" | "settings";
 
@@ -60,11 +60,20 @@ function App() {
   // in flight, so a stale /status response can't flash the old model back.
   const pendingModelRef = useRef<string | null>(null);
 
+  // Per-chat block cache. Re-opening a conversation renders from here instantly
+  // instead of waiting on the backend round-trip (that wait was the switch lag);
+  // the backend select still runs in the background to swap the active session.
+  const chatBlocksCacheRef = useRef<Map<string, Block[]>>(new Map());
+  // Latest activeChatId for async reconciliation — so a select that resolves
+  // after the user has already moved on doesn't overwrite the new chat.
+  const activeChatIdRef = useRef<string | null>(null);
+  // Tracks chat IDs currently being prefetched in the background to avoid duplicate requests.
+  const prefetchingIdsRef = useRef<Set<string>>(new Set());
+
   const { blocks, blocksRef, commit, loadBlocks, genId, flushActiveChatBlocks, stripEmptyThink } =
     useBlocks(activeChatId);
 
   const connected = Boolean(status?.connected);
-  const hasBlocks = blocks.length > 0;
 
   const welcomePhrase = useMemo(() => {
     const idx = Math.floor(Math.random() * WELCOME_PHRASES.length);
@@ -89,6 +98,11 @@ function App() {
     }),
     [status?.model],
   );
+
+  // Keep the ref in sync for async reconciliation after a chat switch.
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
 
   // Persist the sidebar width so it survives restarts.
   useEffect(() => {
@@ -128,6 +142,24 @@ function App() {
     }
   }, []);
 
+  const prefetchChats = useCallback(async (chatIds: string[]) => {
+    for (const id of chatIds) {
+      if (chatBlocksCacheRef.current.has(id) || prefetchingIdsRef.current.has(id)) {
+        continue;
+      }
+      prefetchingIdsRef.current.add(id);
+      try {
+        const res = await api.getChat(id);
+        const next = res.chat.blocks ?? [];
+        chatBlocksCacheRef.current.set(id, next);
+      } catch (err) {
+        console.error(`Failed to prefetch chat ${id}:`, err);
+      } finally {
+        prefetchingIdsRef.current.delete(id);
+      }
+    }
+  }, []);
+
   const loadChats = useCallback(async () => {
     try {
       const res = await api.listChats();
@@ -139,12 +171,15 @@ function App() {
             ? res.active_chat_id
             : null,
       );
+      // Prefetch blocks for all chats in the background
+      const chatIds = res.chats.map((chat) => chat.id);
+      void prefetchChats(chatIds);
       return res;
     } catch {
       setChats([]);
       return null;
     }
-  }, []);
+  }, [prefetchChats]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -178,7 +213,7 @@ function App() {
 
   // Empty state = the welcome screen with the input centred. The moment any
   // message exists or a turn is streaming, we switch to the conversation layout.
-  const emptyState = !(hasBlocks || streaming);
+  const emptyState = activeChatId === null;
 
   const handleToggleMode = useCallback(async () => {
     if (!status) return;
@@ -215,38 +250,70 @@ function App() {
 
   const handleNewChat = useCallback(async () => {
     try {
-      await flushActiveChatBlocks();
       handleStop();
-      await api.reset();
+
+      // Snapshot the chat we're leaving so coming back to it is instant.
+      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+
+      // Optimistically switch to empty welcome layout instantly
       setActiveChatId(null);
       loadBlocks([]);
       setFollowTimeline(true);
       setGen((g) => g + 1);
+
+      // Persist the outgoing chat in the background — it must not delay the
+      // empty state from showing.
+      await flushActiveChatBlocks();
+      await api.reset();
       await loadChats();
     } catch {
       // keep the current chat intact if reset fails
     }
-  }, [flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
+  }, [activeChatId, blocksRef, flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
 
   const handleSelectChat = useCallback(
     async (id: string) => {
       if (id === activeChatId) return;
-      try {
-        await flushActiveChatBlocks();
-        handleStop();
-        const res = await api.selectChat(id);
-        const blocks = res.chat.blocks ?? [];
-        setActiveChatId(res.chat.id);
-        loadBlocks(blocks);
-        setFollowTimeline(true);
+      handleStop();
+
+      // Snapshot the chat we're leaving so coming back to it is instant.
+      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+
+      // Optimistically switch chat selection in sidebar
+      setActiveChatId(id);
+
+      // Saving the outgoing chat writes to a different id than the one we're
+      // loading, so it doesn't need to block the switch — fire and forget.
+      void flushActiveChatBlocks().catch(() => {});
+
+      // Render from cache immediately when we've shown this chat before — no
+      // waiting on the backend. The select call below still runs to swap the
+      // active session, but the conversation is already on screen.
+      const cached = chatBlocksCacheRef.current.get(id);
+      if (cached) {
+        loadBlocks(cached);
         setGen((g) => g + 1);
-        await refreshStatus();
-        await loadChats();
+        setFollowTimeline(true);
+      }
+
+      try {
+        const res = await api.selectChat(id);
+        const next = res.chat.blocks ?? [];
+        chatBlocksCacheRef.current.set(id, next);
+        // On a cache hit the conversation is already shown — only non-active
+        // chats are cached and nothing but the active chat ever streams, so the
+        // cache can't be stale. Render the server's blocks only on a cache miss,
+        // and only if the user hasn't already moved to another chat.
+        if (!cached && activeChatIdRef.current === id) {
+          loadBlocks(next);
+          setGen((g) => g + 1);
+          setFollowTimeline(true);
+        }
       } catch {
-        // leave the current chat selected if the switch fails
+        // leave whatever is shown (cache) if the switch fails
       }
     },
-    [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, refreshStatus, loadChats],
+    [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, blocksRef],
   );
 
   const handleRenameChat = useCallback(async (id: string, title: string) => {
@@ -263,6 +330,7 @@ function App() {
     async (id: string) => {
       try {
         await api.deleteChat(id);
+        chatBlocksCacheRef.current.delete(id);
         if (id === activeChatId) {
           setActiveChatId(null);
           loadBlocks([]);
@@ -457,19 +525,20 @@ function App() {
                       {/* Switching chats swaps the whole conversation as one unit
                           (keyed by generation) rather than letting every block
                           reconcile and re-animate — that per-block churn was the
-                          jank. Empty↔chat is handled by the outer layer above and
-                          left untouched. */}
-                      <AnimatePresence mode="wait" initial={false}>
-                        <motion.div
-                          key={gen}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.08, ease: "linear" }}
-                        >
-                          <Timeline blocks={blocks} generation={gen} streaming={streaming} />
-                        </motion.div>
-                      </AnimatePresence>
+                          jank. The new conversation mounts straight away and grows
+                          in from the composer with a soft scale; there is no exit
+                          on the outgoing one, so there's no blank gap (the flicker)
+                          between them. Empty↔chat is handled by the outer layer
+                          above and left untouched. */}
+                      <motion.div
+                        key={gen}
+                        initial={{ opacity: 0, scale: 0.975 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.22, ease: EASE }}
+                        style={{ transformOrigin: "50% 100%" }}
+                      >
+                        <Timeline blocks={blocks} generation={gen} streaming={streaming} />
+                      </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>
