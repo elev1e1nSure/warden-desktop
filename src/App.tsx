@@ -375,6 +375,9 @@ function App() {
             label: "Install & Restart",
             onClick: async () => {
               try {
+                // Stop the backend before the installer tries to overwrite it.
+                await api.shutdown().catch(() => {});
+                await new Promise((r) => setTimeout(r, 1500));
                 const { relaunch } = await import("@tauri-apps/plugin-process");
                 await update.downloadAndInstall();
                 await relaunch();
