@@ -1,3 +1,5 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, Check, File, FileText, Paperclip, Search, Square, X } from "lucide-react";
 import {
@@ -29,6 +31,34 @@ export interface AttachedFile {
 
 function isImage(file: File) {
   return file.type.startsWith("image/");
+}
+
+function mimeFromPath(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    svg: "image/svg+xml",
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    html: "text/html",
+    css: "text/css",
+    csv: "text/csv",
+    xml: "application/xml",
+    yaml: "text/yaml",
+    yml: "text/yaml",
+    py: "text/x-python",
+    js: "text/javascript",
+    ts: "text/typescript",
+    jsx: "text/jsx",
+    tsx: "text/tsx",
+  };
+  return map[ext] ?? "";
 }
 
 function isTextLike(name: string) {
@@ -295,8 +325,58 @@ function InputBar({
     setCaret(t.selectionStart ?? t.value.length);
   };
 
-  const handleFilePick = () => {
-    fileInputRef.current?.click();
+  const handleFilePick = async () => {
+    try {
+      const paths = await open({
+        multiple: true,
+        filters: [
+          {
+            name: "All supported",
+            extensions: [
+              "png",
+              "jpg",
+              "jpeg",
+              "gif",
+              "webp",
+              "bmp",
+              "svg",
+              "txt",
+              "py",
+              "js",
+              "ts",
+              "jsx",
+              "tsx",
+              "json",
+              "md",
+              "html",
+              "css",
+              "csv",
+              "xml",
+              "yaml",
+              "yml",
+            ],
+          },
+        ],
+      });
+      if (!paths) return;
+
+      const files: File[] = [];
+      for (const path of paths) {
+        try {
+          const url = convertFileSrc(path);
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const name = path.split(/[\\/]/).pop() ?? "file";
+          files.push(new globalThis.File([blob], name, { type: mimeFromPath(path) }));
+        } catch {
+          // skip unreadable files
+        }
+      }
+      if (files.length > 0) addFiles(files);
+    } catch {
+      // Not inside Tauri — fall back to browser file input
+      fileInputRef.current?.click();
+    }
   };
 
   const addFiles = (files: FileList | File[]) => {
