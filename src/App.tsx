@@ -795,6 +795,7 @@ function App() {
           >
             <SkillsView
               onClose={handleCloseSkills}
+              ready={connected}
               sidebarWidth={sidebarWidth}
               setSidebarWidth={setSidebarWidth}
             />

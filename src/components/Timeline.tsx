@@ -575,12 +575,12 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
   const expandable = !live && hasContent;
 
   return (
-    <div className="py-0.5">
+    <div className="-ml-5 py-0.5">
       <button
         type="button"
         onClick={() => expandable && setOpen((v) => !v)}
         disabled={!expandable}
-        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-secondary transition-colors hover:text-text-primary disabled:cursor-default disabled:hover:text-text-secondary"
       >
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           {expandable && (

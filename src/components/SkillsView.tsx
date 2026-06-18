@@ -103,10 +103,12 @@ const skillsMdComponents = {
 
 export default function SkillsView({
   onClose,
+  ready,
   sidebarWidth,
   setSidebarWidth,
 }: {
   onClose: () => void;
+  ready: boolean;
   sidebarWidth: number;
   setSidebarWidth: (w: number) => void;
 }) {
@@ -134,12 +136,13 @@ export default function SkillsView({
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     if (!cancelled) loadSkills();
     return () => {
       cancelled = true;
     };
-  }, [loadSkills]);
+  }, [ready, loadSkills]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
