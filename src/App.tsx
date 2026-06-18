@@ -21,7 +21,7 @@ import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
-import Toaster, { toast } from "./components/Toaster";
+import Toaster from "./components/Toaster";
 import { EASE } from "./motion";
 import type { Block, Chat, Model } from "./types";
 
@@ -358,40 +358,6 @@ function App() {
       cancelled = true;
     };
   }, [refreshStatus, loadModels, loadChats]);
-
-  // Check for updates once on startup (skipped in dev).
-  useEffect(() => {
-    if (!import.meta.env.PROD) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { check } = await import("@tauri-apps/plugin-updater");
-        const update = await check();
-        if (cancelled || !update) return;
-        toast(`Update available: v${update.version}`, {
-          description: "A new version of Warden is ready to install.",
-          duration: Number.POSITIVE_INFINITY,
-          action: {
-            label: "Install & Restart",
-            onClick: async () => {
-              try {
-                const { relaunch } = await import("@tauri-apps/plugin-process");
-                await update.downloadAndInstall();
-                await relaunch();
-              } catch {
-                toast.error("Update failed. Download the latest version manually.");
-              }
-            },
-          },
-        });
-      } catch {
-        // Not in Tauri, updater not configured, or no update — all non-fatal
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const appendText = useCallback(
     (slot: React.MutableRefObject<string | null>, kind: "assistant" | "think", text: string) => {

@@ -97,8 +97,6 @@ pub fn run() {
     tauri::Builder::default()
         .manage(BackendProc(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![get_backend_token])
         .setup(|app| {
             let handle = app.handle().clone();
