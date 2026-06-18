@@ -1,31 +1,40 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, MessageCircle, Zap } from "lucide-react";
+import { Check, ChevronDown, MessageCircle, SlidersHorizontal, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Tooltip from "./Tooltip";
 
-const MODES = [
+type ModeValue = "ask" | "auto" | "custom";
+
+const MODES: { value: ModeValue; label: string; Icon: React.FC<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }>; description: string }[] = [
   {
-    value: "ask" as const,
+    value: "ask",
     label: "Ask",
     Icon: MessageCircle,
     description: "Confirms before each action",
   },
   {
-    value: "auto" as const,
+    value: "auto",
     label: "Auto",
     Icon: Zap,
     description: "Runs actions without asking",
+  },
+  {
+    value: "custom",
+    label: "Custom",
+    Icon: SlidersHorizontal,
+    description: "Uses your permission settings",
   },
 ];
 
 interface ModeToggleProps {
   auto: boolean;
+  hasCustomPermissions?: boolean;
   disabled?: boolean;
   onToggle: () => void;
   onOpen?: () => void;
 }
 
-export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeToggleProps) {
+export default function ModeToggle({ auto, hasCustomPermissions, disabled, onToggle, onOpen }: ModeToggleProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,13 +47,15 @@ export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeTog
     return () => document.removeEventListener("mousedown", down);
   }, [open]);
 
-  const handleSelect = (value: "auto" | "ask") => {
-    if ((value === "auto") !== auto) onToggle();
+  const activeValue: ModeValue = auto ? "auto" : hasCustomPermissions ? "custom" : "ask";
+
+  const handleSelect = (value: ModeValue) => {
+    const wantsAuto = value === "auto";
+    if (wantsAuto !== auto) onToggle();
     setOpen(false);
   };
 
-  const current = MODES.find((m) => m.value === (auto ? "auto" : "ask"));
-  if (!current) return null;
+  const current = MODES.find((m) => m.value === activeValue)!;
 
   return (
     <div ref={ref} className="relative">
@@ -56,24 +67,35 @@ export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeTog
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: "bottom left" }}
-            className="accelerate-scale absolute bottom-full left-0 z-50 mb-2 w-40 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
+            className="accelerate-scale absolute bottom-full left-0 z-50 mb-2 w-44 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
           >
             {MODES.map(({ value, label, Icon }) => {
-              const active = (value === "auto") === auto;
+              const active = value === activeValue;
+              const isCustomUnavailable = value === "custom" && !hasCustomPermissions;
+
               return (
                 <button
                   key={value}
                   type="button"
+                  disabled={isCustomUnavailable}
                   onClick={() => handleSelect(value)}
-                  className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover"
+                  className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
+                    isCustomUnavailable
+                      ? "opacity-30 cursor-not-allowed"
+                      : "hover:bg-fill-hover"
+                  }`}
                 >
                   <Icon
                     className={`h-3.5 w-3.5 shrink-0 transition-colors ${
                       active && value === "auto"
                         ? "text-accent"
-                        : active
-                          ? "text-text-primary"
-                          : "text-text-muted group-hover:text-text-secondary"
+                        : active && value === "custom"
+                          ? "text-amber-400"
+                          : active
+                            ? "text-text-primary"
+                            : isCustomUnavailable
+                              ? "text-text-muted"
+                              : "text-text-muted group-hover:text-text-secondary"
                     }`}
                     strokeWidth={active ? 2.25 : 1.75}
                   />
@@ -81,9 +103,11 @@ export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeTog
                     className={`flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors ${
                       active && value === "auto"
                         ? "text-accent"
-                        : active
-                          ? "text-text-primary"
-                          : "text-text-secondary"
+                        : active && value === "custom"
+                          ? "text-amber-400"
+                          : active
+                            ? "text-text-primary"
+                            : "text-text-secondary"
                     }`}
                   >
                     {label}
@@ -91,7 +115,11 @@ export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeTog
                   {active ? (
                     <Check
                       className={`h-3 w-3 shrink-0 ${
-                        value === "auto" ? "text-accent" : "text-text-secondary"
+                        value === "auto"
+                          ? "text-accent"
+                          : value === "custom"
+                            ? "text-amber-400"
+                            : "text-text-secondary"
                       }`}
                       strokeWidth={2.25}
                     />
@@ -115,9 +143,11 @@ export default function ModeToggle({ auto, disabled, onToggle, onOpen }: ModeTog
           }}
           disabled={disabled}
           className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors duration-150 disabled:opacity-40 ${
-            auto
+            activeValue === "auto"
               ? "text-accent hover:bg-fill-hover"
-              : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
+              : activeValue === "custom"
+                ? "text-amber-400 hover:bg-fill-hover"
+                : "text-text-secondary hover:bg-fill-hover hover:text-text-primary"
           }`}
         >
           <current.Icon className="h-4 w-4" strokeWidth={2.25} />

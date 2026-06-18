@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { api } from "./api/client";
-import type { StatusResult } from "./api/types";
+import type { PermissionsState, StatusResult } from "./api/types";
 import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
 import InputBar from "./components/InputBar";
@@ -53,6 +53,7 @@ function App() {
   const [showConnect, setShowConnect] = useState(false);
   const [gen, setGen] = useState(0);
   const [view, setView] = useState<AppView>("chat");
+  const [permissions, setPermissions] = useState<PermissionsState | null>(null);
   const [followTimeline, setFollowTimeline] = useState(true);
   const windowSpansFull = useWindowSpansFull();
 
@@ -286,7 +287,7 @@ function App() {
 
       // Saving the outgoing chat writes to a different id than the one we're
       // loading, so it doesn't need to block the switch — fire and forget.
-      void flushActiveChatBlocks().catch(() => {});
+      void flushActiveChatBlocks().catch(() => { });
 
       // Render from cache immediately when we've shown this chat before — no
       // waiting on the backend. The select call below still runs to swap the
@@ -371,8 +372,28 @@ function App() {
     }
   }, [refreshStatus, loadModels, loadChats]);
 
+  const loadPermissions = useCallback(async () => {
+    try {
+      const p = await api.getPermissions();
+      setPermissions(p);
+    } catch {
+      // non-fatal
+    }
+  }, []);
+
+  useEffect(() => {
+    if (connected) void loadPermissions();
+    else setPermissions(null);
+  }, [connected, loadPermissions]);
+
+  const hasCustomPermissions =
+    permissions !== null && Object.values(permissions).some((v) => v !== "ask");
+
   const handleCloseSkills = useCallback(() => setView("chat"), []);
-  const handleCloseSettings = useCallback(() => setView("chat"), []);
+  const handleCloseSettings = useCallback(() => {
+    setView("chat");
+    void loadPermissions();
+  }, [loadPermissions]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -436,14 +457,6 @@ function App() {
             style={{ pointerEvents: view === "chat" ? "auto" : "none" }}
             className="absolute inset-0 flex overflow-hidden"
           >
-            {/* Ambient orbs at layout level so they show through the glass sidebar */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-              <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
-              <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
-              <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
-            </div>
-            {/* Frosted-glass layer — blurs orbs to push them visually behind glass */}
-            <div className="glass-orb-overlay" aria-hidden="true" />
             <Sidebar
               chats={chats}
               activeChatId={activeChatId}
@@ -496,6 +509,13 @@ function App() {
               }
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-2xl"
             >
+              {/* Ambient orbs scoped to the content area only */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
+                <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
+                <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
+              </div>
+              <div className="glass-orb-overlay" aria-hidden="true" />
               {/* Chat surface. The input bar is a single element that travels
                   between centre (empty state) and bottom (conversation) via a
                   layout="position" animation, so opening a new chat and sending
@@ -620,6 +640,7 @@ function App() {
                           disabled={!connected}
                           placeholder={connected ? "Message warden..." : "Connect a model first"}
                           auto={status?.mode === "auto"}
+                          hasCustomPermissions={hasCustomPermissions}
                           onToggleMode={connected ? handleToggleMode : undefined}
                           models={modelList}
                           selectedModel={selectedModel}

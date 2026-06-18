@@ -44,6 +44,7 @@ interface InputBarProps {
   disabled: boolean;
   placeholder?: string;
   auto?: boolean;
+  hasCustomPermissions?: boolean;
   onToggleMode?: () => void;
   models: Model[];
   selectedModel: Model;
@@ -85,6 +86,7 @@ function InputBar({
   disabled,
   placeholder,
   auto,
+  hasCustomPermissions,
   onToggleMode,
   models,
   selectedModel,
@@ -472,6 +474,7 @@ function InputBar({
               <div className="ml-2">
                 <ModeToggle
                   auto={Boolean(auto)}
+                  hasCustomPermissions={hasCustomPermissions}
                   disabled={streaming}
                   onToggle={onToggleMode}
                   onOpen={closePicker}
