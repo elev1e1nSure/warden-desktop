@@ -1,18 +1,23 @@
 import ky, { HTTPError } from "ky";
+import type { ZodType } from "zod";
 import type { Block } from "../types";
-import type {
-  AppSettings,
-  ChatDetail,
-  ChatListResult,
-  ConnectResult,
-  MemorySnapshot,
-  MemoryState,
-  ModelsResult,
-  PermissionLevel,
-  PermissionsState,
-  SkillInfo,
-  StatusResult,
-} from "./types";
+import {
+  AppSettingsSchema,
+  ChatListSchema,
+  ChatWrapSchema,
+  ClearMemorySchema,
+  CompactSchema,
+  ConnectSchema,
+  MemoryStateSchema,
+  ModelsSchema,
+  OkSchema,
+  PermissionsSchema,
+  SkillsListSchema,
+  SkillWrapSchema,
+  StatusSchema,
+  UploadSchema,
+} from "./schemas";
+import type { AppSettings, MemorySnapshot, PermissionLevel } from "./types";
 
 export const API_BASE = "http://127.0.0.1:8765";
 
@@ -39,9 +44,10 @@ const client = ky.create({
   },
 });
 
-async function getJSON<T>(path: string): Promise<T> {
+async function getJSON<T>(path: string, schema?: ZodType<T>): Promise<T> {
   try {
-    return await client.get(path).json<T>();
+    const data = await client.get(path).json<unknown>();
+    return schema ? (schema.parse(data) as T) : (data as T);
   } catch (err) {
     if (err instanceof HTTPError) {
       throw new Error(`GET ${path} -> ${err.response.status}`);
@@ -50,13 +56,18 @@ async function getJSON<T>(path: string): Promise<T> {
   }
 }
 
-async function postJSON<T = unknown>(path: string, body?: unknown): Promise<T> {
+async function postJSON<T = unknown>(
+  path: string,
+  body?: unknown,
+  schema?: ZodType<T>,
+): Promise<T> {
   try {
     const res = await client.post(path, body !== undefined ? { json: body } : {});
     const text = await res.text();
     if (!text) return undefined as T;
     try {
-      return JSON.parse(text) as T;
+      const data = JSON.parse(text) as unknown;
+      return schema ? (schema.parse(data) as T) : (data as T);
     } catch {
       return text as unknown as T;
     }
@@ -79,11 +90,11 @@ export const api = {
     }
   },
 
-  status: () => getJSON<StatusResult>("/status"),
+  status: () => getJSON("/status", StatusSchema),
 
-  connect: (apiKey: string) => postJSON<ConnectResult>("/connect", { api_key: apiKey }),
+  connect: (apiKey: string) => postJSON("/connect", { api_key: apiKey }, ConnectSchema),
 
-  listModels: () => getJSON<ModelsResult>("/models"),
+  listModels: () => getJSON("/models", ModelsSchema),
 
   setModel: (model: string) => postJSON("/model/set", { model }),
 
@@ -95,12 +106,12 @@ export const api = {
 
   reset: () => postJSON("/reset"),
 
-  listChats: () => getJSON<ChatListResult>("/chats"),
+  listChats: () => getJSON("/chats", ChatListSchema),
 
-  newChat: () => postJSON<{ chat: ChatDetail }>("/chats/new"),
+  newChat: () => postJSON("/chats/new", undefined, ChatWrapSchema),
 
-  selectChat: (id: string) => postJSON<{ chat: ChatDetail }>("/chats/select", { id }),
-  getChat: (id: string) => getJSON<{ chat: ChatDetail }>(`/chats/${id}`),
+  selectChat: (id: string) => postJSON("/chats/select", { id }, ChatWrapSchema),
+  getChat: (id: string) => getJSON(`/chats/${id}`, ChatWrapSchema),
 
   saveChatBlocks: (id: string, blocks: Block[]) => postJSON("/chats/blocks", { id, blocks }),
 
@@ -108,35 +119,35 @@ export const api = {
 
   deleteChat: (id: string) => postJSON("/chats/delete", { id }),
 
-  compact: () =>
-    postJSON<{ summary: string; tokens_before: number; tokens_after: number }>("/compact"),
+  compact: () => postJSON("/compact", undefined, CompactSchema),
 
-  skills: () => getJSON<{ skills: SkillInfo[] }>("/skills"),
+  skills: () => getJSON("/skills", SkillsListSchema),
 
   createSkill: (name: string, description: string, content: string) =>
-    postJSON<{ skill: SkillInfo }>("/skills/create", { name, description, content }),
+    postJSON("/skills/create", { name, description, content }, SkillWrapSchema),
 
   updateSkill: (name: string, description?: string, content?: string) =>
-    postJSON<{ skill: SkillInfo }>("/skills/update", { name, description, content }),
+    postJSON("/skills/update", { name, description, content }, SkillWrapSchema),
 
-  deleteSkill: (name: string) => postJSON<{ ok: boolean }>("/skills/delete", { name }),
+  deleteSkill: (name: string) => postJSON("/skills/delete", { name }, OkSchema),
 
-  getPermissions: () => getJSON<PermissionsState>("/permissions"),
+  getPermissions: () => getJSON("/permissions", PermissionsSchema),
 
   setPermission: (group: string, value: PermissionLevel) =>
     postJSON("/permissions", { group, value }),
 
-  memoryState: () => getJSON<MemoryState>("/memory/state"),
+  memoryState: () => getJSON("/memory/state", MemoryStateSchema),
 
   setMemory: (enabled: boolean) => postJSON("/memory/state", { enabled }),
 
-  clearMemory: () => postJSON<{ cleared: number }>("/memory/clear"),
+  clearMemory: () => postJSON("/memory/clear", undefined, ClearMemorySchema),
 
   memorySnapshot: () => getJSON<MemorySnapshot>("/memory/snapshot"),
 
-  getSettings: () => getJSON<AppSettings>("/settings"),
+  getSettings: () => getJSON("/settings", AppSettingsSchema),
 
-  setSettings: (settings: Partial<AppSettings>) => postJSON<AppSettings>("/settings", settings),
+  setSettings: (settings: Partial<AppSettings>) =>
+    postJSON("/settings", settings, AppSettingsSchema),
 
   shutdown: () => postJSON("/shutdown"),
 
@@ -145,6 +156,7 @@ export const api = {
     form.append("files", file);
     const res = await client.post("upload", { body: form });
     const data = await res.json<{ files: { id: string }[] }>();
-    return data.files[0]?.id ?? "";
+    const parsed = UploadSchema.parse(data);
+    return parsed.files[0]?.id ?? "";
   },
 };
