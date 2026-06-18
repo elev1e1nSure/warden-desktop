@@ -71,19 +71,18 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           SYSTEM_PROMPT="You write release notes in English for a desktop AI assistant app called Warden. Rules:
-          - Write for end users, not developers — friendly and clear
+          - Write for end users, not developers — clear and direct
           - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
           - Skip internal-only changes (CI, tests, linting, build scripts, refactors with no user-visible effect)
           - Group changes into sections using these exact headers (only include sections that have content):
-            ## ✨ What's New
-            ## 🛠️ Improvements
-            ## 🐛 Bug Fixes
-          - Within each section, use a bullet list with a relevant emoji per item (🤖 🧠 💬 🎨 ⚡ 🔍 📋 🗂️ 🔧 etc.)
-          - Each bullet: one clear sentence describing what the user gains or what was fixed
-          - Tone: warm, direct, no marketing fluff
-          - End with a horizontal rule and a single line: > 💌 Thanks for using Warden!"
+            ## What's New
+            ## Improvements
+            ## Bug Fixes
+          - Use plain bullet lists, no emojis
+          - Each bullet: one clear sentence describing what changed and why it matters to the user
+          - Tone: neutral and informative, no fluff, no exclamation marks"
 
-          USER_PREFIX="Here are the commits since the last release. Write beautiful, user-friendly release notes:"
+          USER_PREFIX="Here are the commits since the last release. Write concise, user-facing release notes:"
 
           jq -n \
             --arg model "deepseek/deepseek-v4-flash" \
@@ -107,7 +106,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           DATE=$(date +'%B %d, %Y')
 
-          printf "# 🛡️ Warden %s\n\n**%s**\n\n---\n\n%s\n" \
+          printf "# Warden %s\n\n_%s_\n\n---\n\n%s\n" \
             "$TAG" "$DATE" "$AI_BODY" > release_notes.md
 
           echo "=== Generated release notes ==="
