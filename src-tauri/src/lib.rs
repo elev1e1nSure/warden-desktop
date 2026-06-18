@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::net::TcpStream;
 use std::process::{Child, Command};
 use std::sync::Mutex;
@@ -21,6 +22,43 @@ fn backend_running() -> bool {
         Ok(socket) => TcpStream::connect_timeout(&socket, Duration::from_millis(300)).is_ok(),
         Err(_) => false,
     }
+}
+
+/// Ask the backend to shut down gracefully, then wait for it to exit.
+/// Falls back to SIGKILL if the process hasn't exited within the grace period.
+fn stop_backend(child: &mut Child) {
+    // Read the auth token so we can send an authenticated shutdown request.
+    let token = dirs::data_local_dir()
+        .map(|d| d.join("warden").join(".token"))
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .unwrap_or_default();
+    let token = token.trim();
+
+    let request = if token.is_empty() {
+        format!(
+            "POST /shutdown HTTP/1.0\r\nHost: 127.0.0.1:{BACKEND_PORT}\r\nContent-Length: 0\r\n\r\n"
+        )
+    } else {
+        format!(
+            "POST /shutdown HTTP/1.0\r\nHost: 127.0.0.1:{BACKEND_PORT}\r\nX-Warden-Token: {token}\r\nContent-Length: 0\r\n\r\n"
+        )
+    };
+
+    if let Ok(mut stream) = TcpStream::connect(format!("127.0.0.1:{BACKEND_PORT}")) {
+        let _ = stream.set_write_timeout(Some(Duration::from_millis(300)));
+        let _ = stream.write_all(request.as_bytes());
+    }
+
+    // Give the backend up to 2 s to exit cleanly before we force-kill it.
+    for _ in 0..20 {
+        std::thread::sleep(Duration::from_millis(100));
+        if let Ok(Some(_)) = child.try_wait() {
+            return;
+        }
+    }
+
+    let _ = child.kill();
+    let _ = child.wait(); // block until the OS releases all file handles
 }
 
 /// Locate and start the bundled `warden-backend.exe`. Returns None in dev (no
@@ -74,7 +112,7 @@ pub fn run() {
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 if let Some(mut child) = app.state::<BackendProc>().0.lock().unwrap().take() {
-                    let _ = child.kill();
+                    stop_backend(&mut child);
                 }
             }
         });
