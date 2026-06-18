@@ -4,7 +4,7 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 
 ## Language
 
-- All communication and code comments must be in English. No Russian unless the user explicitly asks for it.
+- Commit messages and code comments must be in English only.
 
 ## Sources Of Truth
 
