@@ -217,7 +217,7 @@ function App() {
 
   // Empty state = the welcome screen with the input centred. The moment any
   // message exists or a turn is streaming, we switch to the conversation layout.
-  const emptyState = activeChatId === null;
+  const emptyState = activeChatId === null && blocks.length === 0 && !streaming;
 
   const handleSetMode = useCallback(
     async (mode: "ask" | "auto" | "custom") => {
