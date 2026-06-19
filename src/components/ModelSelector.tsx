@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Star, Search } from "lucide-react";
+import { Check, ChevronDown, Search, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Model } from "../types";
 
@@ -125,7 +125,7 @@ export default function ModelSelector({
                 return (
                   <motion.div
                     layout
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
                     key={model.id}
                     data-active={active}
                     className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${

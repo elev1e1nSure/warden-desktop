@@ -201,24 +201,23 @@ export function useStreamSession({
       toolIdRef.current = null;
 
       let fileIds: string[] = [];
-      let uploadFailed = false;
       if (files.length > 0) {
         try {
           const results = await Promise.all(files.map((f) => api.uploadFile(f.file)));
           fileIds = results.filter(Boolean);
         } catch {
-          uploadFailed = true;
+          commit([
+            ...blocksRef.current,
+            { id: genId(), kind: "error", text: "File upload failed." },
+          ]);
+          return;
         }
       }
 
-      if (uploadFailed && !text) {
+      if (files.length > 0 && fileIds.length === 0) {
         commit([
           ...blocksRef.current,
-          {
-            id: genId(),
-            kind: "error",
-            text: "File upload failed; nothing was sent.",
-          },
+          { id: genId(), kind: "error", text: "All file uploads failed; nothing was sent." },
         ]);
         return;
       }
@@ -236,32 +235,25 @@ export function useStreamSession({
         }
       }
 
-      if (text || next.length === blocksRef.current.length) {
-        const displayText = text || (files.length > 0 ? `[${files.length} file(s) attached]` : "");
-        if (displayText) {
-          next.push({ id: genId(), kind: "user", text: displayText });
-        }
+      const displayText = text || (files.length > 0 ? `[${files.length} file(s) attached]` : "");
+      if (displayText) {
+        next.push({ id: genId(), kind: "user", text: displayText });
       }
 
-      // Open the live "Thinking…" indicator immediately so the very first moment
-      // after send shows activity, before the backend's first byte arrives. The
-      // first warden_start reuses this slot instead of opening another.
+      // Eager "Thinking…" indicator — visible before the backend's first byte.
       const thinkId = genId();
       thinkIdRef.current = thinkId;
       next.push({ id: thinkId, kind: "think", text: "" });
 
       commit(next);
-
       setFollowTimeline(true);
       setStreaming(true);
       const ctrl = new AbortController();
       abortRef.current = ctrl;
-      const payload: { text: string; files?: string[] } = { text };
+      const payload: { text: string; files?: string[] } = { text: displayText };
       if (fileIds.length > 0) payload.files = fileIds;
       streamChat(payload, onEvent, ctrl.signal)
         .finally(() => {
-          // Guard against race: if a new stream was started while this one was
-          // finishing, `abortRef.current` will point to the new controller.
           if (abortRef.current !== ctrl) return;
           abortRef.current = null;
           assistantIdRef.current = null;

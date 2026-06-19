@@ -47,7 +47,12 @@ const client = ky.create({
 async function getJSON<T>(path: string, schema?: ZodType<T>): Promise<T> {
   try {
     const data = await client.get(path).json<unknown>();
-    return schema ? (schema.parse(data) as T) : (data as T);
+    if (schema) {
+      const parsed = schema.safeParse(data);
+      if (!parsed.success) throw parsed.error;
+      return parsed.data;
+    }
+    return data as T;
   } catch (err) {
     if (err instanceof HTTPError) {
       throw new Error(`GET ${path} -> ${err.response.status}`);
@@ -67,14 +72,20 @@ async function postJSON<T = unknown>(
     if (!text) return undefined as T;
     try {
       const data = JSON.parse(text) as unknown;
-      return schema ? (schema.parse(data) as T) : (data as T);
-    } catch {
+      if (schema) {
+        const parsed = schema.safeParse(data);
+        if (!parsed.success) throw parsed.error;
+        return parsed.data;
+      }
+      return data as T;
+    } catch (parseErr) {
+      if (parseErr && typeof parseErr === "object" && "issues" in parseErr) throw parseErr;
       return text as unknown as T;
     }
   } catch (err) {
     if (err instanceof HTTPError) {
-      const text = await err.response.text().catch(() => "");
-      throw new Error(text || `POST ${path} -> ${err.response.status}`);
+      const t = await err.response.text().catch(() => "");
+      throw new Error(t || `POST ${path} -> ${err.response.status}`);
     }
     throw err;
   }
