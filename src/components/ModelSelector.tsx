@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Search, Star } from "lucide-react";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Model } from "../types";
 
@@ -11,42 +11,22 @@ interface ModelSelectorProps {
   align?: "up" | "down";
 }
 
-interface RowProps {
+type VirtualRow = { type: "header"; label: string } | { type: "model"; model: Model };
+
+interface ModelRowProps {
   model: Model;
   active: boolean;
-  isFav: boolean;
   onSelect: (model: Model) => void;
-  onToggleFavorite: (id: string, e: React.MouseEvent) => void;
 }
 
-// Memoized row so re-renders triggered by scrolling / query changes only touch
-// the rows whose props actually changed, not every visible item.
-const ModelRow = memo(function ModelRow({
-  model,
-  active,
-  isFav,
-  onSelect,
-  onToggleFavorite,
-}: RowProps) {
+const ModelRow = memo(function ModelRow({ model, active, onSelect }: ModelRowProps) {
   return (
     <div
       data-active={active}
-      className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
+      className={`flex items-center rounded-xl p-0.5 transition-colors duration-150 ${
         active ? "bg-fill-active" : "hover:bg-fill-hover"
       }`}
     >
-      <button
-        type="button"
-        onClick={(e) => onToggleFavorite(model.id, e)}
-        onMouseDown={(e) => e.preventDefault()}
-        className="flex shrink-0 items-center justify-center pl-2 pr-1 text-text-muted hover:text-text-primary transition-colors"
-        title={isFav ? "Remove from favorites" : "Add to favorites"}
-      >
-        <Star
-          className={`h-3.5 w-3.5 ${isFav ? "text-white fill-white" : "text-white/40"}`}
-          strokeWidth={1.5}
-        />
-      </button>
       <button
         type="button"
         onClick={() => onSelect(model)}
@@ -83,63 +63,64 @@ export default function ModelSelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const [favorites, setFavorites] = useState<string[]>(() => {
+  const [recentIds, setRecentIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem("warden.favoriteModels");
-      return saved ? JSON.parse(saved) : [];
+      const saved = localStorage.getItem("warden.recentModels");
+      return saved ? (JSON.parse(saved) as string[]) : [];
     } catch {
       return [];
     }
   });
 
-  const toggleFavorite = useCallback((modelId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites((prev) => {
-      const next = prev.includes(modelId)
-        ? prev.filter((id) => id !== modelId)
-        : [...prev, modelId];
-      localStorage.setItem("warden.favoriteModels", JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  // Sort: starred models first, then maintain original order. Memoized so
-  // query keystrokes don't re-sort the whole 100+ list every render.
-  const sorted = useMemo(
-    () =>
-      [...models].sort((a, b) => {
-        const aFav = favorites.includes(a.id);
-        const bFav = favorites.includes(b.id);
-        if (aFav && !bFav) return -1;
-        if (!aFav && bFav) return 1;
-        return 0;
-      }),
-    [models, favorites],
-  );
-
-  const filtered = useMemo(
-    () => sorted.filter((m) => m.name.toLowerCase().includes(query.toLowerCase())),
-    [sorted, query],
-  );
-
-  // Virtualize the list — with 100+ OpenRouter models, mounting a motion.div
-  // per row was the main source of open/scroll jank (each one runs a layout
-  // measurement in useLayoutEffect). Now only the ~15 visible rows mount.
-  const virtualizer = useVirtualizer({
-    count: filtered.length,
-    getScrollElement: () => listRef.current,
-    estimateSize: () => 32,
-    overscan: 8,
-    getItemKey: (index: number) => filtered[index]?.id ?? index,
-  });
-
   const handleSelect = useCallback(
     (model: Model) => {
       onSelect(model);
+      setRecentIds((prev) => {
+        const next = [model.id, ...prev.filter((id) => id !== model.id)].slice(0, 3);
+        localStorage.setItem("warden.recentModels", JSON.stringify(next));
+        return next;
+      });
       setOpen(false);
     },
     [onSelect],
   );
+
+  const filtered = useMemo(
+    () => models.filter((m) => m.name.toLowerCase().includes(query.toLowerCase())),
+    [models, query],
+  );
+
+  // Build the virtual row list: when searching → flat filtered list;
+  // when not searching → Recent section (if any) + All section.
+  const rows = useMemo((): VirtualRow[] => {
+    if (query) {
+      return filtered.map((m) => ({ type: "model", model: m }));
+    }
+    const result: VirtualRow[] = [];
+    const recentModels = recentIds
+      .map((id) => models.find((m) => m.id === id))
+      .filter((m): m is Model => m !== undefined);
+
+    if (recentModels.length > 0) {
+      result.push({ type: "header", label: "Recent" });
+      for (const m of recentModels) result.push({ type: "model", model: m });
+    }
+    result.push({ type: "header", label: "All" });
+    for (const m of models) result.push({ type: "model", model: m });
+    return result;
+  }, [query, filtered, models, recentIds]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: (i) => (rows[i]?.type === "header" ? 28 : 32),
+    overscan: 8,
+    getItemKey: (index: number) => {
+      const row = rows[index];
+      if (!row) return index;
+      return row.type === "header" ? `header-${row.label}` : row.model.id;
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -152,8 +133,6 @@ export default function ModelSelector({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Only re-scroll when the menu opens — not on every keystroke / selection
-  // change, which would fight the user's own scrolling.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional open-only effect
   useLayoutEffect(() => {
     if (!open) {
@@ -161,10 +140,8 @@ export default function ModelSelector({
       return;
     }
     inputRef.current?.focus();
-    // Scroll the active model to the center. One rAF is enough — the
-    // virtualizer mounts its items synchronously in the same commit. The old
-    // double-rAF caused a visible one-frame jump before the scroll landed.
-    const activeIndex = filtered.findIndex((m) => m.id === selected.id);
+    // Scroll to the active model. One rAF is enough — virtualizer mounts synchronously.
+    const activeIndex = rows.findIndex((r) => r.type === "model" && r.model.id === selected.id);
     if (activeIndex >= 0) {
       requestAnimationFrame(() => {
         virtualizer.scrollToIndex(activeIndex, { align: "center" });
@@ -207,7 +184,7 @@ export default function ModelSelector({
                 WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
               }}
             >
-              {filtered.length === 0 ? (
+              {rows.length === 0 ? (
                 <p className="px-2.5 py-2 text-ui text-text-muted">No models match.</p>
               ) : (
                 <div
@@ -218,10 +195,9 @@ export default function ModelSelector({
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const model = filtered[virtualItem.index];
-                    if (!model) return null;
-                    const active = model.id === selected.id;
-                    const isFav = favorites.includes(model.id);
+                    const row = rows[virtualItem.index];
+                    if (!row) return null;
+
                     return (
                       <div
                         key={virtualItem.key}
@@ -235,13 +211,17 @@ export default function ModelSelector({
                           transform: `translateY(${virtualItem.start}px)`,
                         }}
                       >
-                        <ModelRow
-                          model={model}
-                          active={active}
-                          isFav={isFav}
-                          onSelect={handleSelect}
-                          onToggleFavorite={toggleFavorite}
-                        />
+                        {row.type === "header" ? (
+                          <div className="px-2 pb-0.5 pt-1.5 text-meta font-semibold uppercase tracking-widest text-text-faint">
+                            {row.label}
+                          </div>
+                        ) : (
+                          <ModelRow
+                            model={row.model}
+                            active={row.model.id === selected.id}
+                            onSelect={handleSelect}
+                          />
+                        )}
                       </div>
                     );
                   })}
