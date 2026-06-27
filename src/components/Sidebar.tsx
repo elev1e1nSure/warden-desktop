@@ -209,7 +209,7 @@ function Sidebar({
                       "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
                   }}
                 >
-                  <div className="flex flex-col gap-0.5 pt-1 pb-2">
+                  <div className="flex w-full flex-col gap-0.5 pt-1 pb-2">
                     {chats.map((chat) => {
                       const active = chat.id === activeChatId;
                       const menuOpen = menuChatId === chat.id;
@@ -249,7 +249,7 @@ function Sidebar({
                           ) : (
                             <button
                               type="button"
-                              className="relative z-10 min-w-0 flex-1 text-left"
+                              className="relative z-10 min-w-0 flex-1 overflow-hidden text-left"
                             >
                               <span
                                 className={`block truncate text-ui-lg tracking-[-0.01em] ${

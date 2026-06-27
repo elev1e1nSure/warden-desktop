@@ -1,13 +1,20 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AppWindow,
   Bell,
   BookOpen,
   BookPlus,
   Camera,
   ChevronDown,
   Clipboard,
+  Code2,
+  Cpu,
+  Download,
+  FilePlus,
   FileText,
+  FolderOpen,
+  GitMerge,
   Globe,
   HelpCircle,
   Info,
@@ -17,10 +24,14 @@ import {
   Loader2,
   Minus,
   MousePointer,
+  Package,
+  Pencil,
+  Play,
   Search,
+  Send,
   Settings,
   Sparkles,
-  Terminal,
+  Trash2,
   X,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -325,86 +336,116 @@ function getToolIcon(toolName: string, argsStr: string) {
 
   const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
 
+  const icon = (I: React.ElementType) => <I className="h-3.5 w-3.5" strokeWidth={1.75} />;
+
   switch (toolName) {
+    // ── shell ──────────────────────────────────────────────────────────────
+    case "bash":
+    case "powershell":
+      return icon(Play);
+
+    // ── search ─────────────────────────────────────────────────────────────
     case "google_search":
     case "youtube_search":
     case "grep":
     case "glob":
-      return <Search className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Search);
 
+    // ── web / network ──────────────────────────────────────────────────────
     case "browser_open":
     case "browser_read":
     case "browser_click":
     case "browser_fill":
-    case "web_fetch":
-    case "http_request":
-      return <Globe className="h-3.5 w-3.5" strokeWidth={1.75} />;
+    case "browser_screenshot":
+      return icon(Globe);
 
+    case "webfetch":
+    case "web_fetch":
+      return icon(Download);
+
+    case "http_request":
+      return icon(Send);
+
+    // ── files ──────────────────────────────────────────────────────────────
     case "file_read":
-    case "file_write":
-    case "file_delete":
-    case "file_list":
     case "file_move":
     case "file_copy":
+      return icon(FileText);
+
+    case "file_write":
+      return icon(FilePlus);
+
+    case "file_delete":
+      return icon(Trash2);
+
+    case "file_list":
+      return icon(FolderOpen);
+
     case "edit":
+      return icon(Pencil);
+
     case "apply_patch":
+      return icon(GitMerge);
+
     case "archive":
-      return <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Package);
 
-    case "bash":
-    case "powershell":
-      return <Terminal className="h-3.5 w-3.5" strokeWidth={1.75} />;
-
+    // ── screen / input ──────────────────────────────────────────────────────
     case "screenshot":
-    case "browser_screenshot":
     case "ocr":
     case "image_locate":
-      return <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Camera);
 
     case "mouse":
-      return <MousePointer className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(MousePointer);
 
     case "keyboard":
-      return <Keyboard className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Keyboard);
 
     case "clipboard":
-      return <Clipboard className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Clipboard);
 
-    case "todowrite":
-    case "todo_write":
-      return <ListTodo className="h-3.5 w-3.5" strokeWidth={1.75} />;
-
-    case "question":
-      return <HelpCircle className="h-3.5 w-3.5" strokeWidth={1.75} />;
-
-    case "notify":
-      return <Bell className="h-3.5 w-3.5" strokeWidth={1.75} />;
-
-    case "system_info":
-      return <Info className="h-3.5 w-3.5" strokeWidth={1.75} />;
-
-    case "lsp":
+    // ── os / system ─────────────────────────────────────────────────────────
     case "window_list":
     case "window_focus":
     case "window_manage":
+      return icon(AppWindow);
+
     case "process_list":
     case "process_kill":
-      return <Settings className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Cpu);
+
+    case "system_info":
+      return icon(Info);
+
+    case "lsp":
+      return icon(Code2);
+
+    // ── agent tools ─────────────────────────────────────────────────────────
+    case "todowrite":
+    case "todo_write":
+      return icon(ListTodo);
+
+    case "question":
+      return icon(HelpCircle);
+
+    case "notify":
+      return icon(Bell);
 
     case "skill":
-      return <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Sparkles);
 
     case "memory": {
       const action = str("action").toLowerCase();
-      if (action === "set") return <BookPlus className="h-3.5 w-3.5" strokeWidth={1.75} />;
-      if (action === "delete") return <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />;
-      if (action === "clear") return <X className="h-3.5 w-3.5" strokeWidth={1.75} />;
-      if (action === "list") return <Layers className="h-3.5 w-3.5" strokeWidth={1.75} />;
-      return <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      if (action === "set") return icon(BookPlus);
+      if (action === "delete") return icon(Minus);
+      if (action === "clear") return icon(X);
+      if (action === "list") return icon(Layers);
+      return icon(BookOpen);
     }
 
     default:
-      return <Settings className="h-3.5 w-3.5" strokeWidth={1.75} />;
+      return icon(Settings);
   }
 }
 
