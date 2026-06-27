@@ -23,6 +23,15 @@ export interface UseStreamSessionParams {
   setFollowTimeline: (v: boolean) => void;
   setActiveChatId: React.Dispatch<React.SetStateAction<string | null>>;
   setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
+  // Persist the active chat's blocks (DB + cache) right after a stream ends,
+  // before loadChats prefetches from the DB — prevents a race where the
+  // debounced save hasn't landed yet and the cache gets filled with empty
+  // blocks for the just-created chat. Awaited in the stream's finally so
+  // loadChats reads the DB after the write committed.
+  persistActiveChatBlocks: () => Promise<void>;
+  // Ref to the active chat id, kept in sync synchronously in the title event
+  // so persistActiveChatBlocks works before React re-renders.
+  activeChatIdRef: React.MutableRefObject<string | null>;
 }
 
 export interface UseStreamSessionResult {
@@ -50,6 +59,8 @@ export function useStreamSession({
   setFollowTimeline,
   setActiveChatId,
   setChats,
+  persistActiveChatBlocks,
+  activeChatIdRef,
 }: UseStreamSessionParams): UseStreamSessionResult {
   const [streaming, setStreaming] = useState(false);
   const [confirmReq, setConfirmReq] = useState<ConfirmEvent | null>(null);
@@ -100,6 +111,11 @@ export function useStreamSession({
           if (thinkIdRef.current === null) openThink();
           break;
         case "title":
+          // Update the ref synchronously so persistActiveChatBlocks (called in
+          // the stream's finally, before React re-renders) can see the just-
+          // resolved chat id. Without this, the first message's blocks would
+          // be flushed with id=null and never reach the DB.
+          activeChatIdRef.current = e.chat_id;
           setActiveChatId(e.chat_id);
           setChats((prev) => {
             const idx = prev.findIndex((chat) => chat.id === e.chat_id);
@@ -190,7 +206,7 @@ export function useStreamSession({
           break;
       }
     },
-    [appendText, commit, genId, openThink, blocksRef, setActiveChatId, setChats],
+    [appendText, commit, genId, openThink, blocksRef, setActiveChatId, setChats, activeChatIdRef],
   );
 
   const handleSend = useCallback(
@@ -260,8 +276,14 @@ export function useStreamSession({
           thinkIdRef.current = null;
           setStreaming(false);
           commit(stripEmptyThink(blocksRef.current));
-          refreshStatus();
-          loadChats();
+          // Persist the just-streamed blocks to the DB + cache BEFORE loadChats
+          // fetches the chat list — otherwise the list may be read before the
+          // save landed (SQLite write/read race) and the new chat disappears
+          // from the sidebar right after the agent finishes answering.
+          void persistActiveChatBlocks().finally(() => {
+            refreshStatus();
+            void loadChats();
+          });
         })
         .catch((err) => {
           if (process.env.NODE_ENV !== "production") console.error("streamChat failed:", err);
@@ -278,10 +300,12 @@ export function useStreamSession({
       blocksRef,
       stripEmptyThink,
       setFollowTimeline,
+      persistActiveChatBlocks,
     ],
   );
 
   const handleStop = useCallback(() => {
+    const wasStreaming = abortRef.current !== null;
     abortRef.current?.abort();
     abortRef.current = null;
     assistantIdRef.current = null;
@@ -292,7 +316,14 @@ export function useStreamSession({
     // The stream's finally bails out once abortRef is cleared, so settle any
     // dangling empty "Thinking…" indicator here.
     commit(stripEmptyThink(blocksRef.current));
-  }, [commit, blocksRef, stripEmptyThink]);
+    // The finally also skips loadChats (same guard), so a chat that was just
+    // created via the first message would never appear in the sidebar until the
+    // next manual refresh. Persist + reload here to keep the sidebar in sync —
+    // await the persist so loadChats reads the DB after the save landed.
+    if (wasStreaming) {
+      void persistActiveChatBlocks().finally(() => void loadChats());
+    }
+  }, [commit, blocksRef, stripEmptyThink, persistActiveChatBlocks, loadChats]);
 
   const handleConfirm = useCallback(
     async (ok: boolean) => {

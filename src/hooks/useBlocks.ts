@@ -13,7 +13,7 @@ export interface UseBlocksResult {
   commit: (next: Block[]) => void;
   loadBlocks: (next: Block[]) => void;
   genId: () => string;
-  flushActiveChatBlocks: () => Promise<void>;
+  flushActiveChatBlocks: (idArg?: string) => Promise<void>;
   stripEmptyThink: (blocks: Block[]) => Block[];
 }
 
@@ -61,16 +61,22 @@ export function useBlocks(activeChatId: string | null): UseBlocksResult {
     };
   }, [activeChatId, blocks]);
 
-  const flushActiveChatBlocks = useCallback(async () => {
-    const id = activeChatId;
-    if (!id || !blocksDirtyRef.current) return;
-    if (persistTimerRef.current) {
-      window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    }
-    blocksDirtyRef.current = false;
-    await api.saveChatBlocks(id, stripEmptyThink(blocksRef.current));
-  }, [activeChatId]);
+  const flushActiveChatBlocks = useCallback(
+    async (idArg?: string) => {
+      // idArg lets callers flush a specific chat (e.g. via a ref) when the
+      // activeChatId closure is stale — such as right after a title event
+      // resolves the chat id but before React has re-rendered.
+      const id = idArg ?? activeChatId;
+      if (!id || !blocksDirtyRef.current) return;
+      if (persistTimerRef.current) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+      blocksDirtyRef.current = false;
+      await api.saveChatBlocks(id, stripEmptyThink(blocksRef.current));
+    },
+    [activeChatId],
+  );
 
   return { blocks, blocksRef, commit, loadBlocks, genId, flushActiveChatBlocks, stripEmptyThink };
 }

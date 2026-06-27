@@ -69,6 +69,9 @@ function App() {
   // Latest activeChatId for async reconciliation — so a select that resolves
   // after the user has already moved on doesn't overwrite the new chat.
   const activeChatIdRef = useRef<string | null>(null);
+  // Latest chats for async reconciliation — loadChats reads this to merge the
+  // active chat back in if the backend list lags behind the title event.
+  const chatsRef = useRef<Chat[]>([]);
   // Tracks chat IDs currently being prefetched in the background to avoid duplicate requests.
   const prefetchingIdsRef = useRef<Set<string>>(new Set());
 
@@ -105,6 +108,12 @@ function App() {
   useEffect(() => {
     activeChatIdRef.current = activeChatId;
   }, [activeChatId]);
+
+  // Keep chatsRef in sync so async loadChats can read the latest chats state
+  // (e.g. the chat added by the title event) without a stale closure.
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
 
   // Persist the sidebar width so it survives restarts.
   useEffect(() => {
@@ -144,9 +153,10 @@ function App() {
     }
   }, []);
 
-  const prefetchChats = useCallback(async (chatIds: string[]) => {
+  const prefetchChats = useCallback(async (chatIds: string[], skipId?: string | null) => {
     await Promise.all(
       chatIds.map(async (id) => {
+        if (id === skipId) return;
         if (chatBlocksCacheRef.current.has(id) || prefetchingIdsRef.current.has(id)) {
           return;
         }
@@ -167,29 +177,64 @@ function App() {
   const loadChats = useCallback(async () => {
     try {
       const res = await api.listChats();
-      setChats(res.chats.map((chat) => ({ ...chat, messages: [] })));
+      const incoming = res.chats.map((chat) => ({ ...chat, messages: [] }));
+      const activeId = activeChatIdRef.current;
+      // If the active chat (e.g. the one just created via the first message's
+      // title event) isn't in the backend's list yet — history save still in
+      // flight, or list_chats filtered it — keep it in the sidebar so it
+      // doesn't vanish right after the agent finishes answering. We merge it
+      // in from the existing chats state to preserve the title we already have.
+      if (activeId && !incoming.some((c) => c.id === activeId)) {
+        const known = chatsRef.current.find((c) => c.id === activeId);
+        if (known) incoming.unshift(known as (typeof incoming)[number]);
+      }
+      setChats(incoming);
       setActiveChatId((cur) =>
-        cur && res.chats.some((chat) => chat.id === cur)
+        cur && incoming.some((chat) => chat.id === cur)
           ? cur
-          : res.chats.some((chat) => chat.id === res.active_chat_id)
+          : incoming.some((chat) => chat.id === res.active_chat_id)
             ? res.active_chat_id
             : null,
       );
-      // Prefetch blocks for all chats in the background
-      const chatIds = res.chats.map((chat) => chat.id);
-      void prefetchChats(chatIds);
+      // The active chat's blocks may still be in flight to the DB (debounced
+      // save). Don't prefetch it from the DB — that would cache stale/empty
+      // blocks. Cache it from the live blocksRef instead so a quick switch
+      // back renders the right content.
+      const chatIds = incoming.map((chat) => chat.id);
+      void prefetchChats(chatIds, activeId);
+      if (activeId && !chatBlocksCacheRef.current.has(activeId)) {
+        chatBlocksCacheRef.current.set(activeId, blocksRef.current);
+      }
       return res;
-    } catch {
-      setChats([]);
+    } catch (err) {
+      // Don't wipe the sidebar on a transient listChats failure (e.g. a
+      // SQLite write/read race while saveChatBlocks is in flight) — that was
+      // making the just-finished chat vanish from the sidebar. Keep the
+      // existing chat list and let the next successful call refresh it.
+      if (process.env.NODE_ENV !== "production") console.error("loadChats failed:", err);
       return null;
     }
-  }, [prefetchChats]);
+  }, [prefetchChats, blocksRef]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     setFollowTimeline(nearBottom);
   }, []);
+
+  // Persist the active chat's blocks to the DB and the in-memory cache. Uses
+  // activeChatIdRef (kept in sync synchronously in the stream's title event)
+  // so it works even before React has re-rendered with the new id — that's the
+  // window between the first message's title event and the stream's finally.
+  // Returns the save promise so callers can await it before issuing loadChats,
+  // avoiding a race where listChats reads the DB before saveChatBlocks landed
+  // and returns a chat list missing the just-created conversation.
+  const persistActiveChatBlocks = useCallback(async () => {
+    const id = activeChatIdRef.current;
+    if (!id) return;
+    chatBlocksCacheRef.current.set(id, blocksRef.current);
+    await flushActiveChatBlocks(id).catch(() => {});
+  }, [blocksRef, flushActiveChatBlocks]);
 
   useAppInit({ refreshStatus, loadModels, loadChats });
   useUpdater();
@@ -210,6 +255,8 @@ function App() {
     stripEmptyThink,
     refreshStatus,
     loadChats,
+    persistActiveChatBlocks,
+    activeChatIdRef,
     setFollowTimeline,
     setActiveChatId,
     setChats,
@@ -265,6 +312,12 @@ function App() {
       // Snapshot the chat we're leaving so coming back to it is instant.
       if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
 
+      // Flush the outgoing chat's blocks BEFORE clearing the UI — loadBlocks([])
+      // resets blocksDirtyRef and blocksRef, which would turn the flush into a
+      // no-op and lose the conversation. Fire-and-forget so the empty state
+      // still shows instantly; the save races ahead of /reset without blocking.
+      void flushActiveChatBlocks();
+
       // Optimistically switch to empty welcome layout instantly
       setActiveChatId(null);
       loadBlocks([]);
@@ -273,7 +326,6 @@ function App() {
 
       // Persist the outgoing chat in the background — it must not delay the
       // empty state from showing.
-      await flushActiveChatBlocks();
       await api.reset();
       await loadChats();
     } catch {
@@ -314,7 +366,14 @@ function App() {
       try {
         const res = await api.selectChat(id);
         const next = res.chat.blocks ?? [];
-        chatBlocksCacheRef.current.set(id, next);
+        // Only cache the server blocks on a cache miss — on a hit the cache
+        // already holds the freshest blocks (the active chat is the only one
+        // that streams, and it's snapshotted into the cache on switch).
+        // Overwriting with stale DB blocks (e.g. a debounced save still in
+        // flight) would empty the chat on the next visit.
+        if (!cached) {
+          chatBlocksCacheRef.current.set(id, next);
+        }
         // On a cache hit the conversation is already shown — only non-active
         // chats are cached and nothing but the active chat ever streams, so the
         // cache can't be stale. Render the server's blocks only on a cache miss,

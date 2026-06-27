@@ -1,6 +1,7 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Search, Star } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Model } from "../types";
 
 interface ModelSelectorProps {
@@ -9,6 +10,66 @@ interface ModelSelectorProps {
   onSelect: (model: Model) => void;
   align?: "up" | "down";
 }
+
+interface RowProps {
+  model: Model;
+  active: boolean;
+  isFav: boolean;
+  onSelect: (model: Model) => void;
+  onToggleFavorite: (id: string, e: React.MouseEvent) => void;
+}
+
+// Memoized row so re-renders triggered by scrolling / query changes only touch
+// the rows whose props actually changed, not every visible item.
+const ModelRow = memo(function ModelRow({
+  model,
+  active,
+  isFav,
+  onSelect,
+  onToggleFavorite,
+}: RowProps) {
+  return (
+    <div
+      data-active={active}
+      className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
+        active ? "bg-fill-active" : "hover:bg-fill-hover"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={(e) => onToggleFavorite(model.id, e)}
+        onMouseDown={(e) => e.preventDefault()}
+        className="flex shrink-0 items-center justify-center pl-2 pr-1 text-text-muted hover:text-text-primary transition-colors"
+        title={isFav ? "Remove from favorites" : "Add to favorites"}
+      >
+        <Star
+          className={`h-3.5 w-3.5 ${isFav ? "text-white fill-white" : "text-white/40"}`}
+          strokeWidth={1.5}
+        />
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelect(model)}
+        className="group flex flex-1 items-center justify-between min-w-0 rounded-lg py-1.5 px-2 text-left transition-none"
+      >
+        <span
+          className={`min-w-0 flex-1 truncate text-ui tracking-[-0.01em] transition-colors ${
+            active
+              ? "text-text-primary font-medium"
+              : "text-text-secondary group-hover:text-text-primary"
+          }`}
+        >
+          {model.name}
+        </span>
+        {active ? (
+          <Check className="h-3.5 w-3.5 shrink-0 text-text-secondary" strokeWidth={2.25} />
+        ) : (
+          <span className="h-3.5 w-3.5 shrink-0" />
+        )}
+      </button>
+    </div>
+  );
+});
 
 export default function ModelSelector({
   models,
@@ -31,7 +92,7 @@ export default function ModelSelector({
     }
   });
 
-  const toggleFavorite = (modelId: string, e: React.MouseEvent) => {
+  const toggleFavorite = useCallback((modelId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites((prev) => {
       const next = prev.includes(modelId)
@@ -40,18 +101,44 @@ export default function ModelSelector({
       localStorage.setItem("warden.favoriteModels", JSON.stringify(next));
       return next;
     });
-  };
+  }, []);
 
-  // Sort: starred models first, then maintain original order
-  const sorted = [...models].sort((a, b) => {
-    const aFav = favorites.includes(a.id);
-    const bFav = favorites.includes(b.id);
-    if (aFav && !bFav) return -1;
-    if (!aFav && bFav) return 1;
-    return 0;
+  // Sort: starred models first, then maintain original order. Memoized so
+  // query keystrokes don't re-sort the whole 100+ list every render.
+  const sorted = useMemo(
+    () =>
+      [...models].sort((a, b) => {
+        const aFav = favorites.includes(a.id);
+        const bFav = favorites.includes(b.id);
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+        return 0;
+      }),
+    [models, favorites],
+  );
+
+  const filtered = useMemo(
+    () => sorted.filter((m) => m.name.toLowerCase().includes(query.toLowerCase())),
+    [sorted, query],
+  );
+
+  // Virtualize the list — with 100+ OpenRouter models, mounting a motion.div
+  // per row was the main source of open/scroll jank (each one runs a layout
+  // measurement in useLayoutEffect). Now only the ~15 visible rows mount.
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 32,
+    overscan: 8,
   });
 
-  const filtered = sorted.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()));
+  const handleSelect = useCallback(
+    (model: Model) => {
+      onSelect(model);
+      setOpen(false);
+    },
+    [onSelect],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -64,20 +151,23 @@ export default function ModelSelector({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  useEffect(() => {
-    if (open) {
-      // Focus the filter as the menu opens so the user can type straight away.
-      requestAnimationFrame(() => inputRef.current?.focus());
-
-      // Scroll active model to the center of the list
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const activeEl = listRef.current?.querySelector('[data-active="true"]');
-          activeEl?.scrollIntoView({ block: "center", behavior: "auto" });
-        });
-      });
-    } else {
+  // Only re-scroll when the menu opens — not on every keystroke / selection
+  // change, which would fight the user's own scrolling.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional open-only effect
+  useLayoutEffect(() => {
+    if (!open) {
       setQuery("");
+      return;
+    }
+    inputRef.current?.focus();
+    // Scroll the active model to the center. One rAF is enough — the
+    // virtualizer mounts its items synchronously in the same commit. The old
+    // double-rAF caused a visible one-frame jump before the scroll landed.
+    const activeIndex = filtered.findIndex((m) => m.id === selected.id);
+    if (activeIndex >= 0) {
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(activeIndex, { align: "center" });
+      });
     }
   }, [open]);
 
@@ -110,71 +200,52 @@ export default function ModelSelector({
             <div className="mx-1 mb-1 mt-0.5 h-px bg-hairline" />
             <div
               ref={listRef}
-              className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto no-scrollbar"
+              className="flex min-h-0 flex-1 overflow-y-auto no-scrollbar"
               style={{
                 maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
                 WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
               }}
             >
-              {filtered.length === 0 && (
+              {filtered.length === 0 ? (
                 <p className="px-2.5 py-2 text-ui text-text-muted">No models match.</p>
-              )}
-              {filtered.map((model) => {
-                const active = model.id === selected.id;
-                const isFav = favorites.includes(model.id);
-                return (
-                  <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
-                    key={model.id}
-                    data-active={active}
-                    className={`flex items-center gap-1 rounded-xl p-0.5 transition-colors duration-150 ${
-                      active ? "bg-fill-active" : "hover:bg-fill-hover"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => toggleFavorite(model.id, e)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      className="flex shrink-0 items-center justify-center pl-2 pr-1 text-text-muted hover:text-text-primary transition-colors"
-                      title={isFav ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Star
-                        className={`h-3.5 w-3.5 ${
-                          isFav ? "text-white fill-white" : "text-white/40"
-                        }`}
-                        strokeWidth={1.5}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelect(model);
-                        setOpen(false);
-                      }}
-                      className="group flex flex-1 items-center justify-between min-w-0 rounded-lg py-1.5 px-2 text-left transition-none"
-                    >
-                      <span
-                        className={`min-w-0 flex-1 truncate text-ui tracking-[-0.01em] transition-colors ${
-                          active
-                            ? "text-text-primary font-medium"
-                            : "text-text-secondary group-hover:text-text-primary"
-                        }`}
+              ) : (
+                <div
+                  style={{
+                    height: virtualizer.getTotalSize(),
+                    position: "relative",
+                    width: "100%",
+                  }}
+                >
+                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const model = filtered[virtualItem.index];
+                    if (!model) return null;
+                    const active = model.id === selected.id;
+                    const isFav = favorites.includes(model.id);
+                    return (
+                      <div
+                        key={model.id}
+                        data-index={virtualItem.index}
+                        ref={virtualizer.measureElement}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
                       >
-                        {model.name}
-                      </span>
-                      {active ? (
-                        <Check
-                          className="h-3.5 w-3.5 shrink-0 text-text-secondary"
-                          strokeWidth={2.25}
+                        <ModelRow
+                          model={model}
+                          active={active}
+                          isFav={isFav}
+                          onSelect={handleSelect}
+                          onToggleFavorite={toggleFavorite}
                         />
-                      ) : (
-                        <span className="h-3.5 w-3.5 shrink-0" />
-                      )}
-                    </button>
-                  </motion.div>
-                );
-              })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
