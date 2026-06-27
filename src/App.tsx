@@ -560,7 +560,7 @@ function App() {
             }}
             transition={{ duration: 0.2, ease: EASE }}
             style={{ pointerEvents: view === "skills" ? "auto" : "none" }}
-            className="absolute inset-0 flex overflow-hidden"
+            className="absolute inset-0 flex overflow-hidden bg-bg"
           >
             <Suspense>
               <SkillsView
@@ -578,7 +578,7 @@ function App() {
             }}
             transition={{ duration: 0.2, ease: EASE }}
             style={{ pointerEvents: view === "settings" ? "auto" : "none" }}
-            className="absolute inset-0 flex overflow-hidden"
+            className="absolute inset-0 flex overflow-hidden bg-bg"
           >
             <Suspense>
               <SettingsView
