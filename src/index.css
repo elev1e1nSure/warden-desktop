@@ -136,6 +136,21 @@ aside {
   background: rgba(255, 255, 255, 0.12);
 }
 
+/* Inter Variable's cyrillic woff2 build omits ё/Ё (U+0451/U+0401) despite
+   declaring them in unicode-range U+0400-045F. When the browser hits a declared
+   but missing glyph it shows a replacement character (□?) instead of falling
+   back. This more-specific @font-face rule (added after fontsource's rules so it
+   wins the cascade) overrides those two code-points with a local system font that
+   is guaranteed to have them. */
+@font-face {
+  font-family: "Inter Variable";
+  src: local("Segoe UI Variable"), local("Segoe UI"), local("Arial Unicode MS"),
+    local("sans-serif");
+  unicode-range: U+0401, U+0451;
+  font-weight: 100 900;
+  font-style: normal;
+}
+
 /* Pointer cursor on every clickable element */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),

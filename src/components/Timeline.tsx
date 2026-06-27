@@ -536,7 +536,65 @@ const ToolRow = memo(
     prev.block.args === next.block.args,
 );
 
-// ─── work chain ──────────────────────────────────────────────────────────────
+// ─── work chain tree ─────────────────────────────────────────────────────────
+
+// A single expandable "Thought" leaf inside the tree.
+function TreeThinkItem({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const hasContent = text.trim().length > 0;
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={!hasContent}
+        onClick={() => hasContent && setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-ui text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+      >
+        {hasContent && (
+          <motion.span
+            animate={{ rotate: open ? 0 : -90 }}
+            transition={{ duration: 0.18, ease: EASE }}
+            className="flex h-3 w-3 shrink-0 items-center justify-center opacity-50"
+          >
+            <ChevronDown className="h-3 w-3" strokeWidth={2} />
+          </motion.span>
+        )}
+        {!hasContent && <span className="h-3 w-3 shrink-0" />}
+        <span className="font-medium">Thought</span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && hasContent && (
+          <motion.div {...collapse} className="overflow-hidden">
+            <div className="ml-4 mt-1 mb-0.5 border-l border-hairline pl-3 text-ui leading-[1.65] text-text-faint">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  ...mdComponents,
+                  p: (props) => <p {...props} className="my-1" />,
+                }}
+              >
+                {text}
+              </Markdown>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// A single tool leaf inside the tree.
+function TreeToolItem({ block }: { block: Extract<Block, { kind: "tool" }> }) {
+  const lbl = toolDescription(block);
+  const ic = getToolIcon(block.name, block.args);
+  return (
+    <div className="flex items-center gap-1.5 text-ui text-text-muted">
+      <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center opacity-60">{ic}</span>
+      <span className="font-medium">{lbl.verb}</span>
+      {lbl.arg && <span className="font-normal text-text-faint">{lbl.arg}</span>}
+    </div>
+  );
+}
 
 const WorkChain = memo(function WorkChain({
   blocks,
@@ -547,12 +605,18 @@ const WorkChain = memo(function WorkChain({
 }) {
   const [open, setOpen] = useState(false);
 
+  // Only count non-empty think blocks and tool blocks for the count badge
+  const itemCount = blocks.filter(
+    (b) => b.kind === "tool" || (b.kind === "think" && b.text.trim().length > 0),
+  ).length;
+
   return (
-    <div className="-ml-5 py-0.5">
+    <div className="-ml-5">
+      {/* ── Header ─────────────────────────────────────────── */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="group flex items-center gap-1.5 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary"
+        className="group flex items-center gap-1.5 py-0.5 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary"
       >
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           <motion.span
@@ -564,24 +628,68 @@ const WorkChain = memo(function WorkChain({
           </motion.span>
         </span>
         <span>Worked for {elapsed}s</span>
+        {itemCount > 0 && !open && (
+          <span className="ml-0.5 text-meta text-text-faint font-normal">
+            · {itemCount} {itemCount === 1 ? "step" : "steps"}
+          </span>
+        )}
       </button>
 
+      {/* ── Tree ───────────────────────────────────────────── */}
       <AnimatePresence initial={false}>
         {open && (
           <motion.div {...collapse} className="overflow-hidden">
-            <div className="mt-1 pl-5 flex flex-col gap-0 py-1">
-              {blocks.map((b) => {
-                if (b.kind === "think") {
-                  return (
-                    <div key={b.id}>
-                      <ThinkBlock text={b.text} live={false} />
+            {/* pl-[7px] = chevron center; items indent past the line */}
+            <div className="relative ml-[7px] mt-0.5 mb-1 pl-4">
+              {/* Vertical connector line */}
+              <div
+                className="pointer-events-none absolute left-0 top-[5px] bottom-[5px] w-px"
+                style={{ background: "var(--color-border-subtle)" }}
+              />
+
+              {blocks.map((b, idx) => {
+                if (b.kind !== "think" && b.kind !== "tool") return null;
+                // Skip completely empty think blocks
+                if (b.kind === "think" && b.text.trim().length === 0) return null;
+
+                const isLast = (() => {
+                  for (let i = idx + 1; i < blocks.length; i++) {
+                    const nb = blocks[i];
+                    if (!nb) continue;
+                    if (nb.kind === "tool") return false;
+                    if (nb.kind === "think" && nb.text.trim().length > 0) return false;
+                  }
+                  return true;
+                })();
+
+                return (
+                  <div key={b.id} className="relative flex items-start gap-2 py-[3px]">
+                    {/* Branch dot */}
+                    <div
+                      className="absolute -left-[3.5px] top-[8px] h-[7px] w-[7px] shrink-0 rounded-full"
+                      style={{
+                        background: "var(--color-surface)",
+                        boxShadow: "0 0 0 1px var(--color-border-subtle)",
+                      }}
+                    />
+                    {/* Horizontal branch nub */}
+                    <div
+                      className="absolute left-[3.5px] top-[11px] h-px w-2"
+                      style={{ background: "var(--color-border-subtle)" }}
+                    />
+                    {/* Hide line below last dot */}
+                    {isLast && (
+                      <div
+                        className="pointer-events-none absolute -left-px top-[12px] bottom-0 w-px"
+                        style={{ background: "var(--color-surface)" }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {b.kind === "think" && <TreeThinkItem text={b.text} />}
+                      {b.kind === "tool" && <TreeToolItem block={b} />}
                     </div>
-                  );
-                }
-                if (b.kind === "tool") {
-                  return <ToolRow key={b.id} block={b} />;
-                }
-                return null;
+                  </div>
+                );
               })}
             </div>
           </motion.div>
