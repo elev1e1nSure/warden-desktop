@@ -688,7 +688,6 @@ function App() {
                 <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
               </div>
               <div className="glass-orb-overlay" aria-hidden="true" />
-              <div className="noise-overlay" aria-hidden="true" />
               {/* Chat surface. The input bar is a single element that travels
                   between centre (empty state) and bottom (conversation) via a
                   layout="position" animation, so opening a new chat and sending
