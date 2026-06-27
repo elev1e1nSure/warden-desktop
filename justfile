@@ -60,7 +60,7 @@ test-frontend:
 
 # Run Go backend tests
 test-backend:
-    go test ./agent/... ./internal/...
+    go test ./agent/... ./internal/... ./cmd/...
 
 # Run all tests
 test: test-frontend test-backend
