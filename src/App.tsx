@@ -44,11 +44,11 @@ const loadSidebarWidth = (): number => {
 };
 
 const WELCOME_PHRASES = [
-  "Where should we begin?",
-  "What shall we build today?",
-  "Ready to orchestrate some tasks?",
-  "Let's automate the routine.",
   "What's on the horizon?",
+  "The floor is yours.",
+  "What shall we untangle today?",
+  "Something worth solving?",
+  "I'm listening.",
 ];
 
 function App() {

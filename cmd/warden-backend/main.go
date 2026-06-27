@@ -1139,10 +1139,28 @@ func (s *Server) handleChatStream(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("\n"))
 	flusher.Flush()
 
-	// Assemble user query, append files note if any
+	// Assemble user query; inject file contents for text files, note path for others
 	text := req.Text
 	if len(req.Files) > 0 {
-		text += "\n\n[Attached files: " + strings.Join(req.Files, ", ") + "]"
+		var fileParts []string
+		for _, filePath := range req.Files {
+			name := filepath.Base(filePath)
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				fileParts = append(fileParts, fmt.Sprintf("[Could not read file: %s]", name))
+				continue
+			}
+			// Treat as text if valid UTF-8 and no null bytes (simple binary check)
+			isText := !strings.ContainsRune(string(data), 0)
+			if isText {
+				fileParts = append(fileParts, fmt.Sprintf("<file name=%q>\n%s\n</file>", name, string(data)))
+			} else {
+				fileParts = append(fileParts, fmt.Sprintf("[Binary file attached: %s]", name))
+			}
+		}
+		if len(fileParts) > 0 {
+			text += "\n\n" + strings.Join(fileParts, "\n\n")
+		}
 	}
 
 	s.mu.Lock()
