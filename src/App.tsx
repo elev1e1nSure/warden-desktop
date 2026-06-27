@@ -553,9 +553,9 @@ function App() {
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
-          style={{ filter: "blur(76px)" }}
+          style={{ filter: "blur(110px)" }}
         >
-          {/* Blue — upper left */}
+          {/* Blue-indigo — upper left */}
           <div
             className="absolute rounded-full"
             style={{
@@ -564,7 +564,7 @@ function App() {
               width: "75%",
               height: "100%",
               background:
-                "radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, rgba(99,102,241,0.05) 40%, transparent 70%)",
+                "radial-gradient(ellipse, rgba(80,105,200,0.08) 0%, rgba(90,90,180,0.03) 45%, transparent 65%)",
             }}
           />
           {/* Violet — lower left */}
@@ -576,22 +576,10 @@ function App() {
               width: "55%",
               height: "70%",
               background:
-                "radial-gradient(ellipse, rgba(139,92,246,0.09) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(110,75,200,0.06) 0%, rgba(80,65,180,0.02) 50%, transparent 68%)",
             }}
           />
-          {/* Teal — mid-left accent for colour variety */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              top: "15%",
-              left: "-25%",
-              width: "50%",
-              height: "55%",
-              background:
-                "radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, rgba(20,184,166,0.02) 50%, transparent 75%)",
-            }}
-          />
-          {/* Indigo — upper right, lights up settings/skills right panel */}
+          {/* Indigo — upper right */}
           <div
             className="absolute rounded-full"
             style={{
@@ -600,7 +588,7 @@ function App() {
               width: "70%",
               height: "80%",
               background:
-                "radial-gradient(ellipse, rgba(99,102,241,0.07) 0%, rgba(59,130,246,0.03) 45%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(85,90,200,0.05) 0%, rgba(70,80,180,0.02) 45%, transparent 65%)",
             }}
           />
           {/* Violet — lower right */}
@@ -612,7 +600,7 @@ function App() {
               width: "55%",
               height: "65%",
               background:
-                "radial-gradient(ellipse, rgba(139,92,246,0.05) 0%, rgba(79,70,229,0.02) 50%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(100,70,180,0.04) 0%, rgba(80,60,160,0.01) 50%, transparent 68%)",
             }}
           />
         </div>
@@ -628,7 +616,7 @@ function App() {
           <div
             className="absolute inset-y-0 right-0 overflow-hidden pointer-events-none z-0"
             aria-hidden="true"
-            style={{ left: sidebarWidth, filter: "blur(88px)" }}
+            style={{ left: sidebarWidth, filter: "blur(120px)" }}
           >
             <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
             <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
