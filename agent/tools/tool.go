@@ -157,10 +157,15 @@ func lcsLines(a, b []string) []string {
 }
 
 func clean(text string) string {
+	// Normalize Windows CRLF first so that \r\n doesn't confuse the per-line
+	// \r processing below (without this, "test\r\n" splits into ["test\r",""]
+	// and the \r-split takes the empty trailing part, silently dropping output).
+	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = ansiRe.ReplaceAllString(text, "")
 	lines := strings.Split(text, "\n")
 	var out []string
 	for _, line := range lines {
+		// Handle bare \r (terminal cursor-return overwrites); keep last segment.
 		parts := strings.Split(line, "\r")
 		cleaned := strings.TrimRight(parts[len(parts)-1], " \t\r")
 		if cleaned != "" {

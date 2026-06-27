@@ -12,7 +12,12 @@ func (t *PowerShellTool) Name() string { return "powershell" }
 func (t *PowerShellTool) Execute(args map[string]any) Result {
 	cmd, _ := args["command"].(string)
 	shell := shellExe()
-	wrapped := "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; " + cmd
+	// Force UTF-8 I/O so Cyrillic and other non-ASCII output is not mangled.
+	// $OutputEncoding controls how PS serialises pipeline objects to text streams.
+	wrapped := "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" +
+		"[Console]::InputEncoding=[System.Text.Encoding]::UTF8;" +
+		"$OutputEncoding=[System.Text.Encoding]::UTF8;" +
+		cmd
 	proc := exec.Command(shell, "-NonInteractive", "-NoProfile", "-Command", wrapped)
 	out, err := proc.CombinedOutput()
 	if err != nil {
