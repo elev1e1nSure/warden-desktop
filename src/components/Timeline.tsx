@@ -28,7 +28,7 @@ import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { useThrottledValue } from "../hooks/useThrottledValue";
-import { toolDescription, toolRunningLabel } from "../lib/toolDescription";
+import { toolDescription, toolFamily, toolRunningLabel } from "../lib/toolDescription";
 import { blockEnter, collapse, EASE, labelFade } from "../motion";
 import type { Block } from "../types";
 import { mdComponents } from "./markdown";
@@ -37,7 +37,11 @@ import { mdComponents } from "./markdown";
 
 type ToolBlock = Extract<Block, { kind: "tool" }>;
 
-type Group = { kind: "single"; block: Block } | { kind: "tool"; block: ToolBlock };
+type Group =
+  | { kind: "single"; block: Block }
+  // key = first block's id in this run so the virtual row stays stable
+  // while only the displayed block (latest) changes inside it.
+  | { kind: "tool"; block: ToolBlock; key: string };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,7 +49,13 @@ function groupBlocks(blocks: Block[]): Group[] {
   const out: Group[] = [];
   for (const b of blocks) {
     if (b.kind === "tool") {
-      out.push({ kind: "tool", block: b });
+      const prev = out[out.length - 1];
+      if (prev?.kind === "tool" && toolFamily(prev.block.name) === toolFamily(b.name)) {
+        // Same family consecutive tool — update block in place, keep stable key.
+        out[out.length - 1] = { kind: "tool", block: b, key: prev.key };
+      } else {
+        out.push({ kind: "tool", block: b, key: b.id });
+      }
     } else {
       out.push({ kind: "single", block: b });
     }
@@ -54,7 +64,7 @@ function groupBlocks(blocks: Block[]): Group[] {
 }
 
 function groupKey(g: Group): string {
-  return g.block.id;
+  return g.kind === "tool" ? g.key : g.block.id;
 }
 
 /* Returns false on first render, then true once the browser is idle — but only

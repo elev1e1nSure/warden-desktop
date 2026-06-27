@@ -4,6 +4,13 @@ type ToolBlock = Extract<Block, { kind: "tool" }>;
 
 export const cut = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max)}…` : s);
 
+// Returns a grouping key for consecutive-tool collapsing.
+// Tools that produce the same verb share a family so they inline together.
+export function toolFamily(name: string): string {
+  if (name === "bash" || name === "powershell") return "shell";
+  return name;
+}
+
 export interface ToolLabel {
   verb: string;
   arg?: string;
