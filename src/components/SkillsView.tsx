@@ -250,7 +250,7 @@ export default function SkillsView({
         {/* Left panel — same bg as sidebar */}
         <div
           style={{ width: sidebarWidth }}
-          className="flex shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
+          className="flex shrink-0 flex-col border-r border-white/[0.08]"
         >
           <nav className="flex flex-col px-2 pt-2">
             {/* Back — full nav item, same as Settings */}

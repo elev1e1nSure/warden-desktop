@@ -518,6 +518,34 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+        {/* Glass layer: left column — full app height, covers titlebar-left + sidebar in one
+            unbroken backdrop-filter context so there is no seam between them */}
+        <div
+          className="absolute top-0 left-0 bottom-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            width: sidebarWidth,
+            zIndex: 8,
+            background: "rgba(11, 11, 11, 0.72)",
+            backdropFilter: "blur(20px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+          }}
+        />
+        {/* Glass layer: titlebar right — covers titlebar area to the right of the sidebar,
+            never overlaps the left panel to avoid double-blur artifacts */}
+        <div
+          className="absolute top-0 right-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            left: sidebarWidth,
+            height: 46,
+            zIndex: 9,
+            background: "rgba(11, 11, 11, 0.72)",
+            backdropFilter: "blur(20px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+          }}
+        />
+
         {/* Global ambient layer — blurred by sidebar and titlebar via backdrop-filter */}
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
