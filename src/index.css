@@ -463,3 +463,67 @@ input::placeholder {
   backface-visibility: hidden;
   -webkit-font-smoothing: subpixel-antialiased;
 }
+
+/* ─── Custom Titlebar ─────────────────────────────────────── */
+.titlebar {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  background: #161616;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.titlebar-label {
+  padding-left: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b4b4b4;
+  letter-spacing: 0.01em;
+}
+
+.titlebar-controls {
+  display: flex;
+  height: 100%;
+  margin-left: auto;
+}
+
+.titlebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #b4b4b4;
+  cursor: pointer;
+  transition: background 0.1s;
+  outline: none;
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.titlebar-btn:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.titlebar-btn-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+.titlebar-btn-close:active {
+  background: #a31d12;
+  color: #fff;
+}
+
+.titlebar-btn svg {
+  display: block;
+}

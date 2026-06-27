@@ -20,6 +20,7 @@ import Sidebar from "./components/Sidebar";
 import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
+import { TitleBar } from "./components/TitleBar";
 import Toaster from "./components/Toaster";
 import { useAppInit } from "./hooks/useAppInit";
 import { useBlocks } from "./hooks/useBlocks";
@@ -510,6 +511,7 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+        <TitleBar />
         <div className="flex min-h-0 flex-1 relative">
           <motion.div
             animate={{
