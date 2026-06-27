@@ -35,7 +35,10 @@ func encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer procLocalFree.Call(uintptr(unsafe.Pointer(out.pbData)))
-	return unsafe.Slice(out.pbData, out.cbData), nil
+	
+	res := make([]byte, out.cbData)
+	copy(res, unsafe.Slice(out.pbData, out.cbData))
+	return res, nil
 }
 
 func decrypt(ciphertext []byte) ([]byte, error) {
@@ -53,5 +56,8 @@ func decrypt(ciphertext []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer procLocalFree.Call(uintptr(unsafe.Pointer(out.pbData)))
-	return unsafe.Slice(out.pbData, out.cbData), nil
+	
+	res := make([]byte, out.cbData)
+	copy(res, unsafe.Slice(out.pbData, out.cbData))
+	return res, nil
 }
