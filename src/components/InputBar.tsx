@@ -468,9 +468,14 @@ function InputBar({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative rounded-2xl border-2 bg-[#161616] px-3 pt-3 pb-2 transition-colors ${
+        className={`relative rounded-2xl border-2 px-3 pt-3 pb-2 transition-colors ${
           dragOver ? "border-accent" : "border-line"
         }`}
+        style={{
+          background: "rgba(18, 18, 18, 0.55)",
+          backdropFilter: "blur(20px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+        }}
       >
         {attachedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
