@@ -496,17 +496,16 @@ function App() {
     if (view !== "chat") setView("chat");
   }, [view]);
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
   // Auto-scroll timeline when content changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: blocks and streaming are triggers for scroll height recalculation
   useEffect(() => {
     if (!followTimeline) return;
-    const el = scrollContainerRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
+    if (scrollEl) {
+      scrollEl.scrollTop = scrollEl.scrollHeight;
     }
-  }, [blocks, streaming, followTimeline]);
+  }, [blocks, streaming, followTimeline, scrollEl]);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -648,7 +647,7 @@ function App() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25, ease: EASE }}
-                      ref={scrollContainerRef}
+                      ref={setScrollEl}
                       onScroll={handleTimelineScroll}
                       className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
                     >
@@ -671,7 +670,7 @@ function App() {
                           blocks={blocks}
                           generation={gen}
                           streaming={streaming}
-                          scrollRef={scrollContainerRef}
+                          scrollEl={scrollEl}
                         />
                       </motion.div>
                     </motion.div>

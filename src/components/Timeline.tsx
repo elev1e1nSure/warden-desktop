@@ -450,12 +450,12 @@ function Timeline({
   blocks,
   generation: _generation = 0,
   streaming = false,
-  scrollRef,
+  scrollEl,
 }: {
   blocks: Block[];
   generation?: number;
   streaming?: boolean;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
+  scrollEl: HTMLDivElement | null;
 }) {
   const groups = useMemo(() => groupBlocks(blocks), [blocks]);
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
@@ -463,7 +463,7 @@ function Timeline({
 
   const virtualizer = useVirtualizer({
     count: groups.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollEl,
     estimateSize: () => 100,
     overscan: 5,
   });
