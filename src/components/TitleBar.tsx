@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface TitleBarProps {
   onNewChat: () => void;
@@ -32,7 +33,9 @@ export function TitleBar({
 }: TitleBarProps) {
   const [maximized, setMaximized] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -63,11 +66,20 @@ export function TitleBar({
   }, []);
 
   useEffect(() => {
-    if (!openMenu) return;
+    if (!openMenu) {
+      setDropdownPos(null);
+      return;
+    }
+    const trigger = triggerRefs.current[openMenu];
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 2, left: rect.left });
+    }
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenu(null);
-      }
+      const target = e.target as Node;
+      if (menuRef.current?.contains(target)) return;
+      if (trigger?.contains(target)) return;
+      setOpenMenu(null);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -153,56 +165,23 @@ export function TitleBar({
     }
   };
 
+  const activeMenu = menus.find((m) => m.label === openMenu);
+
   return (
     <div className="titlebar">
-      <div ref={menuRef} data-tauri-drag-region className="titlebar-menubar">
+      <div data-tauri-drag-region className="titlebar-menubar">
         {menus.map((menu) => (
           <button
             key={menu.label}
+            ref={(el) => {
+              triggerRefs.current[menu.label] = el;
+            }}
             type="button"
             className={`titlebar-menu-trigger${openMenu === menu.label ? " menu-open" : ""}`}
             onClick={() => setOpenMenu(openMenu === menu.label ? null : menu.label)}
             onMouseEnter={() => handleMouseEnter(menu.label)}
           >
             <span className="titlebar-menu-label">{menu.label}</span>
-            <AnimatePresence>
-              {openMenu === menu.label && (
-                <motion.div
-                  role="menu"
-                  className="titlebar-menu-dropdown"
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ transformOrigin: "top left" }}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                >
-                  {menu.items.map((item, i) =>
-                    item === "separator" ? (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: separators have no stable id
-                      <div key={`${menu.label}-sep-${i}`} className="titlebar-menu-separator" />
-                    ) : (
-                      <button
-                        key={item.label}
-                        type="button"
-                        className="titlebar-menu-item"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenu(null);
-                          item.action();
-                        }}
-                      >
-                        <span>{item.label}</span>
-                        {item.shortcut && (
-                          <span className="titlebar-menu-shortcut">{item.shortcut}</span>
-                        )}
-                      </button>
-                    ),
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </button>
         ))}
       </div>
@@ -278,6 +257,57 @@ export function TitleBar({
           </svg>
         </button>
       </div>
+
+      {createPortal(
+        <AnimatePresence>
+          {openMenu && dropdownPos && activeMenu
+            ? (() => (
+                <motion.div
+                  ref={menuRef}
+                  role="menu"
+                  className="titlebar-menu-dropdown"
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                  style={{
+                    transformOrigin: "top left",
+                    position: "fixed",
+                    top: dropdownPos.top,
+                    left: dropdownPos.left,
+                    zIndex: 9999,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {activeMenu.items.map((item, i) =>
+                    item === "separator" ? (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: separators have no stable id
+                      <div key={`${openMenu}-sep-${i}`} className="titlebar-menu-separator" />
+                    ) : (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className="titlebar-menu-item"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenu(null);
+                          item.action();
+                        }}
+                      >
+                        <span>{item.label}</span>
+                        {item.shortcut && (
+                          <span className="titlebar-menu-shortcut">{item.shortcut}</span>
+                        )}
+                      </button>
+                    ),
+                  )}
+                </motion.div>
+              ))()
+            : null}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

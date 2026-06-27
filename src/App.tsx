@@ -591,6 +591,30 @@ function App() {
                 "radial-gradient(ellipse, rgba(6,182,212,0.09) 0%, rgba(20,184,166,0.03) 50%, transparent 75%)",
             }}
           />
+          {/* Indigo — upper right, lights up settings/skills right panel */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: "-30%",
+              right: "-20%",
+              width: "70%",
+              height: "80%",
+              background:
+                "radial-gradient(ellipse, rgba(99,102,241,0.10) 0%, rgba(59,130,246,0.04) 45%, transparent 72%)",
+            }}
+          />
+          {/* Violet — lower right */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              bottom: "-25%",
+              right: "-15%",
+              width: "55%",
+              height: "65%",
+              background:
+                "radial-gradient(ellipse, rgba(139,92,246,0.08) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
+            }}
+          />
         </div>
         <TitleBar
           onNewChat={handleNewChat}
