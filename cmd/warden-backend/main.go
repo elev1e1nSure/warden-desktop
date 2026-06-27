@@ -267,7 +267,7 @@ func (s *Server) loadWardenConfig() {
 	if err != nil {
 		return
 	}
-	s.apiKey = strings.TrimSpace(plainKey)
+	s.apiKey = strings.Trim(plainKey, " \t\r\n\x00")
 	if cfg.APIURL != "" {
 		s.apiURL = cfg.APIURL
 	}
@@ -459,7 +459,7 @@ func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mu.Lock()
-	s.apiKey = strings.TrimSpace(req.APIKey)
+	s.apiKey = strings.Trim(req.APIKey, " \t\r\n\x00")
 	if s.model == "" {
 		s.model = "google/gemini-2.5-flash"
 	}
