@@ -1,6 +1,8 @@
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
   type CSSProperties,
+  lazy,
+  Suspense,
   type UIEvent,
   useCallback,
   useEffect,
@@ -15,13 +17,15 @@ import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
 import InputBar from "./components/InputBar";
 import QuestionModal from "./components/QuestionModal";
-import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
-import SkillsView from "./components/SkillsView";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
 import { TitleBar } from "./components/TitleBar";
 import Toaster from "./components/Toaster";
+
+const SkillsView = lazy(() => import("./components/SkillsView"));
+const SettingsView = lazy(() => import("./components/SettingsView"));
+
 import { useAppInit } from "./hooks/useAppInit";
 import { useBlocks } from "./hooks/useBlocks";
 import { useStreamSession } from "./hooks/useStreamSession";
@@ -529,12 +533,14 @@ function App() {
             style={{ pointerEvents: view === "skills" ? "auto" : "none" }}
             className="absolute inset-0 flex overflow-hidden"
           >
-            <SkillsView
-              onClose={handleCloseSkills}
-              ready={connected}
-              sidebarWidth={sidebarWidth}
-              setSidebarWidth={setSidebarWidth}
-            />
+            <Suspense>
+              <SkillsView
+                onClose={handleCloseSkills}
+                ready={connected}
+                sidebarWidth={sidebarWidth}
+                setSidebarWidth={setSidebarWidth}
+              />
+            </Suspense>
           </motion.div>
           <motion.div
             animate={{
@@ -545,17 +551,19 @@ function App() {
             style={{ pointerEvents: view === "settings" ? "auto" : "none" }}
             className="absolute inset-0 flex overflow-hidden"
           >
-            <SettingsView
-              onClose={handleCloseSettings}
-              status={status}
-              connected={connected}
-              models={models}
-              onSelectModel={handleSelectModel}
-              onToggleMode={handleToggleMode}
-              onOpenSkills={() => setView("skills")}
-              sidebarWidth={sidebarWidth}
-              setSidebarWidth={setSidebarWidth}
-            />
+            <Suspense>
+              <SettingsView
+                onClose={handleCloseSettings}
+                status={status}
+                connected={connected}
+                models={models}
+                onSelectModel={handleSelectModel}
+                onToggleMode={handleToggleMode}
+                onOpenSkills={() => setView("skills")}
+                sidebarWidth={sidebarWidth}
+                setSidebarWidth={setSidebarWidth}
+              />
+            </Suspense>
           </motion.div>
           <motion.div
             animate={{

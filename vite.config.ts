@@ -1,8 +1,20 @@
+import { execSync } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 const host = process.env.TAURI_DEV_HOST;
+const appVersion =
+  process.env.APP_VERSION ??
+  (() => {
+    try {
+      return execSync("git describe --tags --abbrev=0", { encoding: "utf-8" })
+        .trim()
+        .replace(/^v/, "");
+    } catch {
+      return "0.0.0";
+    }
+  })();
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -12,6 +24,21 @@ export default defineConfig(async () => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-framer": ["framer-motion"],
+          "vendor-markdown": ["react-markdown", "rehype-highlight", "remark-gfm", "highlight.js"],
+          "vendor-lucide": ["lucide-react"],
+          "vendor-tanstack": ["@tanstack/react-virtual"],
+        },
+      },
+    },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   optimizeDeps: {
     exclude: ["@tailwindcss/oxide", "@tailwindcss/oxide-win32-x64-msvc"],
   },
