@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Blocks, Check, MoreHorizontal, Plus, Search, X } from "lucide-react";
-import * as React from "react";
+import type * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Markdown from "react-markdown";
@@ -8,9 +8,13 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
+import { useEscape } from "../hooks/useEscape";
 import AnimatedArrowLeft from "./AnimatedArrowLeft";
 import AnimatedPencil from "./AnimatedPencil";
 import AnimatedTrash from "./AnimatedTrash";
+import BackButton from "./BackButton";
+import DropdownButton from "./DropdownButton";
+import ResizeHandle from "./ResizeHandle";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 type RightPanel = "detail" | "create" | "edit";
@@ -95,55 +99,6 @@ const skillsMdComponents = {
   ),
 };
 
-function BackButton({ onClick }: { onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
-    >
-      <AnimatedArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} isHovered={hovered} />
-      <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
-    </button>
-  );
-}
-
-interface DropdownButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-}
-
-function DropdownButton({ icon, label, onClick, danger }: DropdownButtonProps) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover ${
-        danger
-          ? "text-danger hover:text-danger-hover"
-          : "text-text-secondary hover:text-text-primary"
-      }`}
-    >
-      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
-        {React.isValidElement(icon)
-          ? React.cloneElement(icon, { isHovered: hovered } as any)
-          : icon}
-      </span>
-      <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
-        {label}
-      </span>
-    </button>
-  );
-}
-
 function FormBackButton({ onClick }: { onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -211,20 +166,8 @@ export default function SkillsView({
 
   useEffect(() => {
     if (!ready) return;
-    let cancelled = false;
-    if (!cancelled) loadSkills();
-    return () => {
-      cancelled = true;
-    };
+    loadSkills();
   }, [ready, loadSkills]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -239,8 +182,7 @@ export default function SkillsView({
   }, [skills, query]);
 
   const selected = skills.find((s) => s.name === selectedName) ?? null;
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEscape(onClose);
 
   useEffect(() => {
     if (!menuSkillName) {
@@ -407,26 +349,7 @@ export default function SkillsView({
           </div>
         </div>
 
-        {/* Resize handle */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle */}
-        <div
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const startW = sidebarWidth;
-            const onMove = (ev: MouseEvent) =>
-              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-            const onUp = () => {
-              document.removeEventListener("mousemove", onMove);
-              document.removeEventListener("mouseup", onUp);
-            };
-            document.addEventListener("mousemove", onMove);
-            document.addEventListener("mouseup", onUp);
-          }}
-          className="relative z-10 w-0 shrink-0 cursor-col-resize"
-        >
-          <div className="absolute inset-y-0 -left-2 -right-2" />
-        </div>
+        <ResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
 
         {/* Right panel — content area */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">

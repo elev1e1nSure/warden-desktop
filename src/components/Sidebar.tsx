@@ -1,14 +1,16 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ChevronDown, MoreHorizontal, Plug } from "lucide-react";
-import * as React from "react";
+import type * as React from "react";
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { renderAnimatedIcon } from "../lib/icon";
 import type { Chat } from "../types";
 import AnimatedBlocks from "./AnimatedBlocks";
 import AnimatedPencil from "./AnimatedPencil";
 import AnimatedSettings from "./AnimatedSettings";
 import AnimatedSquarePen from "./AnimatedSquarePen";
 import AnimatedTrash from "./AnimatedTrash";
+import DropdownButton from "./DropdownButton";
 
 interface SidebarProps {
   chats: Chat[];
@@ -57,44 +59,9 @@ function NavButton({ icon, label, onClick, disabled, active }: NavButtonProps) {
         />
       )}
       <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
-        {React.isValidElement(icon)
-          ? React.cloneElement(icon, { isHovered: hovered || active } as any)
-          : icon}
+        {renderAnimatedIcon(icon, Boolean(hovered || active))}
       </span>
       <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
-        {label}
-      </span>
-    </button>
-  );
-}
-
-interface DropdownButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-}
-
-function DropdownButton({ icon, label, onClick, danger }: DropdownButtonProps) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-fill-hover ${
-        danger
-          ? "text-danger hover:text-danger-hover"
-          : "text-text-secondary hover:text-text-primary"
-      }`}
-    >
-      <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
-        {React.isValidElement(icon)
-          ? React.cloneElement(icon, { isHovered: hovered } as any)
-          : icon}
-      </span>
-      <span className="flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors">
         {label}
       </span>
     </button>

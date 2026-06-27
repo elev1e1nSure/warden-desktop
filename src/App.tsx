@@ -17,6 +17,7 @@ import ConfirmModal from "./components/ConfirmModal";
 import ConnectModal from "./components/ConnectModal";
 import InputBar from "./components/InputBar";
 import QuestionModal from "./components/QuestionModal";
+import ResizeHandle from "./components/ResizeHandle";
 import Sidebar from "./components/Sidebar";
 import StarfieldBackdrop from "./components/StarfieldBackdrop";
 import Timeline from "./components/Timeline";
@@ -598,25 +599,7 @@ function App() {
             />
 
             {/* Resize handle — sits between sidebar and main */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle; keyboard a11y would require full slider widget */}
-            <div
-              onMouseDown={(e) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startW = sidebarWidth;
-                const onMove = (ev: MouseEvent) =>
-                  setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-                const onUp = () => {
-                  document.removeEventListener("mousemove", onMove);
-                  document.removeEventListener("mouseup", onUp);
-                };
-                document.addEventListener("mousemove", onMove);
-                document.addEventListener("mouseup", onUp);
-              }}
-              className="relative z-10 w-0 shrink-0 cursor-col-resize"
-            >
-              <div className="absolute inset-y-0 -left-2 -right-2" />
-            </div>
+            <ResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
 
             <main
               style={

@@ -12,7 +12,7 @@ import {
   Terminal,
 } from "lucide-react";
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
 import type {
@@ -22,14 +22,17 @@ import type {
   PermissionsState,
   StatusResult,
 } from "../api/types";
+import { useEscape } from "../hooks/useEscape";
+import { renderAnimatedIcon } from "../lib/icon";
 import type { Model } from "../types";
-import AnimatedArrowLeft from "./AnimatedArrowLeft";
 import AnimatedBot from "./AnimatedBot";
 import AnimatedBrain from "./AnimatedBrain";
 import AnimatedInfo from "./AnimatedInfo";
 import AnimatedSliders from "./AnimatedSliders";
 import AnimatedWifi from "./AnimatedWifi";
+import BackButton from "./BackButton";
 import ModelSelector from "./ModelSelector";
+import ResizeHandle from "./ResizeHandle";
 
 export type SettingsSection =
   | "general"
@@ -64,22 +67,6 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: "about", label: "About", icon: <AnimatedInfo strokeWidth={1.75} /> },
 ];
 
-function BackButton({ onClick }: { onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-text-secondary transition-none hover:bg-fill-hover hover:text-text-primary"
-    >
-      <AnimatedArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} isHovered={hovered} />
-      <span className="text-ui-lg font-medium tracking-[-0.01em]">Back</span>
-    </button>
-  );
-}
-
 interface SettingsNavButtonProps {
   id: SettingsSection;
   label: string;
@@ -109,9 +96,7 @@ function SettingsNavButton({ label, icon, active, onClick }: SettingsNavButtonPr
         />
       )}
       <span className="relative z-10 shrink-0 [&>svg]:h-4 [&>svg]:w-4">
-        {React.isValidElement(icon)
-          ? React.cloneElement(icon, { isHovered: hovered || active } as any)
-          : icon}
+        {renderAnimatedIcon(icon, hovered || active)}
       </span>
       <span className="relative z-10 truncate text-ui-lg font-medium tracking-[-0.01em]">
         {label}
@@ -131,16 +116,7 @@ export default function SettingsView({
   setSidebarWidth,
 }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>("general");
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+  useEscape(onClose);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -170,26 +146,7 @@ export default function SettingsView({
           </nav>
         </div>
 
-        {/* Resize handle */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only drag handle */}
-        <div
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const startW = sidebarWidth;
-            const onMove = (ev: MouseEvent) =>
-              setSidebarWidth(Math.min(400, Math.max(180, startW + ev.clientX - startX)));
-            const onUp = () => {
-              document.removeEventListener("mousemove", onMove);
-              document.removeEventListener("mouseup", onUp);
-            };
-            document.addEventListener("mousemove", onMove);
-            document.addEventListener("mouseup", onUp);
-          }}
-          className="relative z-10 w-0 shrink-0 cursor-col-resize"
-        >
-          <div className="absolute inset-y-0 -left-2 -right-2" />
-        </div>
+        <ResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
 
         {/* Right panel — content */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">

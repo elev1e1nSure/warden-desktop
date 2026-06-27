@@ -180,6 +180,7 @@ export function TitleBar({
                 >
                   {menu.items.map((item, i) =>
                     item === "separator" ? (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: separators have no stable id
                       <div key={`${menu.label}-sep-${i}`} className="titlebar-menu-separator" />
                     ) : (
                       <button

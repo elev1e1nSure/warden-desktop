@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
+import { useEscape } from "../hooks/useEscape";
 
 interface ConnectModalProps {
   onConnected: () => void;
@@ -24,13 +25,7 @@ export default function ConnectModal({ onConnected, onClose }: ConnectModalProps
     };
   }, []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onClose) onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  useEscape(() => onClose?.());
 
   const submit = async () => {
     setError("");
