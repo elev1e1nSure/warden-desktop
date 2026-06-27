@@ -52,29 +52,67 @@ type Group =
   | { kind: "single"; block: Block }
   // key = first block's id in this run so the virtual row stays stable
   // while only the displayed block (latest) changes inside it.
-  | { kind: "tool"; block: ToolBlock; key: string };
+  | { kind: "tool"; block: ToolBlock; key: string }
+  // A completed agent work chain: think + tool blocks collapsed into one row.
+  // Shown as "Worked for Xs" summary, expandable on click.
+  | { kind: "work-chain"; blocks: Block[]; elapsed: number; key: string };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function groupBlocks(blocks: Block[]): Group[] {
   const out: Group[] = [];
-  for (const b of blocks) {
-    if (b.kind === "tool") {
-      const prev = out[out.length - 1];
-      if (prev?.kind === "tool" && toolFamily(prev.block.name) === toolFamily(b.name)) {
-        // Same family consecutive tool — update block in place, keep stable key.
-        out[out.length - 1] = { kind: "tool", block: b, key: prev.key };
+  let chainStart: number | null = null;
+
+  const flushChainAsIndividual = (end: number) => {
+    if (chainStart === null) return;
+    for (let j = chainStart; j < end; j++) {
+      const cb = blocks[j];
+      if (!cb) continue;
+      if (cb.kind === "tool") {
+        const prev = out[out.length - 1];
+        if (prev?.kind === "tool" && toolFamily(prev.block.name) === toolFamily(cb.name)) {
+          out[out.length - 1] = { kind: "tool", block: cb, key: prev.key };
+        } else {
+          out.push({ kind: "tool", block: cb, key: cb.id });
+        }
       } else {
-        out.push({ kind: "tool", block: b, key: b.id });
+        out.push({ kind: "single", block: cb });
       }
+    }
+    chainStart = null;
+  };
+
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (!b) continue;
+
+    if (b.kind === "think" || b.kind === "tool") {
+      // Accumulate into a work chain
+      if (chainStart === null) chainStart = i;
+    } else if (b.kind === "agent-work-end") {
+      // Terminate the pending chain with elapsed time
+      if (chainStart !== null) {
+        const chainBlocks = blocks.slice(chainStart, i);
+        const key = blocks[chainStart]?.id ?? b.id;
+        out.push({ kind: "work-chain", blocks: chainBlocks, elapsed: b.elapsed, key });
+        chainStart = null;
+      }
+      // agent-work-end is consumed; never emitted as a group itself
     } else {
+      // Any other block type: flush pending chain as individual items, then emit
+      flushChainAsIndividual(i);
       out.push({ kind: "single", block: b });
     }
   }
+
+  // During streaming: incomplete chain (no agent-work-end yet) — show individually
+  flushChainAsIndividual(blocks.length);
+
   return out;
 }
 
 function groupKey(g: Group): string {
+  if (g.kind === "work-chain") return g.key;
   return g.kind === "tool" ? g.key : g.block.id;
 }
 
@@ -498,6 +536,61 @@ const ToolRow = memo(
     prev.block.args === next.block.args,
 );
 
+// ─── work chain ──────────────────────────────────────────────────────────────
+
+const WorkChain = memo(function WorkChain({
+  blocks,
+  elapsed,
+}: {
+  blocks: Block[];
+  elapsed: number;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="-ml-5 py-0.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="group flex items-center gap-1.5 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary"
+      >
+        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+          <motion.span
+            animate={{ rotate: open ? 0 : -90 }}
+            transition={{ duration: 0.2, ease: EASE }}
+            className="flex"
+          >
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </motion.span>
+        </span>
+        <span>Worked for {elapsed}s</span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div {...collapse} className="overflow-hidden">
+            <div className="mt-1 pl-5 flex flex-col gap-0 py-1">
+              {blocks.map((b) => {
+                if (b.kind === "think") {
+                  return (
+                    <div key={b.id}>
+                      <ThinkBlock text={b.text} live={false} />
+                    </div>
+                  );
+                }
+                if (b.kind === "tool") {
+                  return <ToolRow key={b.id} block={b} />;
+                }
+                return null;
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
 // ─── main ────────────────────────────────────────────────────────────────────
 
 function Timeline({
@@ -576,6 +669,7 @@ function Timeline({
                     <p className="text-ui text-danger">{g.block.text}</p>
                   )}
                   {g.kind === "tool" && <ToolRow block={g.block} />}
+                  {g.kind === "work-chain" && <WorkChain blocks={g.blocks} elapsed={g.elapsed} />}
                 </motion.div>
               </div>
             );

@@ -40,4 +40,8 @@ export type Block =
       result?: string;
       diff?: string;
       status: "running" | "done";
-    };
+    }
+  // Marks the end of an agent work chain (think + tool blocks). Emitted once
+  // the first assistant token arrives. Consumed by groupBlocks in Timeline to
+  // collapse the preceding think/tool sequence into a "Worked for Xs" row.
+  | { id: string; kind: "agent-work-end"; elapsed: number };

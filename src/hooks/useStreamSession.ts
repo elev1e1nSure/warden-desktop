@@ -70,6 +70,10 @@ export function useStreamSession({
   const assistantIdRef = useRef<string | null>(null);
   const thinkIdRef = useRef<string | null>(null);
   const toolIdRef = useRef<string | null>(null);
+  // Work-chain timing: set on first warden_start, used to compute elapsed for
+  // the "Worked for Xs" summary block. Cleared after each handleSend cycle.
+  const workStartRef = useRef<number>(0);
+  const workEndedRef = useRef<boolean>(false);
 
   const appendText = useCallback(
     (slot: React.MutableRefObject<string | null>, kind: "assistant" | "think", text: string) => {
@@ -107,6 +111,7 @@ export function useStreamSession({
           // Each agent iteration starts a fresh assistant slot. Open a new
           // reasoning indicator unless one is already open (e.g. the eager one
           // created on send for the very first iteration).
+          if (workStartRef.current === 0) workStartRef.current = Date.now();
           assistantIdRef.current = null;
           if (thinkIdRef.current === null) openThink();
           break;
@@ -138,6 +143,14 @@ export function useStreamSession({
           // sits ABOVE the assistant block — instead of spawning a new "Thought"
           // below the answer. The block settles to "Thought" purely by position
           // (it's no longer the last block) once assistant content appears.
+          //
+          // First token signals that tool usage is done — insert the work-chain
+          // boundary block so groupBlocks can collapse think/tool rows.
+          if (workStartRef.current > 0 && !workEndedRef.current) {
+            workEndedRef.current = true;
+            const elapsed = Math.max(1, Math.round((Date.now() - workStartRef.current) / 1000));
+            commit([...blocksRef.current, { id: genId(), kind: "agent-work-end", elapsed }]);
+          }
           appendText(assistantIdRef, "assistant", e.text);
           break;
         case "think": {
@@ -215,6 +228,8 @@ export function useStreamSession({
       assistantIdRef.current = null;
       thinkIdRef.current = null;
       toolIdRef.current = null;
+      workStartRef.current = 0;
+      workEndedRef.current = false;
 
       let fileIds: string[] = [];
       if (files.length > 0) {
@@ -275,7 +290,18 @@ export function useStreamSession({
           assistantIdRef.current = null;
           thinkIdRef.current = null;
           setStreaming(false);
-          commit(stripEmptyThink(blocksRef.current));
+          // Fallback: if tool usage ran but no token came (tool-only responses,
+          // or early stop) insert the work-chain end block now.
+          if (workStartRef.current > 0 && !workEndedRef.current) {
+            workEndedRef.current = true;
+            const elapsed = Math.max(1, Math.round((Date.now() - workStartRef.current) / 1000));
+            const settled = stripEmptyThink(blocksRef.current);
+            commit([...settled, { id: genId(), kind: "agent-work-end", elapsed }]);
+          } else {
+            commit(stripEmptyThink(blocksRef.current));
+          }
+          workStartRef.current = 0;
+          workEndedRef.current = false;
           // Persist the just-streamed blocks to the DB + cache BEFORE loadChats
           // fetches the chat list — otherwise the list may be read before the
           // save landed (SQLite write/read race) and the new chat disappears
@@ -314,8 +340,18 @@ export function useStreamSession({
     setConfirmReq(null);
     setQuestionReq(null);
     // The stream's finally bails out once abortRef is cleared, so settle any
-    // dangling empty "Thinking…" indicator here.
-    commit(stripEmptyThink(blocksRef.current));
+    // dangling empty "Thinking…" indicator here. If tool usage was in progress,
+    // close the work-chain so the collapsed summary shows after stopping.
+    if (workStartRef.current > 0 && !workEndedRef.current) {
+      workEndedRef.current = true;
+      const elapsed = Math.max(1, Math.round((Date.now() - workStartRef.current) / 1000));
+      const settled = stripEmptyThink(blocksRef.current);
+      commit([...settled, { id: genId(), kind: "agent-work-end", elapsed }]);
+    } else {
+      commit(stripEmptyThink(blocksRef.current));
+    }
+    workStartRef.current = 0;
+    workEndedRef.current = false;
     // The finally also skips loadChats (same guard), so a chat that was just
     // created via the first message would never appear in the sidebar until the
     // next manual refresh. Persist + reload here to keep the sidebar in sync —
@@ -323,7 +359,7 @@ export function useStreamSession({
     if (wasStreaming) {
       void persistActiveChatBlocks().finally(() => void loadChats());
     }
-  }, [commit, blocksRef, stripEmptyThink, persistActiveChatBlocks, loadChats]);
+  }, [commit, blocksRef, stripEmptyThink, persistActiveChatBlocks, loadChats, genId]);
 
   const handleConfirm = useCallback(
     async (ok: boolean) => {
