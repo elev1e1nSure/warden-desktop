@@ -58,7 +58,7 @@ export function TitleBar() {
 
   return (
     <div data-tauri-drag-region className="titlebar">
-      <span className="titlebar-label">Warden</span>
+      <img src="/icon.png" alt="" className="titlebar-logo" />
       <div className="titlebar-controls">
         <button
           type="button"
