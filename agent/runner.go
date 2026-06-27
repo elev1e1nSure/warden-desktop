@@ -313,11 +313,11 @@ func resolvePreview(args map[string]any, fallback string) string {
 }
 
 func formatArgs(args map[string]any) string {
-	parts := make([]string, 0, len(args))
-	for k, v := range args {
-		parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+	b, err := json.Marshal(args)
+	if err != nil {
+		return "{}"
 	}
-	return strings.Join(parts, ", ")
+	return string(b)
 }
 
 // executeToolCall runs a single tool call, emitting events to ch and recording
