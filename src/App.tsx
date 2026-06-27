@@ -178,7 +178,9 @@ function App() {
   const loadChats = useCallback(async () => {
     try {
       const res = await api.listChats();
-      const incoming = res.chats.map((chat) => ({ ...chat, messages: [] }));
+      const incoming = res.chats
+        .map((chat) => ({ ...chat, messages: [] }))
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
       const activeId = activeChatIdRef.current;
       // If the active chat (e.g. the one just created via the first message's
       // title event) isn't in the backend's list yet — history save still in
