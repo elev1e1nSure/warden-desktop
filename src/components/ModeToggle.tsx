@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, MessageCircle, SlidersHorizontal, Zap } from "lucide-react";
+import { Check, ChevronDown, MessageCircle, Pencil, Zap } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import Tooltip from "./Tooltip";
@@ -27,7 +27,7 @@ const MODES: {
   {
     value: "custom",
     label: "Custom",
-    Icon: SlidersHorizontal,
+    Icon: Pencil,
     description: "Uses your permission settings",
   },
 ];
