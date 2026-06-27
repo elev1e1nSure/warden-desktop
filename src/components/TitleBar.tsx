@@ -58,7 +58,6 @@ export function TitleBar() {
 
   return (
     <div data-tauri-drag-region className="titlebar">
-      <img src="/icon.png" alt="" className="titlebar-logo" />
       <div className="titlebar-controls">
         <button
           type="button"
