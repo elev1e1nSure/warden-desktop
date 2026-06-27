@@ -4,7 +4,12 @@ type ToolBlock = Extract<Block, { kind: "tool" }>;
 
 export const cut = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max)}…` : s);
 
-export function toolDescription(b: ToolBlock): string {
+export interface ToolLabel {
+  verb: string;
+  arg?: string;
+}
+
+export function toolDescription(b: ToolBlock): ToolLabel {
   let args: Record<string, unknown> = {};
   if (typeof b.args === "object" && b.args !== null) {
     args = b.args as Record<string, unknown>;
@@ -18,22 +23,24 @@ export function toolDescription(b: ToolBlock): string {
 
   const str = (key: string, fallback = "") => String(args[key] ?? fallback).trim();
   const base = (p: string) => p.split(/[\\/]/).pop() || p;
+  const r = (verb: string, arg?: string): ToolLabel => ({ verb, arg });
 
   switch (b.name) {
     case "screenshot":
-      return "Took a screenshot";
+      return r("Took screenshot");
 
     case "mouse": {
       const action = str("action", "click");
       const x = args.x ?? "?";
       const y = args.y ?? "?";
-      if (action === "click") return `Clicked at (${x}, ${y})`;
-      if (action === "right_click") return `Right-clicked at (${x}, ${y})`;
-      if (action === "double_click") return `Double-clicked at (${x}, ${y})`;
-      if (action === "move") return `Moved mouse to (${x}, ${y})`;
-      if (action === "scroll") return `Scrolled at (${x}, ${y})`;
-      if (action === "drag") return `Dragged (${x}, ${y}) → (${args.x2 ?? "?"}, ${args.y2 ?? "?"})`;
-      return `Mouse ${action} at (${x}, ${y})`;
+      if (action === "click") return r("Clicked", `(${x}, ${y})`);
+      if (action === "right_click") return r("Right-clicked", `(${x}, ${y})`);
+      if (action === "double_click") return r("Double-clicked", `(${x}, ${y})`);
+      if (action === "move") return r("Moved mouse to", `(${x}, ${y})`);
+      if (action === "scroll") return r("Scrolled", `(${x}, ${y})`);
+      if (action === "drag")
+        return r("Dragged", `(${x}, ${y}) → (${args.x2 ?? "?"}, ${args.y2 ?? "?"})`);
+      return r(`Mouse ${action}`, `(${x}, ${y})`);
     }
 
     case "keyboard": {
@@ -46,81 +53,83 @@ export function toolDescription(b: ToolBlock): string {
           .filter(Boolean)
           .map((k) => k.charAt(0).toUpperCase() + k.slice(1))
           .join("+");
-        return `Pressed ${key || text}`;
+        return r("Pressed", key || text);
       }
-      return `Typed "${cut(text, 40)}"`;
+      return r("Typed", cut(text, 40));
     }
 
     case "clipboard": {
       const action = str("action", "read");
       if (action === "write") {
         const text = str("text");
-        return text ? `Copied to clipboard: "${cut(text, 30)}"` : "Copied to clipboard";
+        return text ? r("Copied to clipboard", cut(text, 30)) : r("Copied to clipboard");
       }
-      return "Read clipboard";
+      return r("Read clipboard");
     }
 
     case "browser_open":
-      return `Opened ${cut(str("url"), 52)}`;
+      return r("Opened", cut(str("url"), 52));
 
     case "browser_read":
-      return `Read ${cut(str("url"), 52)}`;
+      return r("Read", cut(str("url"), 52));
 
     case "browser_screenshot":
-      return str("url") ? `Screenshot of ${cut(str("url"), 44)}` : "Took browser screenshot";
+      return str("url") ? r("Screenshot of", cut(str("url"), 44)) : r("Took browser screenshot");
 
     case "browser_click":
-      return `Clicked "${cut(str("selector"), 40)}" in browser`;
+      return r("Clicked", cut(str("selector"), 40));
 
     case "browser_fill": {
       const val = str("value");
       const sel = str("selector");
-      return val ? `Typed "${cut(val, 28)}" into ${cut(sel, 28)}` : `Filled ${cut(sel, 44)}`;
+      return val ? r("Typed", `${cut(val, 28)} into ${cut(sel, 28)}`) : r("Filled", cut(sel, 44));
     }
 
     case "youtube_search":
-      return `Searched YouTube: "${cut(str("query"), 40)}"`;
+      return r("Searched YouTube", cut(str("query"), 40));
 
     case "google_search":
-      return `Searched Google: "${cut(str("query"), 40)}"`;
+      return r("Searched Google", cut(str("query"), 40));
 
     case "webfetch":
     case "web_fetch":
-      return `Fetched ${cut(str("url"), 52)}`;
+      return r("Fetched", cut(str("url"), 52));
 
     case "http_request":
-      return `${str("method", "GET").toUpperCase()} ${cut(str("url"), 46)}`;
+      return r(str("method", "GET").toUpperCase(), cut(str("url"), 46));
 
     case "window_list": {
       const filter = str("filter");
-      return filter ? `Listed windows: "${filter}"` : "Listed open windows";
+      return filter ? r("Listed windows", filter) : r("Listed windows");
     }
 
     case "window_focus": {
       const title = str("title");
-      return title ? `Focused "${cut(title, 42)}"` : "Focused window";
+      return title ? r("Focused", cut(title, 42)) : r("Focused window");
     }
 
     case "window_manage": {
       const title = str("title");
       const action = str("action");
-      const label = action ? `${action.charAt(0).toUpperCase()}${action.slice(1)}d` : "Managed";
-      return title ? `${label} window "${cut(title, 36)}"` : `${label} window`;
+      const verb = action
+        ? `${action.charAt(0).toUpperCase()}${action.slice(1)}d window`
+        : "Managed window";
+      return title ? r(verb, cut(title, 36)) : r(verb);
     }
 
     case "process_list": {
       const filter = str("filter");
-      return filter ? `Listed processes: "${filter}"` : "Listed processes";
+      return filter ? r("Listed processes", filter) : r("Listed processes");
     }
 
     case "process_kill":
-      return `Killed process ${str("pid")}`;
+      return r("Killed process", str("pid"));
 
     case "ocr":
-      return "Read text from screenshot";
+      return r("Read text from screenshot");
 
     case "image_locate":
-      return `Located ${base(str("image"))} on screen`;
+      return r("Located", base(str("image")));
 
     case "wait_for": {
       const target = str("target");
@@ -128,46 +137,46 @@ export function toolDescription(b: ToolBlock): string {
       const timeout = str("timeout");
       const typeLabel = type ? `${type} ` : "";
       const timeoutLabel = timeout ? ` (${timeout}s)` : "";
-      return `Waited for ${typeLabel}"${cut(target, 32)}"${timeoutLabel}`;
+      return r("Waited for", `${typeLabel}${cut(target, 32)}${timeoutLabel}`);
     }
 
     case "file_read":
-      return `Read ${base(str("path"))}`;
+      return r("Read", base(str("path")));
 
     case "file_write":
-      return `Wrote ${base(str("path"))}`;
+      return r("Wrote", base(str("path")));
 
     case "file_delete":
-      return `Deleted ${base(str("path"))}`;
+      return r("Deleted", base(str("path")));
 
     case "file_list":
-      return `Listed ${cut(str("path", "."), 48)}`;
+      return r("Listed", cut(str("path", "."), 48));
 
     case "file_move":
-      return `Moved ${base(str("src"))} → ${base(str("dst"))}`;
+      return r("Moved", `${base(str("src"))} → ${base(str("dst"))}`);
 
     case "file_copy":
-      return `Copied ${base(str("src"))} → ${base(str("dst"))}`;
+      return r("Copied", `${base(str("src"))} → ${base(str("dst"))}`);
 
     case "edit":
-      return `Edited ${base(str("path"))}`;
+      return r("Edited", base(str("path")));
 
     case "glob": {
       const pattern = str("pattern");
       const res = b.result ? b.result.trim() : "";
       if (res && res !== "(no matches)") {
         const files = res.split("\n").join(", ");
-        return `Found files: ${cut(files, 52)}`;
+        return r("Found files", cut(files, 52));
       }
-      return pattern ? `Found no files for "${pattern}"` : "Found no files";
+      return r("Found no files", pattern || undefined);
     }
 
     case "grep": {
       const pattern = str("pattern");
       const path = str("path");
       return path
-        ? `Searched "${cut(pattern, 28)}" in ${cut(path, 26)}`
-        : `Searched for "${cut(pattern, 44)}"`;
+        ? r("Searched", `${cut(pattern, 28)} in ${cut(path, 26)}`)
+        : r("Searched", cut(pattern, 44));
     }
 
     case "bash":
@@ -176,63 +185,63 @@ export function toolDescription(b: ToolBlock): string {
         .replace(/\s*\n\s*/g, "; ")
         .replace(/\s+/g, " ")
         .trim();
-      return `Ran \`${cut(cmd, 52)}\``;
+      return r("Ran", cut(cmd, 52));
     }
 
     case "apply_patch":
-      return "Applied patch";
+      return r("Applied patch");
 
     case "archive": {
       const action = str("action");
       return action
-        ? `${action.charAt(0).toUpperCase()}${action.slice(1)} archive`
-        : "Archive operation";
+        ? r(`${action.charAt(0).toUpperCase()}${action.slice(1)}d archive`)
+        : r("Archive operation");
     }
 
     case "system_info":
-      return "Got system info";
+      return r("Got system info");
 
     case "notify": {
       const msg = str("message");
-      return msg ? `Notified: "${cut(msg, 40)}"` : "Sent notification";
+      return msg ? r("Notified", cut(msg, 40)) : r("Sent notification");
     }
 
     case "memory": {
       const action = str("action");
       const key = str("key");
-      const map: Record<string, string> = {
-        set: key ? `Saved "${cut(key, 36)}"` : "Saved to memory",
-        get: key ? `Read "${cut(key, 36)}"` : "Read all memory",
-        delete: key ? `Removed "${cut(key, 36)}"` : "Removed from memory",
-        list: "Listed memory",
-        clear: "Cleared memory",
+      const map: Record<string, ToolLabel> = {
+        set: key ? r("Saved to memory", cut(key, 36)) : r("Saved to memory"),
+        get: key ? r("Read from memory", cut(key, 36)) : r("Read all memory"),
+        delete: key ? r("Removed from memory", cut(key, 36)) : r("Removed from memory"),
+        list: r("Listed memory"),
+        clear: r("Cleared memory"),
       };
-      return map[action] ?? "Memory operation";
+      return map[action] ?? r("Memory operation");
     }
 
     case "lsp": {
       const method = str("method");
-      return method ? `LSP: ${cut(method, 46)}` : "LSP operation";
+      return method ? r("LSP", cut(method, 46)) : r("LSP operation");
     }
 
     case "question":
-      return "Asked a question";
+      return r("Asked a question");
 
     case "skill": {
       const name = str("name");
-      return name ? `Used skill "${cut(name, 40)}"` : "Used skill";
+      return name ? r("Used skill", cut(name, 40)) : r("Used skill");
     }
 
     case "todowrite":
     case "todo_write":
-      return "Updated task list";
+      return r("Updated task list");
 
     default: {
       const firstVal = Object.values(args)[0];
-      const val = firstVal ? cut(String(firstVal).replace(/\s+/g, " "), 44) : "";
+      const val = firstVal ? cut(String(firstVal).replace(/\s+/g, " "), 44) : undefined;
       const name = b.name.replace(/_/g, " ");
-      const label = name.charAt(0).toUpperCase() + name.slice(1);
-      return val ? `${label}: ${val}` : label;
+      const verb = name.charAt(0).toUpperCase() + name.slice(1);
+      return r(verb, val);
     }
   }
 }

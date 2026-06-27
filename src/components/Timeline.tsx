@@ -426,9 +426,12 @@ const ToolRow = memo(
                 <motion.span
                   key="done"
                   {...labelFade}
-                  className="absolute inset-0 flex items-center whitespace-nowrap"
+                  className="absolute inset-0 flex items-center gap-1.5 whitespace-nowrap"
                 >
-                  {doneLabel}
+                  <span>{doneLabel.verb}</span>
+                  {doneLabel.arg && (
+                    <span className="font-normal text-text-faint">{doneLabel.arg}</span>
+                  )}
                 </motion.span>
               )}
             </AnimatePresence>
