@@ -622,20 +622,10 @@ func (s *Server) handleQuestion(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReset(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
-	activeID := s.activeChatID
+	s.activeChatID = ""
+	s.saveChats()
 	s.mu.Unlock()
 
-	if activeID != "" {
-		if session, ok := s.chatSessions[activeID]; ok {
-			session.Reset()
-		}
-		s.mu.Lock()
-		if chat, ok := s.chats[activeID]; ok {
-			chat.Blocks = []any{}
-			s.saveChats()
-		}
-		s.mu.Unlock()
-	}
 	w.WriteHeader(http.StatusOK)
 }
 
