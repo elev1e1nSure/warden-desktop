@@ -511,7 +511,12 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
-        <TitleBar />
+        <TitleBar
+          onNewChat={handleNewChat}
+          onOpenConnect={() => setShowConnect(true)}
+          onOpenSettings={() => setView("settings")}
+          onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
+        />
         <div className="flex min-h-0 flex-1 relative">
           <motion.div
             animate={{

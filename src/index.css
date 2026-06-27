@@ -519,3 +519,102 @@ input::placeholder {
 .titlebar-btn svg {
   display: block;
 }
+
+/* ─── Menu Bar ────────────────────────────────────────────── */
+.titlebar-menubar {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 4px;
+  gap: 0;
+}
+
+.titlebar-menu-trigger {
+  position: relative;
+  padding: 0 8px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border: none;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.titlebar-menu-trigger:hover,
+.titlebar-menu-trigger.menu-open {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.titlebar-menu-label {
+  font-size: 13px;
+  color: #b4b4b4;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.titlebar-menu-trigger:hover .titlebar-menu-label,
+.titlebar-menu-trigger.menu-open .titlebar-menu-label {
+  color: #e8e8e8;
+}
+
+.titlebar-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  padding: 4px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+}
+
+.titlebar-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  margin: 0;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: left;
+  gap: 24px;
+  white-space: nowrap;
+}
+
+.titlebar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f2f2;
+}
+
+.titlebar-menu-shortcut {
+  color: #6e6e6e;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.titlebar-menu-item:hover .titlebar-menu-shortcut {
+  color: #9e9e9e;
+}
+
+.titlebar-menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: #333;
+}
+
+.titlebar-spacer {
+  flex: 1;
+  height: 100%;
+}
