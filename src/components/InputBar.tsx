@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
 import { saveConnection } from "../api/session";
 import type { SkillInfo } from "../api/types";
@@ -138,6 +139,8 @@ function InputBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pickerPos, setPickerPos] = useState<{ bottom: number; left: number } | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs height adjustment only when text value changes
   useLayoutEffect(() => {
@@ -210,6 +213,13 @@ function InputBar({
   }, [value]);
 
   const pickerOpen = slash !== null && !pickerLockRef.current;
+
+  useLayoutEffect(() => {
+    if (pickerOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPickerPos({ bottom: window.innerHeight - rect.top + 8, left: rect.left });
+    }
+  }, [pickerOpen]);
 
   // Close the command picker when clicking outside
   useEffect(() => {
@@ -465,6 +475,7 @@ function InputBar({
 
       {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-drop container needs no explicit role */}
       <div
+        ref={containerRef}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -618,17 +629,23 @@ function InputBar({
             )}
           </div>
         </div>
-
+      </div>
+      {createPortal(
         <AnimatePresence>
-          {pickerOpen && (
+          {pickerOpen && pickerPos && (
             <motion.div
               ref={listRef}
               initial={pop.initial}
               animate={pop.animate}
               exit={pop.exit}
               transition={pop.transition}
-              style={{ transformOrigin: "bottom left" }}
-              className="accelerate-scale absolute bottom-full left-0 mb-2 flex max-h-72 w-72 flex-col overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl"
+              style={{
+                position: "fixed",
+                zIndex: 9999,
+                transformOrigin: "bottom left",
+                ...pickerPos,
+              }}
+              className="accelerate-scale dropdown-glass flex max-h-72 w-72 flex-col overflow-hidden rounded-xl p-1"
             >
               <div className="flex items-center gap-2 px-2.5 py-1.5 text-meta uppercase tracking-wider text-text-muted">
                 <Search className="h-3 w-3" strokeWidth={1.75} />
@@ -640,9 +657,9 @@ function InputBar({
               <div
                 className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
                 style={{
-                  maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                  maskImage: "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
                   WebkitMaskImage:
-                    "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                    "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
                 }}
               >
                 {filtered.map((item, idx) => {
@@ -686,8 +703,9 @@ function InputBar({
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

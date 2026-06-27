@@ -517,7 +517,7 @@ function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+      <div className="relative flex h-full w-full flex-col overflow-hidden rounded-tl-xl bg-bg text-text-primary">
         {/* Glass layer: left column — full app height, covers titlebar-left + sidebar in one
             unbroken backdrop-filter context so there is no seam between them */}
         <div
@@ -526,10 +526,11 @@ function App() {
           style={{
             width: sidebarWidth,
             zIndex: 8,
-            background: "rgba(11, 11, 11, 0.62)",
-            backdropFilter: "blur(20px) saturate(1.4)",
-            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
-            boxShadow: "inset -1px 0 0 rgba(255,255,255,0.04)",
+            borderTopLeftRadius: "0.75rem",
+            background: "rgba(10, 11, 16, 0.40)",
+            backdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
+            WebkitBackdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
+            boxShadow: "inset -1px 0 0 rgba(255,255,255,0.06)",
           }}
         />
         {/* Glass layer: titlebar right — covers titlebar area to the right of the sidebar,
@@ -541,10 +542,10 @@ function App() {
             left: sidebarWidth,
             height: 46,
             zIndex: 9,
-            background: "rgba(11, 11, 11, 0.62)",
-            backdropFilter: "blur(20px) saturate(1.4)",
-            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
-            boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)",
+            background: "rgba(10, 11, 16, 0.36)",
+            backdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
+            WebkitBackdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
+            boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.05)",
           }}
         />
 
@@ -623,6 +624,18 @@ function App() {
           onOpenSkills={() => setView((v) => (v === "skills" ? "chat" : "skills"))}
         />
         <div className="flex min-h-0 flex-1 relative">
+          {/* Shared ambient orbs — always composited behind all views so they
+              never flash or differ between chat / settings / skills */}
+          <div
+            className="absolute inset-y-0 right-0 overflow-hidden pointer-events-none z-0"
+            aria-hidden="true"
+            style={{ left: sidebarWidth, filter: "blur(72px)" }}
+          >
+            <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
+            <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
+            <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
+          </div>
+          <div className="glass-orb-overlay" aria-hidden="true" style={{ left: sidebarWidth }} />
           <motion.div
             animate={{
               opacity: view === "skills" ? 1 : 0,
@@ -707,19 +720,6 @@ function App() {
               }
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden"
             >
-              {/* Ambient orbs scoped to the content area only.
-                  filter:blur lives on the static container, not the animated orbs —
-                  this keeps blur on the GPU compositor (post-composite effect on a
-                  render surface) rather than triggering per-frame CPU rasterization. */}
-              <div
-                className="absolute inset-0 overflow-hidden pointer-events-none z-0"
-                style={{ filter: "blur(72px)" }}
-              >
-                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
-                <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
-                <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
-              </div>
-              <div className="glass-orb-overlay" aria-hidden="true" />
               {/* Chat surface. The input bar is a single element that travels
                   between centre (empty state) and bottom (conversation) via a
                   layout="position" animation, so opening a new chat and sending

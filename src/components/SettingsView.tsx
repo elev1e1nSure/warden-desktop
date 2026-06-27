@@ -10,6 +10,7 @@ import {
   Monitor,
   Shield,
   Terminal,
+  Wifi,
 } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -29,7 +30,6 @@ import AnimatedBot from "./AnimatedBot";
 import AnimatedBrain from "./AnimatedBrain";
 import AnimatedInfo from "./AnimatedInfo";
 import AnimatedSliders from "./AnimatedSliders";
-import AnimatedWifi from "./AnimatedWifi";
 import BackButton from "./BackButton";
 import ModelSelector from "./ModelSelector";
 import ResizeHandle from "./ResizeHandle";
@@ -56,7 +56,7 @@ interface SettingsViewProps {
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: "general", label: "General", icon: <AnimatedSliders strokeWidth={1.75} /> },
-  { id: "connection", label: "Provider", icon: <AnimatedWifi strokeWidth={1.75} /> },
+  { id: "connection", label: "Provider", icon: <Wifi className="h-4 w-4" strokeWidth={1.75} /> },
   { id: "agent", label: "Agent", icon: <AnimatedBot strokeWidth={1.75} /> },
   {
     id: "permissions",

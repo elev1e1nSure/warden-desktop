@@ -120,9 +120,9 @@ function Sidebar({
     <aside
       style={{
         width,
-        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.03), 1px 0 0 rgba(255,255,255,0.06)",
+        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.03)",
       }}
-      className="relative flex h-full min-h-0 shrink-0 flex-col border-r border-white/[0.1]"
+      className="relative flex h-full min-h-0 shrink-0 flex-col"
     >
       <LayoutGroup>
         {/* Primary nav */}
@@ -174,9 +174,9 @@ function Sidebar({
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className="min-h-0 flex-1 overflow-y-auto"
                   style={{
-                    maskImage: "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                    maskImage: "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
                     WebkitMaskImage:
-                      "linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%)",
+                      "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
                   }}
                 >
                   <div className="flex w-full flex-col gap-0.5 pt-1 pb-2">
@@ -301,7 +301,7 @@ function Sidebar({
                       style={{
                         transformOrigin: "bottom right",
                       }}
-                      className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
+                      className="accelerate-scale dropdown-glass w-36 overflow-hidden rounded-xl p-1 flex flex-col gap-0.5"
                     >
                       <DropdownButton
                         icon={

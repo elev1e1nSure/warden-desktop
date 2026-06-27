@@ -383,32 +383,41 @@ export default function SkillsView({
               );
             })()
           ) : selected ? (
-            <div key={selected.name} className="px-8 py-8">
-              <div className="flex items-center gap-2">
-                <h2 className="flex-1 text-2xl font-semibold tracking-[-0.03em] text-text-primary">
-                  {selected.name}
-                </h2>
-              </div>
-              {selected.description && (
-                <p className="mt-2 text-ui-lg leading-relaxed text-text-secondary">
-                  {selected.description}
-                </p>
-              )}
-              {selected.location && (
-                <p className="mt-3 text-meta text-text-muted">{selected.location}</p>
-              )}
-              {selected.content && (
-                <div className="mt-6 markdown-body">
-                  <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
-                    components={skillsMdComponents}
-                  >
-                    {selected.content}
-                  </Markdown>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selected.name}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className="px-8 py-8"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="flex-1 text-2xl font-semibold tracking-[-0.03em] text-text-primary">
+                    {selected.name}
+                  </h2>
                 </div>
-              )}
-            </div>
+                {selected.description && (
+                  <p className="mt-2 text-ui-lg leading-relaxed text-text-secondary">
+                    {selected.description}
+                  </p>
+                )}
+                {selected.location && (
+                  <p className="mt-3 text-meta text-text-muted">{selected.location}</p>
+                )}
+                {selected.content && (
+                  <div className="mt-6 markdown-body">
+                    <Markdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={skillsMdComponents}
+                    >
+                      {selected.content}
+                    </Markdown>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           ) : loadState === "ok" && skills.length > 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3">
               <Blocks className="h-10 w-10 text-text-muted" strokeWidth={1.5} />
@@ -441,7 +450,7 @@ export default function SkillsView({
                 transformOrigin: "top right",
                 zIndex: 9999,
               }}
-              className="accelerate-scale w-36 overflow-hidden rounded-xl border-2 border-line bg-[#1a1a1a] p-1 shadow-2xl flex flex-col gap-0.5"
+              className="accelerate-scale dropdown-glass w-36 overflow-hidden rounded-xl p-1 flex flex-col gap-0.5"
             >
               <DropdownButton
                 icon={

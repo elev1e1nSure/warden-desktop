@@ -285,7 +285,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
         type="button"
         onClick={() => expandable && setOpen((v) => !v)}
         disabled={!expandable}
-        className="group flex items-center gap-1.5 p-0 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+        className="group flex items-center gap-1.5 p-0 text-ui-lg text-white/35 transition-colors hover:text-white/60 disabled:cursor-default disabled:hover:text-white/35"
       >
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           {expandable && (
@@ -306,7 +306,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
               <motion.span
                 key="thinking"
                 {...labelFade}
-                className="absolute inset-0 flex items-center whitespace-nowrap font-medium"
+                className="absolute inset-0 flex items-center whitespace-nowrap"
               >
                 Thinking
                 <span className="ml-0.5 inline-flex">
@@ -337,7 +337,7 @@ const ThinkBlock = memo(function ThinkBlock({ text, live }: { text: string; live
       <AnimatePresence initial={false}>
         {open && expandable && (
           <motion.div {...collapse} className="overflow-hidden">
-            <div className="mt-2 pl-5 text-ui leading-[1.7] text-text-muted">
+            <div className="mt-2 pl-5 text-ui leading-[1.7] text-white/30">
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -496,7 +496,7 @@ const ToolRow = memo(
 
     return (
       <div className="-ml-5 py-0.5">
-        <div className="flex items-center gap-1.5 text-ui-lg text-text-muted font-medium">
+        <div className="flex items-center gap-1.5 text-ui-lg text-white/35">
           <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
             {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}
           </span>
@@ -507,7 +507,7 @@ const ToolRow = memo(
                 <motion.span
                   key="running"
                   {...labelFade}
-                  className="absolute inset-0 flex items-center whitespace-nowrap font-medium"
+                  className="absolute inset-0 flex items-center whitespace-nowrap"
                 >
                   {runningLabel}
                 </motion.span>
@@ -519,7 +519,7 @@ const ToolRow = memo(
                 >
                   <span>{doneLabel.verb}</span>
                   {doneLabel.arg && (
-                    <span className="font-normal text-text-faint">{doneLabel.arg}</span>
+                    <span className="font-normal text-white/25">{doneLabel.arg}</span>
                   )}
                 </motion.span>
               )}
@@ -548,7 +548,7 @@ function TreeThinkItem({ text }: { text: string }) {
         type="button"
         disabled={!hasContent}
         onClick={() => hasContent && setOpen((v) => !v)}
-        className="flex items-center gap-1.5 text-ui text-text-muted transition-colors hover:text-text-secondary disabled:cursor-default disabled:hover:text-text-muted"
+        className="flex items-center gap-1.5 text-ui text-white/35 transition-colors hover:text-white/60 disabled:cursor-default disabled:hover:text-white/35"
       >
         {hasContent && (
           <motion.span
@@ -560,12 +560,12 @@ function TreeThinkItem({ text }: { text: string }) {
           </motion.span>
         )}
         {!hasContent && <span className="h-3 w-3 shrink-0" />}
-        <span className="font-medium">Thought</span>
+        <span>Thought</span>
       </button>
       <AnimatePresence initial={false}>
         {open && hasContent && (
           <motion.div {...collapse} className="overflow-hidden">
-            <div className="relative ml-4 mt-1 mb-0.5 pl-3 text-ui leading-[1.65] text-text-faint">
+            <div className="relative ml-4 mt-1 mb-0.5 pl-3 text-ui leading-[1.65] text-white/30">
               <div
                 className="pointer-events-none absolute left-0 top-0 bottom-0 w-px"
                 style={{
@@ -595,10 +595,10 @@ function TreeToolItem({ block }: { block: Extract<Block, { kind: "tool" }> }) {
   const lbl = toolDescription(block);
   const ic = getToolIcon(block.name, block.args);
   return (
-    <div className="flex items-center gap-1.5 text-ui text-text-muted">
-      <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center opacity-60">{ic}</span>
-      <span className="font-medium">{lbl.verb}</span>
-      {lbl.arg && <span className="font-normal text-text-faint">{lbl.arg}</span>}
+    <div className="flex items-center gap-1.5 text-ui text-white/35">
+      <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center opacity-50">{ic}</span>
+      <span>{lbl.verb}</span>
+      {lbl.arg && <span className="font-normal text-white/25">{lbl.arg}</span>}
     </div>
   );
 }
@@ -623,7 +623,7 @@ const WorkChain = memo(function WorkChain({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="group flex items-center gap-1.5 py-0.5 text-ui-lg text-text-muted font-medium transition-colors hover:text-text-secondary"
+        className="group flex items-center gap-1.5 py-0.5 text-ui-lg text-white/35 transition-colors hover:text-white/60"
       >
         <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           <motion.span
@@ -636,7 +636,7 @@ const WorkChain = memo(function WorkChain({
         </span>
         <span>Worked for {elapsed}s</span>
         {itemCount > 0 && !open && (
-          <span className="ml-0.5 text-meta text-text-faint font-normal">
+          <span className="ml-0.5 text-meta text-white/30 font-normal">
             · {itemCount} {itemCount === 1 ? "step" : "steps"}
           </span>
         )}
