@@ -1,4 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 interface TitleBarProps {
@@ -164,36 +165,43 @@ export function TitleBar({
             onMouseEnter={() => handleMouseEnter(menu.label)}
           >
             <span className="titlebar-menu-label">{menu.label}</span>
-            {openMenu === menu.label && (
-              <div
-                role="menu"
-                className="titlebar-menu-dropdown"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                {menu.items.map((item, i) =>
-                  item === "separator" ? (
-                    <div key={`${menu.label}-sep-${i}`} className="titlebar-menu-separator" />
-                  ) : (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className="titlebar-menu-item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenu(null);
-                        item.action();
-                      }}
-                    >
-                      <span>{item.label}</span>
-                      {item.shortcut && (
-                        <span className="titlebar-menu-shortcut">{item.shortcut}</span>
-                      )}
-                    </button>
-                  ),
-                )}
-              </div>
-            )}
+            <AnimatePresence>
+              {openMenu === menu.label && (
+                <motion.div
+                  role="menu"
+                  className="titlebar-menu-dropdown"
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ transformOrigin: "top left" }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {menu.items.map((item, i) =>
+                    item === "separator" ? (
+                      <div key={`${menu.label}-sep-${i}`} className="titlebar-menu-separator" />
+                    ) : (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className="titlebar-menu-item"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenu(null);
+                          item.action();
+                        }}
+                      >
+                        <span>{item.label}</span>
+                        {item.shortcut && (
+                          <span className="titlebar-menu-shortcut">{item.shortcut}</span>
+                        )}
+                      </button>
+                    ),
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
         ))}
       </div>
