@@ -466,6 +466,10 @@ function Timeline({
     getScrollElement: () => scrollEl,
     estimateSize: () => 100,
     overscan: 5,
+    getItemKey: (index: number) => {
+      const g = groups[index];
+      return g ? groupKey(g) : index;
+    },
   });
 
   return (
@@ -481,7 +485,7 @@ function Timeline({
 
             return (
               <div
-                key={groupKey(g)}
+                key={virtualItem.key}
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
                 style={{

@@ -67,7 +67,7 @@ export function TitleBar() {
           aria-label="Minimize"
         >
           <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-            <rect x="1" y="5.5" width="10" height="1" fill="currentColor" />
+            <path d="M1 6h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
           </svg>
         </button>
         <button
@@ -86,7 +86,7 @@ export function TitleBar() {
                 rx="0.5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1"
+                strokeWidth="1.75"
               />
               <rect
                 x="0.5"
@@ -96,7 +96,7 @@ export function TitleBar() {
                 rx="0.5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1"
+                strokeWidth="1.75"
               />
             </svg>
           ) : (
@@ -109,7 +109,7 @@ export function TitleBar() {
                 rx="0.5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.2"
+                strokeWidth="1.75"
               />
             </svg>
           )}
@@ -124,7 +124,7 @@ export function TitleBar() {
             <path
               d="M2 2l8 8M10 2l-8 8"
               stroke="currentColor"
-              strokeWidth="1.2"
+              strokeWidth="1.75"
               strokeLinecap="round"
             />
           </svg>

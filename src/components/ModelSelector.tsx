@@ -130,6 +130,7 @@ export default function ModelSelector({
     getScrollElement: () => listRef.current,
     estimateSize: () => 32,
     overscan: 8,
+    getItemKey: (index: number) => filtered[index]?.id ?? index,
   });
 
   const handleSelect = useCallback(
@@ -223,7 +224,7 @@ export default function ModelSelector({
                     const isFav = favorites.includes(model.id);
                     return (
                       <div
-                        key={model.id}
+                        key={virtualItem.key}
                         data-index={virtualItem.index}
                         ref={virtualizer.measureElement}
                         style={{

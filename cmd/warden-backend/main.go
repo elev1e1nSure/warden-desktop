@@ -28,6 +28,7 @@ type WardenConfig struct {
 	Model  string `json:"model"`
 	APIURL string `json:"api_url"`
 	APIKey string `json:"api_key"`
+	Mode   string `json:"mode"`
 }
 
 type ChatSummary struct {
@@ -65,6 +66,7 @@ type Server struct {
 	chatSessions map[string]*agent.ChatSession
 	settings     AppSettings
 	permissions  PermissionsState
+	mode         string
 
 	provider  string
 	apiURL    string
@@ -81,6 +83,7 @@ func main() {
 		chats:        make(map[string]*ChatDetail),
 		chatSessions: make(map[string]*agent.ChatSession),
 		settings:     AppSettings{DisableSystemPrompt: false},
+		mode:         "ask",
 		permissions: PermissionsState{
 			Files:     "ask",
 			Shell:     "ask",
@@ -250,6 +253,7 @@ func (s *Server) loadWardenConfig() {
 	s.apiURL = "https://openrouter.ai/api/v1"
 	s.model = "google/gemini-2.5-flash"
 	s.provider = "openrouter"
+	s.mode = "ask"
 
 	path, err := configPath()
 	if err != nil {
@@ -273,6 +277,9 @@ func (s *Server) loadWardenConfig() {
 	}
 	if cfg.Model != "" {
 		s.model = cfg.Model
+	}
+	if cfg.Mode != "" {
+		s.mode = cfg.Mode
 	}
 
 	if s.apiKey != "" {
@@ -305,6 +312,7 @@ func (s *Server) saveWardenConfig() {
 		Model:  s.model,
 		APIURL: s.apiURL,
 		APIKey: encryptedKey,
+		Mode:   s.mode,
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err == nil {
@@ -424,9 +432,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mode := "ask"
-	// Check if active chat has autoMode or read from current settings
-	// For simplicity, we default to ask
+	mode := s.mode
 
 	resp := struct {
 		Model      string `json:"model"`
@@ -566,7 +572,19 @@ func (s *Server) handleSetModel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSetMode(w http.ResponseWriter, r *http.Request) {
-	// Mode toggle endpoint, currently stubbed
+	var req struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.mu.Lock()
+	s.mode = req.Mode
+	s.saveWardenConfig()
+	s.mu.Unlock()
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -1127,10 +1145,12 @@ func (s *Server) handleChatStream(w http.ResponseWriter, r *http.Request) {
 		text += "\n\n[Attached files: " + strings.Join(req.Files, ", ") + "]"
 	}
 
+	s.mu.Lock()
+	autoMode := s.mode == "auto"
+	s.mu.Unlock()
+
 	// 2. Start agent session stream
-	// Mode defaults to "ask" inside stream, unless autoMode is set.
-	// For task A we default to false (ask)
-	ch := session.Stream(text, false, "", "")
+	ch := session.Stream(text, autoMode, "", "")
 
 	// 3. Consume channel and write NDJSON chunks
 	for ev := range ch {
