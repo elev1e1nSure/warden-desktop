@@ -118,8 +118,11 @@ function Sidebar({
 
   return (
     <aside
-      style={{ width }}
-      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar border-r border-white/[0.08]"
+      style={{
+        width,
+        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.03), 1px 0 0 rgba(255,255,255,0.06)",
+      }}
+      className="relative flex h-full min-h-0 shrink-0 flex-col bg-sidebar border-r border-white/[0.1]"
     >
       <LayoutGroup>
         {/* Primary nav */}

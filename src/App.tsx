@@ -517,7 +517,35 @@ function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-bg text-text-primary">
+        {/* Global ambient layer — blurred by sidebar and titlebar via backdrop-filter */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: "-40%",
+              left: "-15%",
+              width: "65%",
+              height: "90%",
+              background:
+                "radial-gradient(ellipse, rgba(59,130,246,0.13) 0%, rgba(99,102,241,0.06) 45%, transparent 72%)",
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              bottom: "-30%",
+              left: "-10%",
+              width: "50%",
+              height: "65%",
+              background:
+                "radial-gradient(ellipse, rgba(139,92,246,0.09) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
+            }}
+          />
+        </div>
         <TitleBar
           onNewChat={handleNewChat}
           onOpenConnect={() => setShowConnect(true)}
