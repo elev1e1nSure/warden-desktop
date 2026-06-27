@@ -189,22 +189,47 @@ function App() {
         if (known) incoming.unshift(known as (typeof incoming)[number]);
       }
       setChats(incoming);
-      setActiveChatId(
+
+      const nextActiveId =
         activeId && incoming.some((chat) => chat.id === activeId)
           ? activeId
           : incoming.some((chat) => chat.id === res.active_chat_id)
             ? res.active_chat_id
-            : null,
-      );
+            : null;
+
+      activeChatIdRef.current = nextActiveId;
+      setActiveChatId(nextActiveId);
+
       // The active chat's blocks may still be in flight to the DB (debounced
       // save). Don't prefetch it from the DB — that would cache stale/empty
       // blocks. Cache it from the live blocksRef instead so a quick switch
       // back renders the right content.
       const chatIds = incoming.map((chat) => chat.id);
-      void prefetchChats(chatIds, activeId);
-      if (activeId && !chatBlocksCacheRef.current.has(activeId)) {
-        chatBlocksCacheRef.current.set(activeId, blocksRef.current);
+      void prefetchChats(chatIds, nextActiveId);
+
+      // Ensure active chat blocks are loaded into the UI (especially on app launch/startup)
+      if (nextActiveId) {
+        const cached = chatBlocksCacheRef.current.get(nextActiveId);
+        if (cached) {
+          loadBlocks(cached);
+        } else {
+          try {
+            const chatRes = await api.getChat(nextActiveId);
+            const blocks = chatRes.chat.blocks ?? [];
+            chatBlocksCacheRef.current.set(nextActiveId, blocks);
+            if (activeChatIdRef.current === nextActiveId) {
+              loadBlocks(blocks);
+            }
+          } catch (err) {
+            if (process.env.NODE_ENV !== "production") {
+              console.error("Failed to load active chat blocks:", err);
+            }
+          }
+        }
+      } else {
+        loadBlocks([]);
       }
+
       return res;
     } catch (err) {
       // Don't wipe the sidebar on a transient listChats failure (e.g. a
@@ -214,7 +239,7 @@ function App() {
       if (process.env.NODE_ENV !== "production") console.error("loadChats failed:", err);
       return null;
     }
-  }, [prefetchChats, blocksRef]);
+  }, [prefetchChats, loadBlocks]);
 
   const handleTimelineScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
