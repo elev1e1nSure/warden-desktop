@@ -527,10 +527,9 @@ function App() {
             width: sidebarWidth,
             zIndex: 8,
             borderTopLeftRadius: "0.75rem",
-            background: "rgba(10, 11, 16, 0.40)",
-            backdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
-            WebkitBackdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
-            boxShadow: "inset -1px 0 0 rgba(255,255,255,0.06)",
+            background: "rgba(11, 11, 14, 0.40)",
+            backdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
+            WebkitBackdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
           }}
         />
         {/* Glass layer: titlebar right — covers titlebar area to the right of the sidebar,
@@ -542,9 +541,9 @@ function App() {
             left: sidebarWidth,
             height: 46,
             zIndex: 9,
-            background: "rgba(10, 11, 16, 0.36)",
-            backdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
-            WebkitBackdropFilter: "blur(28px) saturate(1.5) brightness(0.88)",
+            background: "rgba(11, 11, 14, 0.36)",
+            backdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
+            WebkitBackdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
             boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.05)",
           }}
         />
@@ -554,7 +553,7 @@ function App() {
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
-          style={{ filter: "blur(60px)" }}
+          style={{ filter: "blur(76px)" }}
         >
           {/* Blue — upper left */}
           <div
@@ -565,7 +564,7 @@ function App() {
               width: "75%",
               height: "100%",
               background:
-                "radial-gradient(ellipse, rgba(59,130,246,0.18) 0%, rgba(99,102,241,0.08) 40%, transparent 70%)",
+                "radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, rgba(99,102,241,0.05) 40%, transparent 70%)",
             }}
           />
           {/* Violet — lower left */}
@@ -577,7 +576,7 @@ function App() {
               width: "55%",
               height: "70%",
               background:
-                "radial-gradient(ellipse, rgba(139,92,246,0.13) 0%, rgba(79,70,229,0.05) 50%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(139,92,246,0.09) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
             }}
           />
           {/* Teal — mid-left accent for colour variety */}
@@ -589,7 +588,7 @@ function App() {
               width: "50%",
               height: "55%",
               background:
-                "radial-gradient(ellipse, rgba(6,182,212,0.09) 0%, rgba(20,184,166,0.03) 50%, transparent 75%)",
+                "radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, rgba(20,184,166,0.02) 50%, transparent 75%)",
             }}
           />
           {/* Indigo — upper right, lights up settings/skills right panel */}
@@ -601,7 +600,7 @@ function App() {
               width: "70%",
               height: "80%",
               background:
-                "radial-gradient(ellipse, rgba(99,102,241,0.10) 0%, rgba(59,130,246,0.04) 45%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(99,102,241,0.07) 0%, rgba(59,130,246,0.03) 45%, transparent 72%)",
             }}
           />
           {/* Violet — lower right */}
@@ -613,7 +612,7 @@ function App() {
               width: "55%",
               height: "65%",
               background:
-                "radial-gradient(ellipse, rgba(139,92,246,0.08) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(139,92,246,0.05) 0%, rgba(79,70,229,0.02) 50%, transparent 72%)",
             }}
           />
         </div>
@@ -629,7 +628,7 @@ function App() {
           <div
             className="absolute inset-y-0 right-0 overflow-hidden pointer-events-none z-0"
             aria-hidden="true"
-            style={{ left: sidebarWidth, filter: "blur(72px)" }}
+            style={{ left: sidebarWidth, filter: "blur(88px)" }}
           >
             <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
             <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />

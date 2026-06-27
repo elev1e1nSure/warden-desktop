@@ -52,6 +52,86 @@ const ModelRow = memo(function ModelRow({ model, active, onSelect }: ModelRowPro
   );
 });
 
+// Extracted into its own component so useVirtualizer mounts only when the
+// dropdown is open and the scroll element is already in the DOM.
+interface ModelListProps {
+  rows: VirtualRow[];
+  selectedId: string;
+  onSelect: (model: Model) => void;
+  onScrollToActive: (scrollToIndex: (i: number, opts: { align: string }) => void) => void;
+}
+
+function ModelList({ rows, selectedId, onSelect, onScrollToActive }: ModelListProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: (i) => (rows[i]?.type === "header" ? 28 : 32),
+    overscan: 8,
+    getItemKey: (index: number) => {
+      const row = rows[index];
+      if (!row) return index;
+      return row.type === "header" ? `header-${row.label}` : row.model.id;
+    },
+  });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll-to-active runs once on mount
+  useLayoutEffect(() => {
+    onScrollToActive((i, opts) =>
+      virtualizer.scrollToIndex(i, opts as Parameters<typeof virtualizer.scrollToIndex>[1]),
+    );
+  }, []);
+
+  return (
+    <div
+      ref={listRef}
+      className="min-h-0 flex-1 overflow-y-auto no-scrollbar"
+      style={{
+        maskImage: "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
+      }}
+    >
+      {rows.length === 0 ? (
+        <p className="px-2.5 py-2 text-ui text-text-muted">No models match.</p>
+      ) : (
+        <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const row = rows[virtualItem.index];
+            if (!row) return null;
+            return (
+              <div
+                key={virtualItem.key}
+                data-index={virtualItem.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                {row.type === "header" ? (
+                  <div className="px-2 pb-0.5 pt-1.5 text-meta font-semibold uppercase tracking-widest text-text-faint">
+                    {row.label}
+                  </div>
+                ) : (
+                  <ModelRow
+                    model={row.model}
+                    active={row.model.id === selectedId}
+                    onSelect={onSelect}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ModelSelector({
   models,
   selected,
@@ -63,7 +143,6 @@ export default function ModelSelector({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{
     top?: number;
     bottom?: number;
@@ -97,8 +176,6 @@ export default function ModelSelector({
     [models, query],
   );
 
-  // Build the virtual row list: when searching → flat filtered list;
-  // when not searching → Recent section (if any) + All section.
   const rows = useMemo((): VirtualRow[] => {
     if (query) {
       return filtered.map((m) => ({ type: "model", model: m }));
@@ -116,18 +193,6 @@ export default function ModelSelector({
     for (const m of models) result.push({ type: "model", model: m });
     return result;
   }, [query, filtered, models, recentIds]);
-
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => listRef.current,
-    estimateSize: (i) => (rows[i]?.type === "header" ? 28 : 32),
-    overscan: 8,
-    getItemKey: (index: number) => {
-      const row = rows[index];
-      if (!row) return index;
-      return row.type === "header" ? `header-${row.label}` : row.model.id;
-    },
-  });
 
   useEffect(() => {
     if (!open) return;
@@ -148,13 +213,6 @@ export default function ModelSelector({
       return;
     }
     inputRef.current?.focus();
-    // Scroll to the active model. One rAF is enough — virtualizer mounts synchronously.
-    const activeIndex = rows.findIndex((r) => r.type === "model" && r.model.id === selected.id);
-    if (activeIndex >= 0) {
-      requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(activeIndex, { align: "center" });
-      });
-    }
   }, [open]);
 
   const isDown = align === "down";
@@ -170,6 +228,16 @@ export default function ModelSelector({
     }
     setOpen((v) => !v);
   };
+
+  const handleScrollToActive = useCallback(
+    (scrollToIndex: (i: number, opts: { align: string }) => void) => {
+      const activeIndex = rows.findIndex((r) => r.type === "model" && r.model.id === selected.id);
+      if (activeIndex >= 0) {
+        requestAnimationFrame(() => scrollToIndex(activeIndex, { align: "center" }));
+      }
+    },
+    [rows, selected.id],
+  );
 
   return (
     <div className="relative">
@@ -201,59 +269,12 @@ export default function ModelSelector({
                 />
               </div>
               <div className="mx-1 mb-1 mt-0.5 h-px bg-hairline" />
-              <div
-                ref={listRef}
-                className="flex min-h-0 flex-1 overflow-y-auto no-scrollbar"
-                style={{
-                  maskImage: "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)",
-                }}
-              >
-                {rows.length === 0 ? (
-                  <p className="px-2.5 py-2 text-ui text-text-muted">No models match.</p>
-                ) : (
-                  <div
-                    style={{
-                      height: virtualizer.getTotalSize(),
-                      position: "relative",
-                      width: "100%",
-                    }}
-                  >
-                    {virtualizer.getVirtualItems().map((virtualItem) => {
-                      const row = rows[virtualItem.index];
-                      if (!row) return null;
-
-                      return (
-                        <div
-                          key={virtualItem.key}
-                          data-index={virtualItem.index}
-                          ref={virtualizer.measureElement}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            transform: `translateY(${virtualItem.start}px)`,
-                          }}
-                        >
-                          {row.type === "header" ? (
-                            <div className="px-2 pb-0.5 pt-1.5 text-meta font-semibold uppercase tracking-widest text-text-faint">
-                              {row.label}
-                            </div>
-                          ) : (
-                            <ModelRow
-                              model={row.model}
-                              active={row.model.id === selected.id}
-                              onSelect={handleSelect}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <ModelList
+                rows={rows}
+                selectedId={selected.id}
+                onSelect={handleSelect}
+                onScrollToActive={handleScrollToActive}
+              />
             </motion.div>
           )}
         </AnimatePresence>,

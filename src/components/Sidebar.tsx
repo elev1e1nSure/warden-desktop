@@ -120,7 +120,7 @@ function Sidebar({
     <aside
       style={{
         width,
-        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.03)",
+        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.10)",
       }}
       className="relative flex h-full min-h-0 shrink-0 flex-col"
     >
