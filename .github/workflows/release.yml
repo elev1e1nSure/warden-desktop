@@ -29,8 +29,20 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
+      - name: Set version from tag
+        run: |
+          $ver = "$Env:GITHUB_REF_NAME".TrimStart("v")
+          Write-Host "version: $ver"
+          $verJson = $ver -replace '"', '\"'
+          (Get-Content package.json) -replace '"version":\s*"[^"]*"', "`"version`": `"$verJson`"" | Set-Content package.json -Encoding utf8
+          (Get-Content src-tauri/tauri.conf.json) -replace '"version":\s*"[^"]*"', "`"version`": `"$verJson`"" | Set-Content src-tauri/tauri.conf.json -Encoding utf8
+          (Get-Content src-tauri/Cargo.toml) -replace '^version\s*=\s*"[^"]*"', "version = `"$ver`"" | Set-Content src-tauri/Cargo.toml -Encoding utf8
+        shell: pwsh
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+        env:
+          APP_VERSION: ${{ github.ref_name }}
       - run: pnpm build:backend
 
       - uses: actions/cache@v4

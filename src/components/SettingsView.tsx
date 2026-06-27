@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
 import type {
@@ -711,7 +710,7 @@ function AboutSection() {
 
       <FieldGroup>
         <Field label="Version">
-          <span className="text-ui tabular-nums text-text-secondary">{APP_VERSION}</span>
+          <span className="text-ui tabular-nums text-text-secondary">{__APP_VERSION__}</span>
         </Field>
       </FieldGroup>
     </>

@@ -65,6 +65,14 @@ test-backend:
 # Run all tests
 test: test-frontend test-backend
 
+# Print the current program version (from git tag)
+version:
+    @$tag = git describe --tags --abbrev=0 2>$$null; if ($tag) { $tag.TrimStart("v") } else { "0.0.0" }
+
+# Set version in package.json, Cargo.toml and tauri.conf.json from git tag
+set-version:
+    $tag = git describe --tags --abbrev=0 2>$$null; if (-not $tag) { Write-Error "no git tag found"; exit 1 }; $ver = $tag.TrimStart("v"); Write-Host "version: $ver"; (Get-Content package.json) -replace '"version":\s*"[^"]*"', "`"version`": `"$ver`"" | Set-Content package.json -Encoding utf8; (Get-Content src-tauri/tauri.conf.json) -replace '"version":\s*"[^"]*"', "`"version`": `"$ver`"" | Set-Content src-tauri/tauri.conf.json -Encoding utf8; (Get-Content src-tauri/Cargo.toml) -replace '^version\s*=\s*"[^"]*"', "version = `"$ver`"" | Set-Content src-tauri/Cargo.toml -Encoding utf8
+
 # Clean build artifacts and temporary folders
 clean:
     @if (Test-Path dist) { Remove-Item -Recurse -Force dist }
