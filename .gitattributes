@@ -1,2 +1,4 @@
+* text=auto
+
 # Mark Python backend as vendored so TypeScript appears first in language stats
 backend/** linguist-vendored
