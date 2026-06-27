@@ -548,10 +548,12 @@ function App() {
           }}
         />
 
-        {/* Global ambient layer — blurred by glass panels to create sidebar/titlebar glow */}
+        {/* Global ambient layer — blurred by glass panels to create sidebar/titlebar glow.
+            Same trick: blur on the container, not on animated children. */}
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
+          style={{ filter: "blur(60px)" }}
         >
           {/* Blue — upper left */}
           <div
@@ -681,8 +683,14 @@ function App() {
               }
               className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden"
             >
-              {/* Ambient orbs scoped to the content area only */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              {/* Ambient orbs scoped to the content area only.
+                  filter:blur lives on the static container, not the animated orbs —
+                  this keeps blur on the GPU compositor (post-composite effect on a
+                  render surface) rather than triggering per-frame CPU rasterization. */}
+              <div
+                className="absolute inset-0 overflow-hidden pointer-events-none z-0"
+                style={{ filter: "blur(72px)" }}
+              >
                 <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full ambient-orb-1" />
                 <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] rounded-full ambient-orb-2" />
                 <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
