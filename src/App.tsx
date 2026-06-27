@@ -189,9 +189,9 @@ function App() {
         if (known) incoming.unshift(known as (typeof incoming)[number]);
       }
       setChats(incoming);
-      setActiveChatId((cur) =>
-        cur && incoming.some((chat) => chat.id === cur)
-          ? cur
+      setActiveChatId(
+        activeId && incoming.some((chat) => chat.id === activeId)
+          ? activeId
           : incoming.some((chat) => chat.id === res.active_chat_id)
             ? res.active_chat_id
             : null,
@@ -310,7 +310,8 @@ function App() {
       handleStop();
 
       // Snapshot the chat we're leaving so coming back to it is instant.
-      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+      const outgoingId = activeChatIdRef.current;
+      if (outgoingId) chatBlocksCacheRef.current.set(outgoingId, blocksRef.current);
 
       // Flush the outgoing chat's blocks BEFORE clearing the UI — loadBlocks([])
       // resets blocksDirtyRef and blocksRef, which would turn the flush into a
@@ -319,6 +320,7 @@ function App() {
       void flushActiveChatBlocks();
 
       // Optimistically switch to empty welcome layout instantly
+      activeChatIdRef.current = null;
       setActiveChatId(null);
       loadBlocks([]);
       setFollowTimeline(true);
@@ -331,17 +333,19 @@ function App() {
     } catch {
       // keep the current chat intact if reset fails
     }
-  }, [activeChatId, blocksRef, flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
+  }, [blocksRef, flushActiveChatBlocks, handleStop, loadBlocks, loadChats]);
 
   const handleSelectChat = useCallback(
     async (id: string) => {
-      if (id === activeChatId) return;
+      if (id === activeChatIdRef.current) return;
       handleStop();
 
       // Snapshot the chat we're leaving so coming back to it is instant.
-      if (activeChatId) chatBlocksCacheRef.current.set(activeChatId, blocksRef.current);
+      const outgoingId = activeChatIdRef.current;
+      if (outgoingId) chatBlocksCacheRef.current.set(outgoingId, blocksRef.current);
 
       // Optimistically switch chat selection in sidebar
+      activeChatIdRef.current = id;
       setActiveChatId(id);
 
       // Saving the outgoing chat writes to a different id than the one we're
@@ -387,7 +391,7 @@ function App() {
         // leave whatever is shown (cache) if the switch fails
       }
     },
-    [activeChatId, flushActiveChatBlocks, handleStop, loadBlocks, blocksRef],
+    [flushActiveChatBlocks, handleStop, loadBlocks, blocksRef],
   );
 
   const handleRenameChat = useCallback(async (id: string, title: string) => {

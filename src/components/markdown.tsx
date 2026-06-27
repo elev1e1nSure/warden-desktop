@@ -1,5 +1,5 @@
+import { Check, Clipboard } from "lucide-react";
 import React, { useState } from "react";
-import { Clipboard, Check } from "lucide-react";
 
 const getTextContent = (node: React.ReactNode): string => {
   if (!node) return "";

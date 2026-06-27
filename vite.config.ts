@@ -12,6 +12,9 @@ export default defineConfig(async () => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  optimizeDeps: {
+    exclude: ["@tailwindcss/oxide", "@tailwindcss/oxide-win32-x64-msvc"],
+  },
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,

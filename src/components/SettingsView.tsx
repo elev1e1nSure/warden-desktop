@@ -1,4 +1,3 @@
-import * as React from "react";
 import { LayoutGroup, motion } from "framer-motion";
 import {
   Check,
@@ -12,13 +11,8 @@ import {
   Shield,
   Terminal,
 } from "lucide-react";
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import AnimatedSliders from "./AnimatedSliders";
-import AnimatedArrowLeft from "./AnimatedArrowLeft";
-import AnimatedWifi from "./AnimatedWifi";
-import AnimatedBot from "./AnimatedBot";
-import AnimatedBrain from "./AnimatedBrain";
-import AnimatedInfo from "./AnimatedInfo";
 import { version as APP_VERSION } from "../../package.json";
 import { api } from "../api/client";
 import { loadConnection, saveConnection } from "../api/session";
@@ -30,6 +24,12 @@ import type {
   StatusResult,
 } from "../api/types";
 import type { Model } from "../types";
+import AnimatedArrowLeft from "./AnimatedArrowLeft";
+import AnimatedBot from "./AnimatedBot";
+import AnimatedBrain from "./AnimatedBrain";
+import AnimatedInfo from "./AnimatedInfo";
+import AnimatedSliders from "./AnimatedSliders";
+import AnimatedWifi from "./AnimatedWifi";
 import ModelSelector from "./ModelSelector";
 
 export type SettingsSection =

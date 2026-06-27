@@ -1,16 +1,16 @@
-import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Blocks, Check, MoreHorizontal, Plus, Search, X } from "lucide-react";
+import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import AnimatedTrash from "./AnimatedTrash";
-import AnimatedPencil from "./AnimatedPencil";
-import AnimatedArrowLeft from "./AnimatedArrowLeft";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { api } from "../api/client";
 import type { SkillInfo } from "../api/types";
+import AnimatedArrowLeft from "./AnimatedArrowLeft";
+import AnimatedPencil from "./AnimatedPencil";
+import AnimatedTrash from "./AnimatedTrash";
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 type RightPanel = "detail" | "create" | "edit";

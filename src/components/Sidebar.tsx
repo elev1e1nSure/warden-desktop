@@ -1,14 +1,14 @@
-import * as React from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ChevronDown, MoreHorizontal, Plug } from "lucide-react";
+import * as React from "react";
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Chat } from "../types";
 import AnimatedBlocks from "./AnimatedBlocks";
-import AnimatedSquarePen from "./AnimatedSquarePen";
-import AnimatedSettings from "./AnimatedSettings";
-import AnimatedTrash from "./AnimatedTrash";
 import AnimatedPencil from "./AnimatedPencil";
+import AnimatedSettings from "./AnimatedSettings";
+import AnimatedSquarePen from "./AnimatedSquarePen";
+import AnimatedTrash from "./AnimatedTrash";
 
 interface SidebarProps {
   chats: Chat[];
