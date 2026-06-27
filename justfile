@@ -22,7 +22,7 @@ dev-backend:
     pnpm dev:backend
 
 # Build the React frontend
-build:
+build-frontend:
     pnpm build
 
 # Build the Go backend executable
