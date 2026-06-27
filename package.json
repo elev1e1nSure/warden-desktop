@@ -9,11 +9,9 @@
   "packageManager": "pnpm@11.6.0",
   "scripts": {
     "dev": "vite",
-    "dev:backend": "node scripts/dev-backend.mjs",
-    "dev:all": "concurrently -k -n backend,app -c blue,green \"pnpm dev:backend\" \"pnpm tauri dev\"",
+    "dev:all": "tauri dev",
     "build": "tsc && vite build",
-    "build:backend": "powershell -ExecutionPolicy Bypass -File scripts/build-backend.ps1",
-    "build:app": "pnpm build:backend && tauri build --config src-tauri/tauri.bundle.conf.json",
+    "build:app": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
