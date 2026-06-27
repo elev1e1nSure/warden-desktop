@@ -93,10 +93,8 @@ body {
   font-size: 14px;
   line-height: 1.5;
   letter-spacing: -0.011em;
-  font-feature-settings: "cv05", "ss01";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   overflow: hidden;
 }
 
