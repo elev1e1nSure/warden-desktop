@@ -149,7 +149,7 @@ export default function SettingsView({
         <ResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
 
         {/* Right panel — content */}
-        <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+        <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar bg-bg">
           <div className="mx-auto max-w-2xl px-8 py-8">
             {section === "general" && <GeneralSection status={status} />}
             {section === "connection" && (

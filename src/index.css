@@ -366,24 +366,24 @@ input::placeholder {
    on soft radial gradients with wide falloffs rather than using CSS filter: blur()
    to ensure 100% hardware-accelerated GPU composting. */
 .ambient-orb-1 {
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.05) 45%, transparent 75%);
-  filter: blur(220px);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.16) 0%, rgba(99, 102, 241, 0.07) 45%, transparent 75%);
+  filter: blur(200px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-1 32s ease-in-out infinite;
 }
 
 .ambient-orb-2 {
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(79, 70, 229, 0.04) 50%, transparent 80%);
-  filter: blur(240px);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.13) 0%, rgba(79, 70, 229, 0.05) 50%, transparent 80%);
+  filter: blur(220px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-2 45s ease-in-out infinite;
 }
 
 .ambient-orb-3 {
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.09) 0%, rgba(20, 184, 166, 0.03) 40%, transparent 75%);
-  filter: blur(180px);
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.11) 0%, rgba(20, 184, 166, 0.04) 40%, transparent 75%);
+  filter: blur(170px);
   will-change: transform;
   transform: translate3d(0, 0, 0);
   animation: ambient-drift-3 28s ease-in-out infinite;
@@ -400,11 +400,28 @@ input::placeholder {
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.025) 0%, transparent 40%),
-    rgba(5, 6, 18, 0.18);
-  -webkit-backdrop-filter: blur(18px) saturate(0.65);
-  backdrop-filter: blur(18px) saturate(0.65);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 30%, transparent 60%),
+    linear-gradient(to bottom, transparent 65%, rgba(0, 0, 0, 0.25) 100%),
+    rgba(5, 6, 18, 0.14);
+  -webkit-backdrop-filter: blur(22px) saturate(0.7);
+  backdrop-filter: blur(22px) saturate(0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* ─── Film grain overlay — adds tactile texture to the chat surface.
+   Static SVG feTurbulence noise tiled at low opacity gives the
+   "expensive dark UI" feel without any runtime cost. */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.038;
+  mix-blend-mode: screen;
 }
 
 /* ─── Empty-state starfield ───────────────────────────────────

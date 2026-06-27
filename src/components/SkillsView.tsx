@@ -352,7 +352,7 @@ export default function SkillsView({
         <ResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
 
         {/* Right panel — content area */}
-        <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+        <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar bg-bg">
           {rightPanel === "create" ? (
             <SkillForm
               key="create"

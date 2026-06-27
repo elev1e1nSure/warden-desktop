@@ -526,9 +526,10 @@ function App() {
           style={{
             width: sidebarWidth,
             zIndex: 8,
-            background: "rgba(11, 11, 11, 0.72)",
+            background: "rgba(11, 11, 11, 0.62)",
             backdropFilter: "blur(20px) saturate(1.4)",
             WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+            boxShadow: "inset -1px 0 0 rgba(255,255,255,0.04)",
           }}
         />
         {/* Glass layer: titlebar right — covers titlebar area to the right of the sidebar,
@@ -540,37 +541,52 @@ function App() {
             left: sidebarWidth,
             height: 46,
             zIndex: 9,
-            background: "rgba(11, 11, 11, 0.72)",
+            background: "rgba(11, 11, 11, 0.62)",
             backdropFilter: "blur(20px) saturate(1.4)",
             WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+            boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)",
           }}
         />
 
-        {/* Global ambient layer — blurred by sidebar and titlebar via backdrop-filter */}
+        {/* Global ambient layer — blurred by glass panels to create sidebar/titlebar glow */}
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
         >
+          {/* Blue — upper left */}
           <div
             className="absolute rounded-full"
             style={{
-              top: "-40%",
-              left: "-15%",
-              width: "65%",
-              height: "90%",
+              top: "-50%",
+              left: "-20%",
+              width: "75%",
+              height: "100%",
               background:
-                "radial-gradient(ellipse, rgba(59,130,246,0.13) 0%, rgba(99,102,241,0.06) 45%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(59,130,246,0.18) 0%, rgba(99,102,241,0.08) 40%, transparent 70%)",
             }}
           />
+          {/* Violet — lower left */}
           <div
             className="absolute rounded-full"
             style={{
-              bottom: "-30%",
-              left: "-10%",
-              width: "50%",
-              height: "65%",
+              bottom: "-35%",
+              left: "-15%",
+              width: "55%",
+              height: "70%",
               background:
-                "radial-gradient(ellipse, rgba(139,92,246,0.09) 0%, rgba(79,70,229,0.03) 50%, transparent 72%)",
+                "radial-gradient(ellipse, rgba(139,92,246,0.13) 0%, rgba(79,70,229,0.05) 50%, transparent 72%)",
+            }}
+          />
+          {/* Teal — mid-left accent for colour variety */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: "15%",
+              left: "-25%",
+              width: "50%",
+              height: "55%",
+              background:
+                "radial-gradient(ellipse, rgba(6,182,212,0.09) 0%, rgba(20,184,166,0.03) 50%, transparent 75%)",
             }}
           />
         </div>
@@ -587,8 +603,8 @@ function App() {
               scale: view === "skills" ? 1 : 0.98,
             }}
             transition={{ duration: 0.2, ease: EASE }}
-            style={{ pointerEvents: view === "skills" ? "auto" : "none" }}
-            className="absolute inset-0 flex overflow-hidden bg-bg"
+            style={{ pointerEvents: view === "skills" ? "auto" : "none", zIndex: 15 }}
+            className="absolute inset-0 flex overflow-hidden"
           >
             <Suspense>
               <SkillsView
@@ -605,8 +621,8 @@ function App() {
               scale: view === "settings" ? 1 : 0.98,
             }}
             transition={{ duration: 0.2, ease: EASE }}
-            style={{ pointerEvents: view === "settings" ? "auto" : "none" }}
-            className="absolute inset-0 flex overflow-hidden bg-bg"
+            style={{ pointerEvents: view === "settings" ? "auto" : "none", zIndex: 15 }}
+            className="absolute inset-0 flex overflow-hidden"
           >
             <Suspense>
               <SettingsView
@@ -628,7 +644,7 @@ function App() {
               scale: view === "chat" ? 1 : 0.98,
             }}
             transition={{ duration: 0.2, ease: EASE }}
-            style={{ pointerEvents: view === "chat" ? "auto" : "none" }}
+            style={{ pointerEvents: view === "chat" ? "auto" : "none", zIndex: 15 }}
             className="absolute inset-0 flex overflow-hidden"
           >
             <Sidebar
@@ -672,6 +688,7 @@ function App() {
                 <div className="absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full ambient-orb-3" />
               </div>
               <div className="glass-orb-overlay" aria-hidden="true" />
+              <div className="noise-overlay" aria-hidden="true" />
               {/* Chat surface. The input bar is a single element that travels
                   between centre (empty state) and bottom (conversation) via a
                   layout="position" animation, so opening a new chat and sending
@@ -817,7 +834,7 @@ function App() {
 
                   <motion.div
                     className="w-full shrink-0"
-                    style={{ minHeight: 24 }}
+                    style={{ minHeight: 36 }}
                     initial={false}
                     animate={{ flexGrow: emptyState ? 1 : 0 }}
                     transition={{ duration: 0.5, ease: EASE }}
