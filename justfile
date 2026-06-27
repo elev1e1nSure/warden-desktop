@@ -17,9 +17,17 @@ dev:
 dev-frontend:
     pnpm dev
 
+# Run Go backend dev server
+dev-backend:
+    pnpm dev:backend
+
 # Build the React frontend
 build-frontend:
     pnpm build
+
+# Build the Go backend executable
+build-backend:
+    pnpm build:backend
 
 # Build the Tauri desktop application
 build-app:
@@ -50,10 +58,15 @@ check: typecheck lint
 test-frontend:
     pnpm test
 
+# Run Go backend tests
+test-backend:
+    go test ./agent/... ./internal/...
+
 # Run all tests
-test: test-frontend
+test: test-frontend test-backend
 
 # Clean build artifacts and temporary folders
 clean:
     @if (Test-Path dist) { Remove-Item -Recurse -Force dist }
     @if (Test-Path src-tauri/target) { Remove-Item -Recurse -Force src-tauri/target }
+    @if (Test-Path src-tauri/binaries/warden-backend.exe) { Remove-Item -Force src-tauri/binaries/warden-backend.exe }

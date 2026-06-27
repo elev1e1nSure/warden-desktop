@@ -9,9 +9,11 @@
   "packageManager": "pnpm@11.6.0",
   "scripts": {
     "dev": "vite",
-    "dev:all": "tauri dev",
+    "dev:backend": "go run ./cmd/warden-backend",
+    "dev:all": "concurrently -k -n backend,app -c blue,green \"pnpm dev:backend\" \"pnpm tauri dev\"",
     "build": "tsc && vite build",
-    "build:app": "tauri build",
+    "build:backend": "go build -ldflags=\"-H windowsgui\" -o src-tauri/binaries/warden-backend.exe ./cmd/warden-backend",
+    "build:app": "pnpm build:backend && tauri build --config src-tauri/tauri.bundle.conf.json",
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
