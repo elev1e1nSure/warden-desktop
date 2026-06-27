@@ -57,7 +57,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts
-          path: src-tauri/target/release/bundle/nsis/*.exe
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/release/bundle/nsis/*.nsis.zip.sig
 
   release:
     needs: [build]
@@ -87,12 +90,12 @@ jobs:
           - No technical noise: no commit hashes, no feat/fix/chore/refactor/perf prefixes, no PR numbers, no file names
           - SKIP anything internal — rendering layers, GPU promotion, CORS, auth middleware, blur layers, scroll internals, animation internals, CSS fixes, build/CI/test changes. If a non-developer wouldn't notice it or care, skip it.
           - SKIP pure visual polish changes (tweaked gradients, background effects) unless they meaningfully change the experience
-          - Group changes into sections with an emoji in the header (only include sections that have content):
-            ## ✨ What's New
-            ## ⚡ Improvements
-            ## 🐛 Bug Fixes
+          - Group changes into plain sections (only include sections that have content):
+            What's new
+            Improved
+            Fixed
           - Cap each section at 5 bullets maximum — pick only the most impactful ones
-          - Plain bullet lists, no emojis inside bullets
+          - Plain bullet lists, no emojis anywhere
           - Each bullet: one clear sentence, user-benefit focus
           - Tone: direct, no marketing fluff"
 
@@ -131,7 +134,30 @@ jobs:
           name: artifacts
           path: artifacts
 
+      - name: Generate latest.json for in-app updater
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${GITHUB_REF_NAME}"
+          SIG=$(cat artifacts/*.nsis.zip.sig)
+          ZIP_NAME=$(basename artifacts/*.nsis.zip)
+          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          jq -n \
+            --arg version "$VERSION" \
+            --arg sig "$SIG" \
+            --arg url "https://github.com/elev1e1nSure/warden-desktop/releases/download/$TAG/$ZIP_NAME" \
+            --arg pub_date "$PUB_DATE" \
+            '{
+              version: $version,
+              notes: "",
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": { signature: $sig, url: $url }
+              }
+            }' > latest.json
+
       - uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/**
+          files: |
+            artifacts/**
+            latest.json
           body_path: release_notes.md
