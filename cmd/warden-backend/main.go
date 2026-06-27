@@ -331,7 +331,7 @@ func (s *Server) loadChats() {
 		Chats        map[string]*ChatDetail `json:"chats"`
 	}
 	if err := json.Unmarshal(data, &storage); err == nil {
-		s.activeChatID = storage.ActiveChatID
+		s.activeChatID = "" // Always start with a new empty chat on startup
 		s.chats = storage.Chats
 		if s.chats == nil {
 			s.chats = make(map[string]*ChatDetail)
