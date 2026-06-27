@@ -6,7 +6,7 @@ The project is structured as a desktop shell around the existing Warden backend.
 flowchart TD
   User["User"] --> UI["React UI<br/>src/"]
   UI --> API["REST + NDJSON client<br/>src/api/"]
-  API --> Backend["Python backend<br/>backend/agent/"]
+  API --> Backend["Go backend<br/>cmd/warden-backend"]
   Backend --> LLM["LLM provider<br/>OpenAI-compatible API (OpenRouter и др.)"]
   Backend --> Tools["Tools<br/>archive, browser, files, http, input, lsp,<br/>memory, misc, move, patch, process,<br/>screen, search, shell, system, window"]
   UI --> Tauri["Tauri shell<br/>src-tauri/"]
@@ -53,7 +53,7 @@ Tauri is responsible for the desktop window wrapper, window configuration, syste
 
 - `src-tauri/tauri.conf.json` — dev/build settings, window size, permissions, and app metadata.
 - `src-tauri/tauri.bundle.conf.json` — additional resources for bundled build.
-- `src-tauri/src/` — Rust entry point of the desktop application. Rust spawns the Python backend and reads the backend token via `get_backend_token` command.
+- `src-tauri/src/` — Rust entry point of the desktop application. Rust spawns the Go backend and reads the backend token via `get_backend_token` command.
 - `src-tauri/icons/` — application icons.
 
 The application window is named `Warden`. Its default window size is `1100x720` with a minimum size of `720x480`.
@@ -67,9 +67,9 @@ The backend uses a shared secret token (`X-Warden-Token`) for API authentication
 - CORS is enforced: only allowlisted origins can access the API (`tauri://localhost`, `http://localhost:1420`, `http://127.0.0.1:1420`).
 - Dev mode (`WARDEN_DEV=1`) bypasses token requirement for local development.
 
-### Python Backend
+### Go Backend
 
-The backend code is located in `backend/agent/`.
+The backend code is located in `cmd/warden-backend/` (entry point) and `agent/` (runtime).
 
 The backend exposes an HTTP API for the desktop UI and drives the agent runtime execution:
 
@@ -125,19 +125,17 @@ The desktop UI does not run tools directly. It sends messages to the backend and
 
 Backend modules:
 
-- `server.py` — HTTP server (aiohttp), CORS, auth middleware, route registration.
-- `routes/` — Endpoint handlers: `chat`, `chats`, `memory`, `models`, `skills`, `system`.
-- `chat.py` — Chat session orchestration, streaming, tool loop.
-- `llm_client.py` — OpenAI-compatible LLM client (handles OpenRouter, reasoning, tool calls).
-- `tool_runner.py` — Tool execution engine.
-- `tools/` — Individual tool implementations: `archive`, `browser`, `files`, `http`, `input`, `lsp`, `memory`, `misc`, `move`, `patch`, `process`, `screen`, `search`, `shell`, `system`, `window`.
-- `safety/` — Safety policies: `_filesystem` (path restrictions), `_policy` (capability gates), `_powershell` (PowerShell constraints).
-- `memory/` — Long-term memory: `aggregator`, `extractor`, `store`.
-- `confirmations.py` — Confirmation and question prompt handling.
-- `chat_store.py` — Chat persistence.
-- `app_state.py` — Backend global state.
-- `prompt.py` — System prompt construction.
-- `paths.py` — Path resolution utilities.
+- `cmd/warden-backend/main.go` — HTTP server, CORS, auth middleware, route registration, handler setup.
+- `agent/runner.go` — Chat session orchestration, streaming, tool loop.
+- `agent/llm_client.go` — OpenAI-compatible LLM client (handles OpenRouter, reasoning, tool calls).
+- `agent/session.go` — Chat session state management.
+- `agent/confirm.go` — Confirmation and question prompt handling.
+- `agent/tools/` — Individual tool implementations.
+- `agent/safety/` — Safety policies: filesystem (path restrictions), policy (capability gates), PowerShell (constraints).
+- `agent/memory/` — Long-term memory: aggregator, extractor, store.
+- `agent/prompt.go` — System prompt construction.
+- `internal/client/` — Shared client DTOs and stream types.
+- `internal/security/` — Encryption helpers (token management).
 
 ## Message Flow
 
@@ -146,7 +144,7 @@ sequenceDiagram
   participant U as User
   participant UI as React UI
   participant API as src/api
-  participant B as Python backend
+  participant B as Go backend
   participant L as LLM/tools
 
   U->>UI: writes a message
@@ -162,8 +160,9 @@ sequenceDiagram
 ## Source Map
 
 - UI behavior — `src/App.tsx`, `src/main.tsx`, `src/components/`, `src/hooks/`.
-- Backend endpoints — `backend/agent/server.py` and `backend/agent/routes/`.
-- Streaming protocol — `src/api/stream.ts` and `backend/agent/routes/chat.py`.
-- Auth & middleware — `backend/agent/server.py` (`_cors_middleware`, `_auth_middleware`).
+- Backend entry point — `cmd/warden-backend/main.go`.
+- Backend agent runtime — `agent/` (runner, session, LLM client, tools, memory, safety).
+- Streaming protocol — `src/api/stream.ts` and `agent/runner.go`.
+- Auth & middleware — `cmd/warden-backend/main.go`.
 - Build scripts — `package.json`, `scripts/`, `src-tauri/`, `justfile`.
-- Agent internals — `backend/agent/`.
+- Agent internals — `agent/`.

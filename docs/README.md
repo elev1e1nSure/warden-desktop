@@ -5,7 +5,7 @@ This is a short project map. There are no contributor rules here; these document
 ## What to Read
 
 - [project.md](project.md) — what the project does and where its boundaries are.
-- [architecture.md](architecture.md) — how the desktop UI, Tauri wrapper, and backend are connected.
+- [architecture.md](architecture.md) — how the desktop UI, Tauri wrapper, and Go backend are connected.
 - [setup.md](setup.md) — how to set up the project locally and build the application.
 
 ## Documentation Structure
@@ -23,15 +23,19 @@ docs/
 ```text
 warden-desktop/
   .warden/         # skills storage
-  backend/         # Python backend: agent runtime, tools, memory
+  agent/           # Go backend: agent runtime, tools, memory
+  cmd/             # Entry points (warden-backend binary)
+  internal/        # Internal packages (client, security)
+  check/           # Development check scripts
   src/             # React UI
   src-tauri/       # Tauri shell and desktop compilation
   scripts/         # dev/build scripts
   public/          # static frontend assets (favicon, icon)
+  docs/            # documentation
   justfile         # project build tasks
   AGENTS.md        # agent instructions
   CLAUDE.md        # Claude desktop agent config
   biome.json       # frontend linter/formatter
   package.json     # frontend dependencies and scripts
-  pyproject.toml   # backend dependencies (uv)
-```
+  go.mod           # Go module definition
+</pre>

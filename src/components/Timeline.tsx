@@ -565,7 +565,14 @@ function TreeThinkItem({ text }: { text: string }) {
       <AnimatePresence initial={false}>
         {open && hasContent && (
           <motion.div {...collapse} className="overflow-hidden">
-            <div className="ml-4 mt-1 mb-0.5 border-l border-hairline pl-3 text-ui leading-[1.65] text-text-faint">
+            <div className="relative ml-4 mt-1 mb-0.5 pl-3 text-ui leading-[1.65] text-text-faint">
+              <div
+                className="pointer-events-none absolute left-0 top-0 bottom-0 w-px"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, var(--color-border-subtle) 0%, var(--color-border-subtle) 70%, transparent 100%)",
+                }}
+              />
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -641,49 +648,22 @@ const WorkChain = memo(function WorkChain({
           <motion.div {...collapse} className="overflow-hidden">
             {/* pl-[7px] = chevron center; items indent past the line */}
             <div className="relative ml-[7px] mt-0.5 mb-1 pl-4">
-              {/* Vertical connector line */}
+              {/* Vertical connector line with gradient fade at bottom */}
               <div
-                className="pointer-events-none absolute left-0 top-[5px] bottom-[5px] w-px"
-                style={{ background: "var(--color-border-subtle)" }}
+                className="pointer-events-none absolute left-0 top-[5px] bottom-0 w-px"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, var(--color-border-subtle) 0%, var(--color-border-subtle) 70%, transparent 100%)",
+                }}
               />
 
-              {blocks.map((b, idx) => {
+              {blocks.map((b) => {
                 if (b.kind !== "think" && b.kind !== "tool") return null;
                 // Skip completely empty think blocks
                 if (b.kind === "think" && b.text.trim().length === 0) return null;
 
-                const isLast = (() => {
-                  for (let i = idx + 1; i < blocks.length; i++) {
-                    const nb = blocks[i];
-                    if (!nb) continue;
-                    if (nb.kind === "tool") return false;
-                    if (nb.kind === "think" && nb.text.trim().length > 0) return false;
-                  }
-                  return true;
-                })();
-
                 return (
                   <div key={b.id} className="relative flex items-start gap-2 py-[3px]">
-                    {/* Branch dot */}
-                    <div
-                      className="absolute -left-[3.5px] top-[8px] h-[7px] w-[7px] shrink-0 rounded-full"
-                      style={{
-                        background: "var(--color-surface)",
-                        boxShadow: "0 0 0 1px var(--color-border-subtle)",
-                      }}
-                    />
-                    {/* Horizontal branch nub */}
-                    <div
-                      className="absolute left-[3.5px] top-[11px] h-px w-2"
-                      style={{ background: "var(--color-border-subtle)" }}
-                    />
-                    {/* Hide line below last dot */}
-                    {isLast && (
-                      <div
-                        className="pointer-events-none absolute -left-px top-[12px] bottom-0 w-px"
-                        style={{ background: "var(--color-surface)" }}
-                      />
-                    )}
                     <div className="flex-1 min-w-0">
                       {b.kind === "think" && <TreeThinkItem text={b.text} />}
                       {b.kind === "tool" && <TreeToolItem block={b} />}

@@ -6,7 +6,7 @@ The project currently integrates several components:
 
 - A desktop UI built with React;
 - A Tauri application wrapping the UI inside a native desktop window shell;
-- A Python backend in `backend/` responsible for the chat API, streaming, tools, confirmations, memory, and skills.
+- A Go backend in `agent/` and `cmd/warden-backend/` responsible for the chat API, streaming, tools, confirmations, memory, and skills.
 
 ## Core Scenarios
 
@@ -30,15 +30,18 @@ The project currently integrates several components:
 - Integration with the backend running on `http://localhost:8765`.
 - Frontend compilation via Vite.
 - Desktop packaging via Tauri.
-- Scripts for running and compiling the Python backend.
+- Scripts for running and compiling the Go backend.
 
 ## Backend
 
-The `backend/` folder contains the agent runtime:
+The `agent/` and `cmd/warden-backend/` directories contain the agent runtime:
 
-- `backend/agent/` — Python backend server and logic;
-- `backend/pyproject.toml` — Python dependencies (managed with `uv`);
-- `backend/run_backend.py` — entry point script for PyInstaller builds;
+- `agent/` — Go agent runtime: chat sessions, LLM client, tool execution, memory, safety policies, skills;
+- `agent/tools/` — individual tool implementations;
+- `agent/memory/` — long-term memory (aggregator, extractor, store);
+- `agent/safety/` — safety policies for filesystem, PowerShell, and capabilities;
+- `cmd/warden-backend/main.go` — entry point that starts the HTTP server;
+- `internal/` — shared packages (client DTOs, encryption helpers);
 - `.warden/skills/` — project skills at repository root.
 
-The desktop UI is the sole frontend for the Python backend.
+The desktop UI is the sole frontend for the Go backend.

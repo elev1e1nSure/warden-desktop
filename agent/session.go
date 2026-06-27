@@ -440,16 +440,13 @@ func (s *ChatSession) streamLoop(
 	historyInsertAt := len(s.History) + 1
 	s.AddUser(text)
 	s.ResetCancellation()
-	iterCount := 0
-
 	// Set session on todowrite tool if it implements SessionSettable
 	todowriteTool := Registry()["todowrite"]
 	if settable, ok := todowriteTool.(interface{ SetSession(id string) }); ok {
 		settable.SetSession(s.SessionID)
 	}
 
-	for iterCount < 20 { // MAX_ITER is 20
-		iterCount++
+	for {
 		if s.IsCancelled() {
 			break
 		}
@@ -517,7 +514,5 @@ func (s *ChatSession) streamLoop(
 
 	if s.IsCancelled() {
 		ch <- client.EventToken{Text: "\n[interrupted]"}
-	} else if iterCount >= 20 {
-		ch <- client.EventToken{Text: "\n[iteration limit reached]"}
 	}
 }

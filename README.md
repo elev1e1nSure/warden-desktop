@@ -10,7 +10,7 @@
 ██║ █╗ ██║███████║██████╔╝██║  ██║█████╗  ██╔██╗ ██║
 ██║███╗██║██╔══██║██╔══██╗██║  ██║██╔══╝  ██║╚██╗██║
 ╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████╗██║ ╚████║
- ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝
+ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝ ╚═══╝
 </pre>
 
 <p align="center">
@@ -21,7 +21,7 @@
   <a href="https://github.com/elev1e1nSure/warden-desktop/releases/latest"><img src="https://img.shields.io/github/v/release/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1&label=latest" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/elev1e1nSure/warden-desktop?style=flat-square&color=6366f1" alt="License"></a>
   <a href="https://tauri.app"><img src="https://img.shields.io/badge/built%20with-Tauri%202-6366f1?style=flat-square" alt="Built with Tauri"></a>
-  <a href="https://python.org"><img src="https://img.shields.io/badge/backend-Python-6366f1?style=flat-square" alt="Python"></a>
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/backend-Go-6366f1?style=flat-square" alt="Go"></a>
 </p>
 
 <p align="center">
@@ -76,7 +76,7 @@ Go to [Releases](https://github.com/elev1e1nSure/warden-desktop/releases/latest)
 Using `just` (recommended):
 
 ```powershell
-# Install all dependencies (frontend and backend)
+# Install all dependencies (frontend only)
 just install
 
 # Run the complete development environment (frontend, backend, Tauri)
@@ -92,11 +92,6 @@ Or manually:
 # Install frontend dependencies
 pnpm install
 
-# Install backend dependencies (in backend/)
-cd backend
-uv sync --extra tools
-cd ..
-
 # Run the development environment
 pnpm dev:all
 
@@ -104,21 +99,21 @@ pnpm dev:all
 pnpm build:app
 ```
 
-Requires: Windows 10+, Node.js 22+, pnpm, Python 3.11+, uv, Rust toolchain, [playwright](https://playwright.dev), and optionally [just](https://github.com/casey/just).
+Requires: Windows 10+, Node.js 22+, pnpm, Go 1.25+, Rust toolchain, [playwright](https://playwright.dev), and optionally [just](https://github.com/casey/just).
 
 All available commands:
 
 ```
-install      Install all dependencies (frontend + backend + browser)
+install      Install frontend dependencies
 dev          Run full dev environment (frontend, backend, Tauri)
 dev-frontend Run Vite frontend dev server
-dev-backend  Run Python backend dev server
-lint         Lint both frontend (Biome) and backend (Ruff)
-format       Auto-format both frontend and backend
+dev-backend  Run Go backend dev server
+lint         Lint frontend (Biome)
+format       Auto-format frontend
 check        Typecheck + lint
-test         Run all tests (frontend and backend)
+test         Run all tests (frontend + Go backend)
 build-app    Build desktop installer
-build-backend Build backend executable (PyInstaller)
+build-backend Build Go backend executable
 clean        Remove build artifacts and cached files
 ```
 
@@ -128,12 +123,16 @@ clean        Remove build artifacts and cached files
 
 ```
 warden-desktop/
-├── backend/       Python agent runtime, tools, memory, skills
+├── agent/         Go agent runtime, tools, memory, skills
+├── cmd/           Entry points (warden-backend)
+├── internal/      Internal packages (client DTOs, encryption)
+├── check/         Development check scripts
 ├── src/           React UI
 ├── src-tauri/     Tauri shell, desktop packaging
 ├── scripts/       build & dev helpers
+├── docs/          documentation & architecture
 ├── public/        static assets
-└── docs/          documentation & architecture
+└── .warden/       skills storage
 ```
 
 Architecture, data flow, and source map → see [docs/README.md](docs/README.md).
@@ -146,9 +145,9 @@ Architecture, data flow, and source map → see [docs/README.md](docs/README.md)
 |-------|-------------|
 | Frontend | React 19 · TypeScript · Vite · Tailwind CSS · Framer Motion |
 | Desktop | Tauri 2 (Rust) |
-| Backend | Python · aiohttp |
+| Backend | Go 1.25 · Bubble Tea (TUI components) · Playwright-Go |
 | LLM | OpenRouter (OpenAI-compatible API) |
-| Build | pnpm · PyInstaller · NSIS |
+| Build | pnpm · Go toolchain · NSIS |
 
 ---
 

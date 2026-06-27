@@ -4,21 +4,21 @@ The project is designed to run on Windows PowerShell.
 
 ## Requirements
 
-- Node.js and pnpm.
+- Node.js 22+ and pnpm.
+- Go 1.25+.
 - Rust toolchain for Tauri.
-- Python 3.11+.
-- [uv](https://docs.astral.sh/uv/) for Python dependency and virtual environment management.
+- [playwright](https://playwright.dev) for browser automation.
 - Optionally: [just](https://github.com/casey/just) for convenient command running.
 
 ## Quick Start with Just (Recommended)
 
 If you have `just` installed, you can use the following commands from the root directory:
 
-- **Install all dependencies** (both frontend and backend):
+- **Install all dependencies** (frontend only; Go modules are fetched on build):
   ```powershell
   just install
   ```
-- **Start the development environment** (Vite frontend, Python backend, and Tauri dev window):
+- **Start the development environment** (Vite frontend, Go backend, and Tauri dev window):
   ```powershell
   just dev
   ```
@@ -26,7 +26,7 @@ If you have `just` installed, you can use the following commands from the root d
   ```powershell
   just check
   ```
-- **Run all tests** (both frontend and backend):
+- **Run all tests** (both frontend and Go backend):
   ```powershell
   just test
   ```
@@ -43,15 +43,6 @@ To view the list of all available commands, run `just` without arguments.
 
 ## Manual Dependency Installation
 
-You can also install all dependencies manually:
-```powershell
-pnpm install
-cd backend
-uv sync
-```
-
-Or step-by-step:
-
 ### Install Frontend Dependencies
 
 ```powershell
@@ -64,21 +55,13 @@ If PowerShell blocks execution of `pnpm.ps1`, use:
 pnpm.cmd install
 ```
 
-### Install Backend Dependencies
+### Install Playwright Browsers
 
 ```powershell
-cd backend
-uv sync
+npx playwright install chromium
 ```
 
-This creates a `.venv` folder and installs runtime and development dependencies specified in `pyproject.toml` and `uv.lock`.
-
-Optional dependency extras:
-
-```powershell
-uv sync --extra tools    # pyautogui, playwright, html2text
-uv sync --extra build    # pyinstaller (for building the executable)
-```
+Go dependencies are managed via `go.mod` and are fetched automatically during build — no manual step required.
 
 ## Running for Development
 
@@ -95,7 +78,7 @@ Or run the components individually:
 just dev-frontend   # or: pnpm dev
 ```
 
-This starts the Vite dev server. It does not start the Python backend.
+This starts the Vite dev server. It does not start the Go backend.
 
 ### Run Backend Only
 
@@ -103,7 +86,7 @@ This starts the Vite dev server. It does not start the Python backend.
 just dev-backend    # or: pnpm dev:backend
 ```
 
-This runs `uv run python -m agent.server` from the `backend/` directory. `uv` will automatically activate the `.venv` virtual environment.
+This runs `go run ./cmd/warden-backend` from the project root.
 
 ### Run Desktop App with Backend (Manual)
 
@@ -112,7 +95,7 @@ pnpm dev:all
 ```
 
 This script concurrently launches:
-- Python backend;
+- Go backend;
 - Tauri desktop shell;
 - Vite frontend dev server.
 
@@ -128,9 +111,9 @@ This runs the TypeScript check and builds the Vite frontend. The output is place
 
 Recommended commands:
 ```powershell
-just check            # Check TypeScript types and run all lints (frontend + backend)
-just lint             # Run lints only (Biome + Ruff)
-just format           # Auto-format code (Biome + Ruff)
+just check            # Check TypeScript types and run lints
+just lint             # Run lints (Biome)
+just format           # Auto-format code (Biome)
 just test             # Run all tests
 ```
 
@@ -141,34 +124,22 @@ pnpm format         # Biome format --write
 pnpm typecheck      # tsc --noEmit
 pnpm check          # Biome: lint, format, and import sort
 
-uv run ruff check .            # Python lint (run in backend/)
-uv run ruff format .            # Python format (run in backend/)
-uv run pytest                   # Backend tests (run in backend/)
+go test ./agent/... ./internal/... ./cmd/...  # Go backend tests
 ```
 
 ## Running Tests
 
 ```powershell
-just test            # All tests (frontend + backend)
+just test            # All tests (frontend + Go backend)
 just test-frontend   # Frontend only (vitest)
-just test-backend    # Backend only (pytest, run in backend/)
+just test-backend    # Go backend only
 ```
 
-Backend tests require being in the `backend/` directory:
-
+To run Go tests manually:
 ```powershell
-cd backend
-uv run pytest
-uv run pytest -q --no-cov       # Faster: skip coverage
-uv run pytest agent/test_server.py  # Single file
-```
-
-Coverage threshold is 79%. To generate a coverage report:
-
-```powershell
-cd backend
-uv run pytest --cov=agent --cov-report=html
-# Open htmlcov/index.html in a browser
+go test ./agent/... ./internal/... ./cmd/...
+go test -v ./agent/...           # Verbose output
+go test -run TestChat ./agent/... # Run specific test
 ```
 
 ## Building Backend Executable
@@ -177,10 +148,12 @@ uv run pytest --cov=agent --cov-report=html
 just build-backend    # or: pnpm build:backend
 ```
 
-This script:
-1. Installs backend dependencies including optional tools and build extras (`uv sync --extra tools --extra build`).
-2. Builds the `warden-backend.exe` executable using `uv run pyinstaller`.
-3. Places the compiled executable inside the `src-tauri/binaries/` directory.
+This compiles the Go backend into a single executable using:
+```powershell
+go build -ldflags="-H windowsgui" -o src-tauri/binaries/warden-backend.exe ./cmd/warden-backend
+```
+
+The `-H windowsgui` flag suppresses the console window for the release build.
 
 ## Building Desktop Application
 
@@ -188,12 +161,12 @@ This script:
 just build-app        # or: pnpm build:app
 ```
 
-This command first builds the backend executable, then starts the Tauri build using the custom config file `src-tauri/tauri.bundle.conf.json`.
+This command first builds the Go backend executable, then starts the Tauri build using the custom config file `src-tauri/tauri.bundle.conf.json`.
 
 ## Common Verification Points
 
 - Backend health check: `http://localhost:8765/health`.
 - REST client frontend wrappers: `src/api/client.ts`.
 - Streaming client frontend: `src/api/stream.ts`.
-- Backend server entry point: `backend/agent/server.py`.
+- Backend entry point: `cmd/warden-backend/main.go`.
 - Tauri configuration: `src-tauri/tauri.conf.json`.
