@@ -8,27 +8,12 @@ dist-ssr/
 # Tauri / Rust build output
 src-tauri/target/
 
-# Python caches and test output
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.coverage
-coverage.json
-htmlcov/
-backend/.pytest_cache/
-backend/.coverage
-backend/coverage.json
-backend/htmlcov/
-
-# Python virtualenvs (uv-managed)
-.venv/
-backend/.venv/
-backend/dist/
-backend/build/
+# Go build output
+warden-backend.exe
+*.exe
 
 # Local temp/runtime output
 .tmp/
-backend/.tmp/
 *.local
 
 # Logs
@@ -40,17 +25,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Warden
+# Warden runtime
 .warden
-warden-backend.exe
 
 # Environment variables (secrets)
 .env
 .env.*
 .env.local
-
-# Python package metadata
-*.egg-info/
 
 # Local databases
 *.db
@@ -72,6 +53,3 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-jan/
-log.txt
-fixes.md
