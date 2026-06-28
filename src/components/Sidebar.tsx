@@ -42,7 +42,7 @@ function NavButton({ icon, label, onClick, disabled, active }: NavButtonProps) {
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-none ${
+      className={`relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors duration-150 ${
         disabled
           ? "cursor-default text-text-faint"
           : active
@@ -195,7 +195,7 @@ function Sidebar({
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !renaming) onSelectChat(chat.id);
                           }}
-                          className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 hover:bg-fill-hover"
+                          className="group relative flex min-w-0 cursor-pointer items-center rounded-xl px-2.5 py-1.5 transition-colors duration-150 hover:bg-fill-hover"
                           style={{ isolation: "isolate" }}
                         >
                           {active && (
