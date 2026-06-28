@@ -53,6 +53,8 @@ jobs:
             ${{ runner.os }}-tauri-
 
       - run: pnpm build:app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -129,7 +131,7 @@ jobs:
           echo "=== Generated release notes ==="
           cat release_notes.md
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: artifacts
           path: artifacts
@@ -138,26 +140,32 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           TAG="${GITHUB_REF_NAME}"
-          SIG=$(cat artifacts/*.nsis.zip.sig)
-          ZIP_NAME=$(basename artifacts/*.nsis.zip)
-          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          jq -n \
-            --arg version "$VERSION" \
-            --arg sig "$SIG" \
-            --arg url "https://github.com/elev1e1nSure/warden-desktop/releases/download/$TAG/$ZIP_NAME" \
-            --arg pub_date "$PUB_DATE" \
-            '{
-              version: $version,
-              notes: "",
-              pub_date: $pub_date,
-              platforms: {
-                "windows-x86_64": { signature: $sig, url: $url }
-              }
-            }' > latest.json
+          if ls artifacts/*.nsis.zip.sig 1> /dev/null 2>&1; then
+            SIG=$(cat artifacts/*.nsis.zip.sig)
+            ZIP_NAME=$(basename artifacts/*.nsis.zip)
+            PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            jq -n \
+              --arg version "$VERSION" \
+              --arg sig "$SIG" \
+              --arg url "https://github.com/elev1e1nSure/warden-desktop/releases/download/$TAG/$ZIP_NAME" \
+              --arg pub_date "$PUB_DATE" \
+              '{
+                version: $version,
+                notes: "",
+                pub_date: $pub_date,
+                platforms: {
+                  "windows-x86_64": { signature: $sig, url: $url }
+                }
+              }' > latest.json
+            echo "HAS_LATEST=true" >> $GITHUB_ENV
+          else
+            echo "Updater signature files not found. Skipping latest.json generation."
+            echo "HAS_LATEST=false" >> $GITHUB_ENV
+          fi
 
       - uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/**
-            latest.json
+            ${{ env.HAS_LATEST == 'true' && 'latest.json' || '' }}
           body_path: release_notes.md
