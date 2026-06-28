@@ -293,6 +293,17 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 	case "env":
 		return dec("safe", "read-only", "Reading environment variables")
 
+	case "dns_lookup", "port_check", "service_list", "registry_read":
+		return dec("safe", "read-only", fmt.Sprintf("Using %s", toolName))
+
+	case "service_control":
+		return dec("confirm", "changes a system service", fmt.Sprintf("%s service", getString(norm, "action")),
+			fmt.Sprintf("name: %s", getString(norm, "name")))
+
+	case "app_launch":
+		return dec("confirm", "launches an application", "Launching application",
+			fmt.Sprintf("path: %s", getString(norm, "path")))
+
 	case "download":
 		return dec("confirm", "writes a file from the network", "Downloading to a file",
 			fmt.Sprintf("url: %s", getString(norm, "url")))

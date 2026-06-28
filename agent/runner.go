@@ -107,6 +107,12 @@ func buildRegistry() map[string]tools.Tool {
 		"open_path":          &tools.OpenPathTool{},
 		"recycle":            &tools.RecycleTool{},
 		"env":                &tools.EnvTool{},
+		"dns_lookup":         &tools.DnsLookupTool{},
+		"port_check":         &tools.PortCheckTool{},
+		"service_list":       &tools.ServiceListTool{},
+		"service_control":    &tools.ServiceControlTool{},
+		"registry_read":      &tools.RegistryReadTool{},
+		"app_launch":         &tools.AppLaunchTool{},
 	}
 }
 
