@@ -282,6 +282,36 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 	case "now", "hash", "base64", "uuid", "json_query", "math_eval", "text_stats":
 		return dec("safe", "pure computation", fmt.Sprintf("Using %s", toolName))
 
+	case "file_stat":
+		path := getString(norm, "path")
+		if isDangerousPath(path) {
+			return dec("blocked", "dangerous path", "Path is outside allowed scope",
+				"UNC path, device path, or traversal detected")
+		}
+		return dec("safe", "read-only", "Reading file metadata")
+
+	case "env":
+		return dec("safe", "read-only", "Reading environment variables")
+
+	case "download":
+		return dec("confirm", "writes a file from the network", "Downloading to a file",
+			fmt.Sprintf("url: %s", getString(norm, "url")))
+
+	case "open_path":
+		return dec("confirm", "launches an external program", "Opening with default app",
+			fmt.Sprintf("path: %s", getString(norm, "path")))
+
+	case "recycle":
+		path := getString(norm, "path")
+		if isDangerousPath(path) {
+			return dec("blocked", "dangerous path", "Path is outside allowed scope",
+				"UNC path, device path, or traversal detected")
+		}
+		if !isPathWithinWorkspace(path, workspace) {
+			return dec("blocked", "recycles outside workspace", "Recycling outside workspace is blocked")
+		}
+		return dec("confirm", "destructive file operation", "Sending to Recycle Bin")
+
 	case "notify":
 		return dec("safe", "shows a notification", "Sending desktop notification")
 

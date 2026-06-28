@@ -102,6 +102,11 @@ func buildRegistry() map[string]tools.Tool {
 		"json_query":         &tools.JsonQueryTool{},
 		"math_eval":          &tools.MathEvalTool{},
 		"text_stats":         &tools.TextStatsTool{},
+		"file_stat":          &tools.FileStatTool{},
+		"download":           &tools.DownloadTool{},
+		"open_path":          &tools.OpenPathTool{},
+		"recycle":            &tools.RecycleTool{},
+		"env":                &tools.EnvTool{},
 	}
 }
 
