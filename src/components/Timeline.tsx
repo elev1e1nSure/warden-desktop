@@ -771,7 +771,14 @@ function Timeline({
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >
-                <motion.div {...blockEnter} className="pb-4">
+                <motion.div
+                  {...blockEnter}
+                  className={
+                    g.kind === "single" && (g.block.kind === "user" || g.block.kind === "assistant")
+                      ? "pb-4"
+                      : "pb-1"
+                  }
+                >
                   {g.kind === "single" && g.block.kind === "user" && (
                     <UserBlock text={g.block.text} />
                   )}
