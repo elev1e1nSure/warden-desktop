@@ -1,5 +1,5 @@
 # Set PowerShell as the default shell on Windows
-set shell := ["powershell", "-NoProfile", "-Command"]
+set shell := ["powershell", "-WindowStyle", "Hidden", "-NoProfile", "-Command"]
 
 # Show available recipes
 default:
