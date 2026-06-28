@@ -202,7 +202,7 @@ func (t *WebFetchTool) Execute(args map[string]any) Result {
 	}
 	timeout := clampInt(getInt(args, "timeout", 15), 1, 60)
 	verify := true
-	if v, ok := args["verify_ssl"].(bool); !ok {
+	if v, ok := args["verify_ssl"].(bool); ok {
 		verify = v
 	}
 
