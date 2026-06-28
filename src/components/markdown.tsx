@@ -1,4 +1,5 @@
-import { Check, Clipboard } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Copy } from "lucide-react";
 import React, { useState } from "react";
 
 const getTextContent = (node: React.ReactNode): string => {
@@ -126,11 +127,29 @@ export const mdComponents = {
           className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-[rgba(22,22,22,0.85)] p-1.5 text-text-muted opacity-0 transition-all hover:bg-fill-hover hover:text-text-primary hover:scale-105 active:scale-95 group-hover:opacity-100"
           title="Copy code"
         >
-          {copied ? (
-            <Check className="h-[18px] w-[18px] text-emerald-500" strokeWidth={2} />
-          ) : (
-            <Clipboard className="h-[18px] w-[18px]" strokeWidth={2} />
-          )}
+          <AnimatePresence mode="wait">
+            {copied ? (
+              <motion.span
+                key="check"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+              >
+                <Check className="h-[18px] w-[18px] text-emerald-500" strokeWidth={2} />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="copy"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+              >
+                <Copy className="h-[18px] w-[18px]" strokeWidth={2} />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </div>
     );

@@ -6,9 +6,10 @@ import {
   BookOpen,
   BookPlus,
   Camera,
+  Check,
   ChevronDown,
-  Clipboard,
   Code2,
+  Copy,
   Cpu,
   Download,
   FilePlus,
@@ -161,7 +162,29 @@ const UserBlock = memo(function UserBlock({ text }: { text: string }) {
         onClick={handleCopy}
         className="flex items-center gap-1.5 text-[13px] font-medium text-text-muted opacity-0 transition-opacity duration-150 group-hover/user:opacity-100 hover:text-text-secondary"
       >
-        <Clipboard className="h-4 w-4" strokeWidth={1.75} />
+        <AnimatePresence mode="wait">
+          {copied ? (
+            <motion.span
+              key="check"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <Check className="h-4 w-4 text-emerald-500" strokeWidth={1.75} />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="copy"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <Copy className="h-4 w-4" strokeWidth={1.75} />
+            </motion.span>
+          )}
+        </AnimatePresence>
         <span>{copied ? "Copied" : "Copy"}</span>
       </button>
     </motion.div>
@@ -296,7 +319,29 @@ const AssistantBlock = memo(function AssistantBlock({
             onClick={handleCopy}
             className="flex items-center gap-1.5 text-[13px] font-medium text-text-muted transition-colors duration-100 hover:text-text-secondary"
           >
-            <Clipboard className="h-4 w-4" strokeWidth={1.75} />
+            <AnimatePresence mode="wait">
+              {copied ? (
+                <motion.span
+                  key="check"
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.6 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                >
+                  <Check className="h-4 w-4 text-emerald-500" strokeWidth={1.75} />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="copy"
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.6 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                >
+                  <Copy className="h-4 w-4" strokeWidth={1.75} />
+                </motion.span>
+              )}
+            </AnimatePresence>
             <span>{copied ? "Copied" : "Copy"}</span>
           </button>
         </div>
@@ -481,7 +526,7 @@ function getToolIcon(toolName: string, argsStr: string) {
       return icon(Keyboard);
 
     case "clipboard":
-      return icon(Clipboard);
+      return icon(Copy);
 
     // ── os / system ─────────────────────────────────────────────────────────
     case "window_list":
