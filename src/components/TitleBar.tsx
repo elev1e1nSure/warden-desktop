@@ -21,8 +21,20 @@ interface MenuDef {
   items: (MenuItem | "separator")[];
 }
 
-function simulateKey(key: string, ctrl = true) {
-  document.dispatchEvent(new KeyboardEvent("keydown", { key, ctrlKey: ctrl, bubbles: true }));
+function copySelection() {
+  document.execCommand("copy");
+}
+
+function cutSelection() {
+  document.execCommand("cut");
+}
+
+function pasteSelection() {
+  document.execCommand("paste");
+}
+
+function selectAll() {
+  document.execCommand("selectAll");
 }
 
 export function TitleBar({
@@ -99,11 +111,11 @@ export function TitleBar({
     {
       label: "Edit",
       items: [
-        { label: "Cut", shortcut: "Ctrl+X", action: () => simulateKey("x") },
-        { label: "Copy", shortcut: "Ctrl+C", action: () => simulateKey("c") },
-        { label: "Paste", shortcut: "Ctrl+V", action: () => simulateKey("v") },
+        { label: "Cut", shortcut: "Ctrl+X", action: cutSelection },
+        { label: "Copy", shortcut: "Ctrl+C", action: copySelection },
+        { label: "Paste", shortcut: "Ctrl+V", action: pasteSelection },
         "separator",
-        { label: "Select All", shortcut: "Ctrl+A", action: () => simulateKey("a") },
+        { label: "Select All", shortcut: "Ctrl+A", action: selectAll },
       ],
     },
     {
