@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "@fontsource-variable/inter";
 import "./index.css";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -63,3 +64,9 @@ ReactDOM.createRoot(rootEl).render(
     </ErrorBoundary>
   </React.StrictMode>,
 );
+
+// Show the window only after the first frame is painted to avoid the blank
+// WebView2 initialization flash on Windows.
+requestAnimationFrame(() => {
+  void getCurrentWindow().show();
+});
