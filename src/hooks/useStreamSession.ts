@@ -111,7 +111,10 @@ export function useStreamSession({
           // Each agent iteration starts a fresh assistant slot. Open a new
           // reasoning indicator unless one is already open (e.g. the eager one
           // created on send for the very first iteration).
-          if (workStartRef.current === 0) workStartRef.current = Date.now();
+          // Reset work-chain tracking so each iteration gets its own
+          // "Worked for Xs" block, even in multi-turn tool chains.
+          workStartRef.current = Date.now();
+          workEndedRef.current = false;
           assistantIdRef.current = null;
           if (thinkIdRef.current === null) openThink();
           break;
