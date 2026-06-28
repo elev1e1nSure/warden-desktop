@@ -91,6 +91,10 @@ func buildRegistry() map[string]tools.Tool {
 		"todowrite":          todo,
 		"skill":              &tools.SkillTool{},
 		"question":           &tools.QuestionTool{},
+		"memory_list":        &tools.MemoryListTool{},
+		"memory_save":        &tools.MemorySaveTool{},
+		"memory_delete":      &tools.MemoryDeleteTool{},
+		"memory_clear":       &tools.MemoryClearTool{},
 	}
 }
 
@@ -282,6 +286,18 @@ func schema(name string) map[string]any {
 		props["question"] = prop("string", "Question to ask the user")
 		props["options"] = map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Optional answer choices"}
 		req("question")
+	case "memory_list":
+		props["category"] = prop("string", "Filter by category (e.g. preference, user, project). Omit to list all.")
+	case "memory_save":
+		props["category"] = prop("string", "Category (e.g. preference, user, project)")
+		props["key"] = prop("string", "Unique key within the category")
+		props["value"] = prop("string", "Value to store")
+		req("category", "key", "value")
+	case "memory_delete":
+		props["key"] = prop("string", "Key of the entry to delete")
+		req("key")
+	case "memory_clear":
+		// no args
 	}
 
 	out := map[string]any{
@@ -374,6 +390,14 @@ func describe(name string) string {
 		return "Load a skill by name."
 	case "question":
 		return "Ask the user a structured question."
+	case "memory_list":
+		return "List stored memory entries, optionally filtered by category."
+	case "memory_save":
+		return "Save or update a memory entry by category and key."
+	case "memory_delete":
+		return "Delete a memory entry by key."
+	case "memory_clear":
+		return "Clear all memory entries."
 	}
 	return name
 }
