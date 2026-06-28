@@ -21,7 +21,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
@@ -34,36 +34,29 @@ jobs:
 
   backend-lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v6
 
-      - uses: astral-sh/setup-uv@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
+          go-version-file: 'go.mod'
 
-      - run: uv sync
-      - run: uv run ruff check agent/
-      - run: uv run ruff format --check agent/
+      - name: Go Vet
+        run: go vet ./...
 
   backend-test:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v6
 
-      - uses: astral-sh/setup-uv@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
+          go-version-file: 'go.mod'
 
-      - run: uv sync --extra tools
-      - run: uv run pytest --cov=agent --cov-fail-under=79 -q
+      - name: Go Test
+        run: go test ./agent/... ./internal/... ./cmd/...
 
   rust:
     runs-on: ubuntu-latest
@@ -89,7 +82,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
@@ -98,10 +91,10 @@ jobs:
         with:
           cache: true
 
-      - uses: astral-sh/setup-uv@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
+          go-version-file: 'go.mod'
 
       - name: Get version from git tag
         run: |
@@ -113,7 +106,7 @@ jobs:
       - run: pnpm build
       - run: pnpm build:backend
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: src-tauri/target
           key: ${{ runner.os }}-tauri-${{ hashFiles('src-tauri/Cargo.lock') }}

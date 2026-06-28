@@ -15,7 +15,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
@@ -24,10 +24,10 @@ jobs:
         with:
           cache: true
 
-      - uses: astral-sh/setup-uv@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
+          go-version-file: 'go.mod'
 
       - name: Set version from tag
         run: |
@@ -45,7 +45,7 @@ jobs:
           APP_VERSION: ${{ github.ref_name }}
       - run: pnpm build:backend
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: src-tauri/target
           key: ${{ runner.os }}-tauri-${{ hashFiles('src-tauri/Cargo.lock') }}
