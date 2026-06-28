@@ -68,7 +68,9 @@ export async function streamChat(
     flushLine(buffer);
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") return;
-    onEvent({ type: "error", text: String(err) });
+    const msg =
+      err instanceof TypeError ? "Connection lost — the backend stopped responding" : String(err);
+    onEvent({ type: "error", text: msg });
     onEvent({ type: "done", token_count: 0, token_limit: 0 });
   } finally {
     try {
