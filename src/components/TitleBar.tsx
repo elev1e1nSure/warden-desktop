@@ -263,6 +263,7 @@ export function TitleBar({
           {openMenu && dropdownPos && activeMenu
             ? (() => (
                 <motion.div
+                  key={openMenu}
                   ref={menuRef}
                   role="menu"
                   className="titlebar-menu-dropdown"
