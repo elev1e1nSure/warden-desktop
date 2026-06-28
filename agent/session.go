@@ -320,6 +320,18 @@ func (s *ChatSession) AddToolResult(toolName string, result string, toolCallID s
 	s.History = append(s.History, entry)
 }
 
+// validToolCalls returns only tool calls that carry a function name. Nameless
+// entries are streaming-accumulator artifacts, not real calls.
+func validToolCalls(calls []ToolCall) []ToolCall {
+	out := calls[:0:0]
+	for _, tc := range calls {
+		if strings.TrimSpace(tc.Function.Name) != "" {
+			out = append(out, tc)
+		}
+	}
+	return out
+}
+
 func (s *ChatSession) callLLM(
 	ctx context.Context,
 	messages []map[string]any,
@@ -522,6 +534,15 @@ func (s *ChatSession) streamLoop(
 		if s.IsCancelled() {
 			break
 		}
+
+		// Drop tool calls with no function name. The streaming accumulator
+		// creates placeholders per delta index, so a provider that streams
+		// non-contiguous indices (or never sends a name) leaves a phantom
+		// nameless call. It's not actionable — executeToolCall silently skips
+		// it — but if it survives here it counts toward len(toolCalls) and
+		// forces another loop iteration, making the model re-answer in a
+		// second assistant block.
+		toolCalls = validToolCalls(toolCalls)
 
 		s.AddAssistant(content, toolCalls)
 		if usage > 0 {
