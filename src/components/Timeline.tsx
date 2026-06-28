@@ -226,6 +226,8 @@ const AssistantBlock = memo(function AssistantBlock({
   text: string;
   live?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
   // While streaming we throttle re-renders and skip the (expensive) syntax
   // highlighter — code snaps to highlighted once the block settles. This keeps
   // long answers smooth instead of re-parsing the whole message every token.
@@ -252,14 +254,35 @@ const AssistantBlock = memo(function AssistantBlock({
   // (see index.css) so the answer reads as actively being written.
   const streamingCaret = live && display.length > 0;
 
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <div
-      className={`markdown-body text-body text-text-primary${streamingCaret ? " is-streaming" : ""}`}
-    >
-      {display.length === 0 ? (
-        <span className="inline-block h-[15px] w-[6px] animate-pulse rounded-sm bg-fill-strong align-middle" />
-      ) : (
-        rendered
+    <div className="group/assistant relative">
+      <div
+        className={`markdown-body text-body text-text-primary${streamingCaret ? " is-streaming" : ""}`}
+      >
+        {display.length === 0 ? (
+          <span className="inline-block h-[15px] w-[6px] animate-pulse rounded-sm bg-fill-strong align-middle" />
+        ) : (
+          rendered
+        )}
+      </div>
+      {!live && display.length > 0 && (
+        <div className="mt-1 flex h-6 items-center opacity-0 transition-opacity duration-150 group-hover/assistant:opacity-100">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 text-meta text-text-muted transition-colors duration-100 hover:text-text-secondary"
+          >
+            <Clipboard className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span>{copied ? "Copied" : "Copy"}</span>
+          </button>
+        </div>
       )}
     </div>
   );
