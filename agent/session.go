@@ -3,7 +3,9 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -99,6 +101,21 @@ type ChatSession struct {
 	cancelled           int32 // atomic bool: 0 is false, 1 is true
 }
 
+func buildEnvContext() string {
+	var parts []string
+	parts = append(parts, fmt.Sprintf("os: %s/%s", runtime.GOOS, runtime.GOARCH))
+	if tempDir := os.TempDir(); tempDir != "" {
+		parts = append(parts, "temp: "+tempDir)
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		parts = append(parts, "home: "+home)
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		parts = append(parts, "cwd: "+cwd)
+	}
+	return strings.Join(parts, "\n")
+}
+
 func NewChatSession(
 	model string,
 	llmClient LLMClient,
@@ -106,8 +123,14 @@ func NewChatSession(
 	questionMgr *QuestionManager,
 	memStore *memory.MemoryStore,
 ) *ChatSession {
+	envCtx := buildEnvContext()
+	history := []map[string]any{
+		{"role": "user", "content": "[env]"},
+		{"role": "assistant", "content": envCtx},
+	}
 	return &ChatSession{
 		Model:               model,
+		History:             history,
 		Client:              llmClient,
 		ConfirmationManager: confirmMgr,
 		QuestionManager:     questionMgr,
