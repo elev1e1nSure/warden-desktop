@@ -61,9 +61,7 @@ function NavButton({ icon, label, onClick, disabled, active }: NavButtonProps) {
       <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">
         {renderAnimatedIcon(icon, Boolean(hovered || active))}
       </span>
-      <span className="truncate text-ui-lg font-medium tracking-[-0.01em] whitespace-nowrap">
-        {label}
-      </span>
+      <span className="truncate text-ui-lg font-medium tracking-[-0.01em]">{label}</span>
     </button>
   );
 }

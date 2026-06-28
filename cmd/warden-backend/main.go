@@ -1259,11 +1259,8 @@ func generateTitle(text string) string {
 		return "New Chat"
 	}
 	title := words[0]
-	for i := 1; i < len(words) && i < 5; i++ {
+	for i := 1; i < len(words) && i < 8; i++ {
 		title += " " + words[i]
-	}
-	if len(title) > 30 {
-		title = title[:30] + "..."
 	}
 	return title
 }
