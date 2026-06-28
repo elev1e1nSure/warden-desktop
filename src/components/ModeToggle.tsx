@@ -113,7 +113,7 @@ export default function ModeToggle({
                     }`}
                   >
                     <span
-                      className={`flex-1 text-ui-lg font-medium tracking-[-0.01em] transition-colors ${
+                      className={`flex-1 text-[15px] font-medium tracking-[-0.01em] transition-colors ${
                         active && value === "auto"
                           ? "text-accent"
                           : active && value === "custom"
