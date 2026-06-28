@@ -564,6 +564,7 @@ input::placeholder {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  transition: background 0.15s ease;
 }
 
 .titlebar-menu-trigger:hover,
@@ -577,6 +578,7 @@ input::placeholder {
   color: #b4b4b4;
   letter-spacing: -0.01em;
   line-height: 1;
+  transition: color 0.15s ease;
 }
 
 .titlebar-menu-trigger:hover .titlebar-menu-label,
@@ -614,6 +616,9 @@ input::placeholder {
   text-align: left;
   gap: 24px;
   white-space: nowrap;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
 }
 
 .titlebar-menu-item:hover {
@@ -625,6 +630,7 @@ input::placeholder {
   color: #6e6e6e;
   font-size: 12px;
   margin-left: auto;
+  transition: color 0.1s ease;
 }
 
 .titlebar-menu-item:hover .titlebar-menu-shortcut {
