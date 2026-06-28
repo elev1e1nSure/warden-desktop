@@ -29,6 +29,9 @@ build-frontend:
 build-backend:
     pnpm build:backend
 
+# Build the complete release (frontend + backend + Tauri NSIS installer)
+build: build-frontend build-backend build-app
+
 # Build the Tauri desktop application
 build-app:
     pnpm build:app

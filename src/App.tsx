@@ -504,6 +504,23 @@ function App() {
     if (view !== "chat") setView("chat");
   }, [view]);
 
+  // Undecorated window on Windows WebView2 loses keyboard focus when
+  // created visible because the backend process spawn steals it.
+  // Hide on creation, show + focus after the frontend is ready.
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        await win.show();
+        await win.setFocus();
+      } catch {
+        // not running inside Tauri — ignore
+      }
+    };
+    void init();
+  }, []);
+
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
   // Auto-scroll timeline when content changes
@@ -541,10 +558,9 @@ function App() {
             left: sidebarWidth,
             height: 46,
             zIndex: 9,
-            background: "rgba(11, 11, 14, 0.36)",
+            background: "rgba(11, 11, 14, 0.40)",
             backdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
             WebkitBackdropFilter: "blur(28px) saturate(1.1) brightness(0.88)",
-            boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.05)",
           }}
         />
 

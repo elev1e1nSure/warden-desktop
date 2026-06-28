@@ -17,6 +17,7 @@
         "height": 720,
         "minWidth": 720,
         "minHeight": 480,
+        "visible": false,
         "decorations": false,
         "shadow": true,
         "backgroundColor": "#161616"
