@@ -95,6 +95,13 @@ func buildRegistry() map[string]tools.Tool {
 		"memory_save":        &tools.MemorySaveTool{},
 		"memory_delete":      &tools.MemoryDeleteTool{},
 		"memory_clear":       &tools.MemoryClearTool{},
+		"now":                &tools.NowTool{},
+		"hash":               &tools.HashTool{},
+		"base64":             &tools.Base64Tool{},
+		"uuid":               &tools.UuidTool{},
+		"json_query":         &tools.JsonQueryTool{},
+		"math_eval":          &tools.MathEvalTool{},
+		"text_stats":         &tools.TextStatsTool{},
 	}
 }
 

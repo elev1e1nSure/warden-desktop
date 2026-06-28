@@ -279,6 +279,9 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 	case "system_info":
 		return dec("safe", "read-only", "Reading system info")
 
+	case "now", "hash", "base64", "uuid", "json_query", "math_eval", "text_stats":
+		return dec("safe", "pure computation", fmt.Sprintf("Using %s", toolName))
+
 	case "notify":
 		return dec("safe", "shows a notification", "Sending desktop notification")
 
