@@ -142,11 +142,28 @@ function useIdleFlag(enabled: boolean): boolean {
 // ─── blocks ──────────────────────────────────────────────────────────────────
 
 const UserBlock = memo(function UserBlock({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <motion.div className="flex justify-end pt-3 pb-1">
+    <motion.div className="group/user flex flex-col items-end gap-1 pt-3 pb-1">
       <div className="max-w-[78%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-fill-active px-4 py-3 text-body leading-relaxed text-text-primary">
         {text}
       </div>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="flex items-center gap-1.5 text-[13px] font-medium text-text-muted opacity-0 transition-opacity duration-150 group-hover/user:opacity-100 hover:text-text-secondary"
+      >
+        <Clipboard className="h-4 w-4" strokeWidth={1.75} />
+        <span>{copied ? "Copied" : "Copy"}</span>
+      </button>
     </motion.div>
   );
 });
@@ -277,9 +294,9 @@ const AssistantBlock = memo(function AssistantBlock({
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-meta text-text-muted transition-colors duration-100 hover:text-text-secondary"
+            className="flex items-center gap-1.5 text-[13px] font-medium text-text-muted transition-colors duration-100 hover:text-text-secondary"
           >
-            <Clipboard className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Clipboard className="h-4 w-4" strokeWidth={1.75} />
             <span>{copied ? "Copied" : "Copy"}</span>
           </button>
         </div>
@@ -754,7 +771,7 @@ function Timeline({
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >
-                <motion.div {...blockEnter} className="pb-2">
+                <motion.div {...blockEnter} className="pb-4">
                   {g.kind === "single" && g.block.kind === "user" && (
                     <UserBlock text={g.block.text} />
                   )}
