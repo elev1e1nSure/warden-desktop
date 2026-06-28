@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"runtime"
@@ -435,6 +436,21 @@ func (s *ChatSession) Stream(
 	ch := make(chan client.Event, 64)
 	go func() {
 		defer close(ch)
+		// A panic here runs in a goroutine net/http does not own, so without
+		// this guard it would crash the whole backend process (the UI then
+		// reports "backend stopped responding"). Convert it into a logged
+		// stack trace plus a graceful error event instead.
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 8192)
+				n := runtime.Stack(buf, false)
+				log.Printf("panic in stream loop: %v\n%s", r, buf[:n])
+				select {
+				case ch <- client.EventToken{Text: "\ninternal error: " + fmt.Sprint(r)}:
+				default:
+				}
+			}
+		}()
 		s.streamLoop(ch, text, autoMode, skillName, skillArgs)
 	}()
 	return ch
