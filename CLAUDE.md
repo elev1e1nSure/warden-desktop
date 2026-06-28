@@ -6,7 +6,7 @@ Project notes for agents working in this repo. Keep this file as guardrails and 
 
 - Commit messages and code comments must be in English only (overrides the global Russian-commit preference for this repo).
 - Use conventional commits with a scope: `type(scope): description`, no trailing period.
-- After completing any logically complete action or iteration, the agent must explicitly propose making a Git commit to the user.
+- After completing any logically complete action or iteration, commit immediately without asking.
 
 ## 2. Architecture & Boundaries
 
