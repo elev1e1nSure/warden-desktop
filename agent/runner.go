@@ -30,6 +30,8 @@ const (
 var screenshotTools = map[string]bool{
 	"screenshot":         true,
 	"browser_screenshot": true,
+	"screenshot_region":  true,
+	"window_screenshot":  true,
 }
 
 // ToolDefinition is the JSON-schema description of a tool, passed to the LLM.
@@ -113,6 +115,8 @@ func buildRegistry() map[string]tools.Tool {
 		"service_control":    &tools.ServiceControlTool{},
 		"registry_read":      &tools.RegistryReadTool{},
 		"app_launch":         &tools.AppLaunchTool{},
+		"screenshot_region":  &tools.ScreenshotRegionTool{},
+		"window_screenshot":  &tools.WindowScreenshotTool{},
 	}
 }
 

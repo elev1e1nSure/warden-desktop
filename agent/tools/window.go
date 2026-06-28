@@ -269,3 +269,43 @@ func (t *WindowManageTool) Execute(args map[string]any) Result {
 
 	return R(fmt.Sprintf("%s: %s (hwnd=%d)", action, win.title, win.hwnd))
 }
+
+// --- WindowScreenshotTool ---
+
+type WindowScreenshotTool struct{}
+
+func (t *WindowScreenshotTool) Name() string { return "window_screenshot" }
+
+func (t *WindowScreenshotTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Capture a screenshot of a specific window by title or hwnd.",
+		Params: map[string]any{
+			"title": prop("string", "Substring of the window title"),
+			"hwnd":  prop("integer", "Exact window handle (alternative to title)"),
+		},
+	}
+}
+
+func (t *WindowScreenshotTool) Execute(args map[string]any) Result {
+	title := strings.TrimSpace(getStr(args, "title"))
+	hwnd := getInt(args, "hwnd", 0)
+	if title == "" && hwnd == 0 {
+		return R("error: give a title or hwnd")
+	}
+	wins, err := enumerateWindows()
+	if err != nil {
+		return R("error: " + err.Error())
+	}
+	win := matchWindow(wins, title, hwnd)
+	if win == nil {
+		return R("error: window not found")
+	}
+	if win.w <= 0 || win.h <= 0 {
+		return R("error: window has no visible area (it may be minimized)")
+	}
+	path, err := captureRegionToFile([]int{win.x, win.y, win.w, win.h})
+	if err != nil {
+		return R("error: " + err.Error())
+	}
+	return R("saved: " + path + " (" + win.title + ")")
+}

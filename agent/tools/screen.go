@@ -256,7 +256,47 @@ func (t *OcrTool) Execute(args map[string]any) Result {
 	return R(text)
 }
 
-// ── WaitForTool ──────────────────────────────────────────────────────────────
+// --- ScreenshotRegionTool ---
+
+type ScreenshotRegionTool struct{}
+
+func (t *ScreenshotRegionTool) Name() string { return "screenshot_region" }
+
+func (t *ScreenshotRegionTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Capture a rectangular screen region to a PNG. Coordinates are in screenshot space.",
+		Params: map[string]any{
+			"x": prop("integer", "Region top-left X (screenshot space)"),
+			"y": prop("integer", "Region top-left Y (screenshot space)"),
+			"w": prop("integer", "Region width (screenshot space)"),
+			"h": prop("integer", "Region height (screenshot space)"),
+		},
+		Required: []string{"x", "y", "w", "h"},
+	}
+}
+
+func (t *ScreenshotRegionTool) Execute(args map[string]any) Result {
+	w := getInt(args, "w", 0)
+	h := getInt(args, "h", 0)
+	if w <= 0 || h <= 0 {
+		return R("error: w and h must be positive")
+	}
+	rx, ry := mapToScreen(getInt(args, "x", 0), getInt(args, "y", 0))
+	sw, sh := screenSize()
+	scale := scaleFactor(sw, sh)
+	rw, rh := w, h
+	if scale < 1.0 {
+		rw = int(float64(w) / scale)
+		rh = int(float64(h) / scale)
+	}
+	path, err := captureRegionToFile([]int{rx, ry, rw, rh})
+	if err != nil {
+		return R("error: " + err.Error())
+	}
+	return R("saved: " + path)
+}
+
+// --- WaitForTool ---
 
 type WaitForTool struct{}
 

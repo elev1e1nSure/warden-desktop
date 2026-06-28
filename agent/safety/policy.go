@@ -130,7 +130,7 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 		}
 		return dec("confirm", "modifies clipboard", "Writing to clipboard")
 
-	case "screenshot":
+	case "screenshot", "screenshot_region", "window_screenshot":
 		return dec("safe", "read-only", "Taking screenshot")
 
 	case "mouse":
