@@ -19,6 +19,15 @@ type MemoryListTool struct{}
 
 func (t *MemoryListTool) Name() string { return "memory_list" }
 
+func (t *MemoryListTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "List stored memory entries, optionally filtered by category.",
+		Params: map[string]any{
+			"category": prop("string", "Filter by category (e.g. preference, user, project). Omit to list all."),
+		},
+	}
+}
+
 func (t *MemoryListTool) Execute(args map[string]any) Result {
 	category := getStr(args, "category")
 	store := openMemory()
@@ -45,6 +54,18 @@ type MemorySaveTool struct{}
 
 func (t *MemorySaveTool) Name() string { return "memory_save" }
 
+func (t *MemorySaveTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Save or update a memory entry by category and key.",
+		Params: map[string]any{
+			"category": prop("string", "Category (e.g. preference, user, project)"),
+			"key":      prop("string", "Unique key within the category"),
+			"value":    prop("string", "Value to store"),
+		},
+		Required: []string{"category", "key", "value"},
+	}
+}
+
 func (t *MemorySaveTool) Execute(args map[string]any) Result {
 	category := strings.TrimSpace(getStr(args, "category"))
 	key := strings.TrimSpace(getStr(args, "key"))
@@ -68,6 +89,16 @@ func (t *MemorySaveTool) Execute(args map[string]any) Result {
 type MemoryDeleteTool struct{}
 
 func (t *MemoryDeleteTool) Name() string { return "memory_delete" }
+
+func (t *MemoryDeleteTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Delete a memory entry by key.",
+		Params: map[string]any{
+			"key": prop("string", "Key of the entry to delete"),
+		},
+		Required: []string{"key"},
+	}
+}
 
 func (t *MemoryDeleteTool) Execute(args map[string]any) Result {
 	key := strings.TrimSpace(getStr(args, "key"))
@@ -93,6 +124,13 @@ func (t *MemoryDeleteTool) Execute(args map[string]any) Result {
 type MemoryClearTool struct{}
 
 func (t *MemoryClearTool) Name() string { return "memory_clear" }
+
+func (t *MemoryClearTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Clear all memory entries.",
+		Params:      map[string]any{},
+	}
+}
 
 func (t *MemoryClearTool) Execute(args map[string]any) Result {
 	store := openMemory()

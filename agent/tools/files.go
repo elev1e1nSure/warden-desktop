@@ -17,6 +17,18 @@ type FileReadTool struct{}
 
 func (t *FileReadTool) Name() string { return "file_read" }
 
+func (t *FileReadTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Read a UTF-8 text file from the workspace.",
+		Params: map[string]any{
+			"path":   prop("string", "Absolute or relative path to read"),
+			"offset": prop("integer", "Line number to start from (1-based)"),
+			"limit":  prop("integer", "Maximum number of lines to return"),
+		},
+		Required: []string{"path"},
+	}
+}
+
 func (t *FileReadTool) Execute(args map[string]any) Result {
 	path := getStr(args, "path")
 	offset := getInt(args, "offset", 1)
@@ -85,6 +97,17 @@ func (t *FileReadTool) Execute(args map[string]any) Result {
 type GlobTool struct{}
 
 func (t *GlobTool) Name() string { return "glob" }
+
+func (t *GlobTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Find files matching a glob pattern, newest first.",
+		Params: map[string]any{
+			"pattern": prop("string", "Glob pattern, e.g. src/**/*.ts"),
+			"path":    prop("string", "Root directory to search from (default: cwd)"),
+		},
+		Required: []string{"pattern"},
+	}
+}
 
 func (t *GlobTool) Execute(args map[string]any) Result {
 	pattern := getStr(args, "pattern")
@@ -165,6 +188,19 @@ func (t *GlobTool) Execute(args map[string]any) Result {
 type GrepTool struct{}
 
 func (t *GrepTool) Name() string { return "grep" }
+
+func (t *GrepTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Search file contents with a regular expression.",
+		Params: map[string]any{
+			"pattern":          prop("string", "Regular expression to search"),
+			"path":             prop("string", "File or directory to search in (default: cwd)"),
+			"glob":             prop("string", "Only search files whose name matches this glob"),
+			"case_insensitive": prop("boolean", "Case-insensitive match"),
+		},
+		Required: []string{"pattern"},
+	}
+}
 
 func (t *GrepTool) Execute(args map[string]any) Result {
 	pattern := getStr(args, "pattern")
@@ -279,6 +315,18 @@ type EditTool struct{}
 
 func (t *EditTool) Name() string { return "edit" }
 
+func (t *EditTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Apply a precise string replacement to a file. old_string must occur exactly once.",
+		Params: map[string]any{
+			"path":       prop("string", "File to edit"),
+			"old_string": prop("string", "Exact string to replace"),
+			"new_string": prop("string", "Replacement string"),
+		},
+		Required: []string{"path", "old_string", "new_string"},
+	}
+}
+
 func (t *EditTool) Execute(args map[string]any) Result {
 	path := getStr(args, "path")
 	oldStr := getStr(args, "old_string")
@@ -331,6 +379,17 @@ type FileWriteTool struct{}
 
 func (t *FileWriteTool) Name() string { return "file_write" }
 
+func (t *FileWriteTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Write text content to a file inside the workspace, creating parent dirs.",
+		Params: map[string]any{
+			"path":    prop("string", "Path to write to"),
+			"content": prop("string", "Text content to write"),
+		},
+		Required: []string{"path", "content"},
+	}
+}
+
 func (t *FileWriteTool) Execute(args map[string]any) Result {
 	path := getStr(args, "path")
 	content := getStr(args, "content")
@@ -362,6 +421,17 @@ func (t *FileWriteTool) Execute(args map[string]any) Result {
 type FileDeleteTool struct{}
 
 func (t *FileDeleteTool) Name() string { return "file_delete" }
+
+func (t *FileDeleteTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Delete a file or directory inside the workspace.",
+		Params: map[string]any{
+			"path":      prop("string", "Path to delete"),
+			"recursive": prop("boolean", "Required to delete a non-empty directory"),
+		},
+		Required: []string{"path"},
+	}
+}
 
 func (t *FileDeleteTool) Execute(args map[string]any) Result {
 	path := getStr(args, "path")
@@ -396,6 +466,15 @@ func (t *FileDeleteTool) Execute(args map[string]any) Result {
 type FileListTool struct{}
 
 func (t *FileListTool) Name() string { return "file_list" }
+
+func (t *FileListTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "List entries of a directory.",
+		Params: map[string]any{
+			"path": prop("string", "Directory to list (default: cwd)"),
+		},
+	}
+}
 
 func (t *FileListTool) Execute(args map[string]any) Result {
 	path := getStr(args, "path")

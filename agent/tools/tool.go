@@ -24,9 +24,24 @@ func RD(text, diff string) Result { return Result{Text: text, Diff: diff} }
 
 func (r Result) String() string { return r.Text }
 
+// ToolSpec describes a tool's contract for the LLM: a human description plus the
+// JSON-schema of its arguments. It lives next to the tool's Execute so the
+// advertised parameters can't drift from the ones the code actually reads.
+type ToolSpec struct {
+	Description string
+	Params      map[string]any // JSON-schema "properties"
+	Required    []string
+}
+
 type Tool interface {
 	Name() string
 	Execute(args map[string]any) Result
+	Spec() ToolSpec
+}
+
+// prop builds a single JSON-schema property entry.
+func prop(typ, desc string) map[string]any {
+	return map[string]any{"type": typ, "description": desc}
 }
 
 func diffStats(old, new string) string {

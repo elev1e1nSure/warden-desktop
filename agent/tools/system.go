@@ -14,6 +14,13 @@ type SystemInfoTool struct{}
 
 func (t *SystemInfoTool) Name() string { return "system_info" }
 
+func (t *SystemInfoTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Read system information (OS, CPU, RAM, disks, uptime).",
+		Params:      map[string]any{},
+	}
+}
+
 func (t *SystemInfoTool) Execute(args map[string]any) Result {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("os: %s %s", runtime.GOOS, runtime.GOARCH))
@@ -54,6 +61,17 @@ func (t *SystemInfoTool) Execute(args map[string]any) Result {
 type NotifyTool struct{}
 
 func (t *NotifyTool) Name() string { return "notify" }
+
+func (t *NotifyTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Show a desktop notification (Windows only).",
+		Params: map[string]any{
+			"message": prop("string", "Notification body"),
+			"title":   prop("string", "Notification title (default: Warden)"),
+		},
+		Required: []string{"message"},
+	}
+}
 
 func (t *NotifyTool) Execute(args map[string]any) Result {
 	if runtime.GOOS != "windows" {

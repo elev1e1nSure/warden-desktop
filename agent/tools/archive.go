@@ -17,6 +17,19 @@ type ArchiveTool struct{}
 
 func (t *ArchiveTool) Name() string { return "archive" }
 
+func (t *ArchiveTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "List, create, or extract archives (.zip, .tar, .tar.gz, .tar.bz2).",
+		Params: map[string]any{
+			"action":  prop("string", "One of: list, create, extract"),
+			"path":    prop("string", "Archive file path"),
+			"dest":    prop("string", "Destination directory (extract only)"),
+			"sources": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Files/dirs to include (create only)"},
+		},
+		Required: []string{"action", "path"},
+	}
+}
+
 func (t *ArchiveTool) Execute(args map[string]any) Result {
 	action := strings.ToLower(getStr(args, "action"))
 	path := getStr(args, "path")

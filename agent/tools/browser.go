@@ -192,6 +192,16 @@ type BrowserOpenTool struct{}
 
 func (t *BrowserOpenTool) Name() string { return "browser_open" }
 
+func (t *BrowserOpenTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Open a URL in the system browser.",
+		Params: map[string]any{
+			"url": prop("string", "URL to open"),
+		},
+		Required: []string{"url"},
+	}
+}
+
 func (t *BrowserOpenTool) Execute(args map[string]any) Result {
 	rawURL := strings.TrimSpace(getStr(args, "url"))
 	if !isSSRFSafeURL(rawURL) {
@@ -216,6 +226,16 @@ func (t *BrowserOpenTool) Execute(args map[string]any) Result {
 type BrowserReadTool struct{}
 
 func (t *BrowserReadTool) Name() string { return "browser_read" }
+
+func (t *BrowserReadTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Open a URL in a headless browser and read its text and links.",
+		Params: map[string]any{
+			"url": prop("string", "URL to read"),
+		},
+		Required: []string{"url"},
+	}
+}
 
 func (t *BrowserReadTool) Execute(args map[string]any) Result {
 	rawURL := strings.TrimSpace(getStr(args, "url"))
@@ -292,6 +312,16 @@ func (t *BrowserReadTool) Execute(args map[string]any) Result {
 type YouTubeSearchTool struct{}
 
 func (t *YouTubeSearchTool) Name() string { return "youtube_search" }
+
+func (t *YouTubeSearchTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Search YouTube and return video results.",
+		Params: map[string]any{
+			"query": prop("string", "Search query"),
+		},
+		Required: []string{"query"},
+	}
+}
 
 func (t *YouTubeSearchTool) Execute(args map[string]any) Result {
 	query := strings.TrimSpace(getStr(args, "query"))
@@ -379,6 +409,16 @@ type BrowserScreenshotTool struct{}
 
 func (t *BrowserScreenshotTool) Name() string { return "browser_screenshot" }
 
+func (t *BrowserScreenshotTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Open a URL in a headless browser and capture a full-page screenshot.",
+		Params: map[string]any{
+			"url": prop("string", "URL to screenshot"),
+		},
+		Required: []string{"url"},
+	}
+}
+
 func (t *BrowserScreenshotTool) Execute(args map[string]any) Result {
 	rawURL := strings.TrimSpace(getStr(args, "url"))
 	if !isSSRFSafeURL(rawURL) {
@@ -414,6 +454,18 @@ func (t *BrowserScreenshotTool) Execute(args map[string]any) Result {
 type BrowserClickTool struct{}
 
 func (t *BrowserClickTool) Name() string { return "browser_click" }
+
+func (t *BrowserClickTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Click an element matching a CSS selector in the headless browser session.",
+		Params: map[string]any{
+			"selector": prop("string", "CSS selector or text of element to click"),
+			"url":      prop("string", "Optional URL to navigate to first"),
+			"timeout":  prop("integer", "Timeout in seconds (1-60, default 15)"),
+		},
+		Required: []string{"selector"},
+	}
+}
 
 func (t *BrowserClickTool) Execute(args map[string]any) Result {
 	sel := strings.TrimSpace(getStr(args, "selector"))
@@ -458,6 +510,20 @@ func (t *BrowserClickTool) Execute(args map[string]any) Result {
 type BrowserFillTool struct{}
 
 func (t *BrowserFillTool) Name() string { return "browser_fill" }
+
+func (t *BrowserFillTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Fill an input matching a CSS selector in the headless browser session.",
+		Params: map[string]any{
+			"selector": prop("string", "CSS selector or text of the input"),
+			"value":    prop("string", "Value to fill"),
+			"url":      prop("string", "Optional URL to navigate to first"),
+			"submit":   prop("boolean", "Press Enter after filling"),
+			"timeout":  prop("integer", "Timeout in seconds (1-60, default 15)"),
+		},
+		Required: []string{"selector", "value"},
+	}
+}
 
 func (t *BrowserFillTool) Execute(args map[string]any) Result {
 	sel := strings.TrimSpace(getStr(args, "selector"))

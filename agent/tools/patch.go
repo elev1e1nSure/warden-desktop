@@ -59,6 +59,16 @@ type ApplyPatchTool struct{}
 
 func (t *ApplyPatchTool) Name() string { return "apply_patch" }
 
+func (t *ApplyPatchTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Apply a unified diff or OpenCode-style patch to files.",
+		Params: map[string]any{
+			"patch_text": prop("string", "Unified diff or OpenCode patch content"),
+		},
+		Required: []string{"patch_text"},
+	}
+}
+
 func (t *ApplyPatchTool) Execute(args map[string]any) Result {
 	patch := getStr(args, "patch_text")
 	if patch == "" {

@@ -11,6 +11,17 @@ type FileMoveTool struct{}
 
 func (t *FileMoveTool) Name() string { return "file_move" }
 
+func (t *FileMoveTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Move or rename a file inside the workspace.",
+		Params: map[string]any{
+			"src":  prop("string", "Source path"),
+			"dest": prop("string", "Destination path"),
+		},
+		Required: []string{"src", "dest"},
+	}
+}
+
 func (t *FileMoveTool) Execute(args map[string]any) Result {
 	src, _ := args["src"].(string)
 	dest, _ := args["dest"].(string)
@@ -49,6 +60,17 @@ func (t *FileMoveTool) Execute(args map[string]any) Result {
 type FileCopyTool struct{}
 
 func (t *FileCopyTool) Name() string { return "file_copy" }
+
+func (t *FileCopyTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Copy a file inside the workspace.",
+		Params: map[string]any{
+			"src":  prop("string", "Source path"),
+			"dest": prop("string", "Destination path"),
+		},
+		Required: []string{"src", "dest"},
+	}
+}
 
 func (t *FileCopyTool) Execute(args map[string]any) Result {
 	src, _ := args["src"].(string)

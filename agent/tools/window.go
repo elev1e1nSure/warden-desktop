@@ -114,6 +114,15 @@ type WindowListTool struct{}
 
 func (t *WindowListTool) Name() string { return "window_list" }
 
+func (t *WindowListTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "List visible windows with their hwnd, pid, and bounds.",
+		Params: map[string]any{
+			"filter": prop("string", "Optional case-insensitive title filter"),
+		},
+	}
+}
+
 func (t *WindowListTool) Execute(args map[string]any) Result {
 	filter := strings.ToLower(strings.TrimSpace(getStr(args, "filter")))
 	wins, err := enumerateWindows()
@@ -158,6 +167,16 @@ type WindowFocusTool struct{}
 
 func (t *WindowFocusTool) Name() string { return "window_focus" }
 
+func (t *WindowFocusTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Bring a window to the foreground. Give a title or hwnd.",
+		Params: map[string]any{
+			"title": prop("string", "Substring of window title to focus"),
+			"hwnd":  prop("integer", "Exact window handle (alternative to title)"),
+		},
+	}
+}
+
 func (t *WindowFocusTool) Execute(args map[string]any) Result {
 	title := strings.TrimSpace(getStr(args, "title"))
 	hwnd := getInt(args, "hwnd", 0)
@@ -192,6 +211,22 @@ const (
 type WindowManageTool struct{}
 
 func (t *WindowManageTool) Name() string { return "window_manage" }
+
+func (t *WindowManageTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Move, resize, minimize, maximize, restore, or close a window. Give a title or hwnd.",
+		Params: map[string]any{
+			"title":  prop("string", "Substring of window title"),
+			"hwnd":   prop("integer", "Exact window handle (alternative to title)"),
+			"action": prop("string", "move, resize, minimize, maximize, restore, close"),
+			"x":      prop("integer", "New X position (move)"),
+			"y":      prop("integer", "New Y position (move)"),
+			"w":      prop("integer", "New width (resize)"),
+			"h":      prop("integer", "New height (resize)"),
+		},
+		Required: []string{"action"},
+	}
+}
 
 func (t *WindowManageTool) Execute(args map[string]any) Result {
 	action := strings.ToLower(strings.TrimSpace(getStr(args, "action")))

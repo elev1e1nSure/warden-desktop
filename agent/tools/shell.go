@@ -9,6 +9,16 @@ type PowerShellTool struct{}
 
 func (t *PowerShellTool) Name() string { return "powershell" }
 
+func (t *PowerShellTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Execute a PowerShell command and return stdout/stderr.",
+		Params: map[string]any{
+			"command": prop("string", "Shell command to execute"),
+		},
+		Required: []string{"command"},
+	}
+}
+
 func (t *PowerShellTool) Execute(args map[string]any) Result {
 	cmd, _ := args["command"].(string)
 	shell := shellExe()
@@ -40,6 +50,17 @@ func (t *PowerShellTool) Execute(args map[string]any) Result {
 type BashTool struct{}
 
 func (t *BashTool) Name() string { return "bash" }
+
+func (t *BashTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Execute a bash shell command and return stdout/stderr.",
+		Params: map[string]any{
+			"command": prop("string", "Shell command to execute"),
+		},
+		Required: []string{"command"},
+	}
+}
+
 func (t *BashTool) Execute(args map[string]any) Result {
 	p := PowerShellTool{}
 	return p.Execute(args)

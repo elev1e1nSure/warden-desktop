@@ -16,6 +16,20 @@ type HttpRequestTool struct{}
 
 func (t *HttpRequestTool) Name() string { return "http_request" }
 
+func (t *HttpRequestTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Perform an HTTP request.",
+		Params: map[string]any{
+			"url":     prop("string", "Full URL including scheme"),
+			"method":  prop("string", "HTTP method: GET, POST, PUT, PATCH, DELETE (default GET)"),
+			"body":    prop("string", "Request body"),
+			"headers": map[string]any{"type": "object", "description": "Request headers as key-value pairs"},
+			"timeout": prop("integer", "Timeout in seconds (1-120, default 30)"),
+		},
+		Required: []string{"url"},
+	}
+}
+
 func (t *HttpRequestTool) Execute(args map[string]any) Result {
 	urlStr := strings.TrimSpace(getStr(args, "url"))
 	if !strings.HasPrefix(urlStr, "http://") && !strings.HasPrefix(urlStr, "https://") {

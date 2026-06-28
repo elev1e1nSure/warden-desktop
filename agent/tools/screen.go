@@ -149,6 +149,16 @@ type ImageLocateTool struct{}
 
 func (t *ImageLocateTool) Name() string { return "image_locate" }
 
+func (t *ImageLocateTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Locate a sub-image on screen and return its coordinates.",
+		Params: map[string]any{
+			"image": prop("string", "Absolute path to the template image to find on screen"),
+		},
+		Required: []string{"image"},
+	}
+}
+
 func (t *ImageLocateTool) Execute(args map[string]any) Result {
 	path := strings.TrimSpace(getStr(args, "image"))
 	if path == "" {
@@ -194,6 +204,19 @@ type OcrTool struct{}
 
 func (t *OcrTool) Name() string { return "ocr" }
 
+func (t *OcrTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Recognize text on screen or in an image file.",
+		Params: map[string]any{
+			"image": prop("string", "Path to image file; omit to capture the screen"),
+			"x":     prop("integer", "Region X (screenshot space, requires y/w/h)"),
+			"y":     prop("integer", "Region Y"),
+			"w":     prop("integer", "Region width"),
+			"h":     prop("integer", "Region height"),
+		},
+	}
+}
+
 func (t *OcrTool) Execute(args map[string]any) Result {
 	path := strings.TrimSpace(getStr(args, "image"))
 
@@ -238,6 +261,19 @@ func (t *OcrTool) Execute(args map[string]any) Result {
 type WaitForTool struct{}
 
 func (t *WaitForTool) Name() string { return "wait_for" }
+
+func (t *WaitForTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Poll until a UI condition (window, text, or image) is met.",
+		Params: map[string]any{
+			"type":     prop("string", "window, text, or image"),
+			"target":   prop("string", "Window title, text to find, or image path"),
+			"timeout":  prop("number", "Seconds to wait (default 10, max 30)"),
+			"interval": prop("number", "Poll interval in seconds (default 0.5)"),
+		},
+		Required: []string{"type", "target"},
+	}
+}
 
 func (t *WaitForTool) Execute(args map[string]any) Result {
 	kind := strings.ToLower(strings.TrimSpace(getStr(args, "type")))

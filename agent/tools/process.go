@@ -14,6 +14,15 @@ type ProcessListTool struct{}
 
 func (t *ProcessListTool) Name() string { return "process_list" }
 
+func (t *ProcessListTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "List running processes.",
+		Params: map[string]any{
+			"filter": prop("string", "Optional case-insensitive name filter"),
+		},
+	}
+}
+
 func (t *ProcessListTool) Execute(args map[string]any) Result {
 	filter := strings.ToLower(strings.TrimSpace(getStr(args, "filter")))
 	var rows []string
@@ -100,6 +109,16 @@ func listUnix(filter string) ([]string, error) {
 type ProcessKillTool struct{}
 
 func (t *ProcessKillTool) Name() string { return "process_kill" }
+
+func (t *ProcessKillTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Terminate a process by PID.",
+		Params: map[string]any{
+			"pid": prop("integer", "Process ID to kill"),
+		},
+		Required: []string{"pid"},
+	}
+}
 
 func (t *ProcessKillTool) Execute(args map[string]any) Result {
 	if _, ok := args["pid"]; !ok {

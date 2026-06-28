@@ -238,6 +238,13 @@ type ScreenshotTool struct{}
 
 func (t *ScreenshotTool) Name() string { return "screenshot" }
 
+func (t *ScreenshotTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Capture the primary display to a PNG file.",
+		Params:      map[string]any{},
+	}
+}
+
 func (t *ScreenshotTool) Execute(args map[string]any) Result {
 	n := screenshot.NumActiveDisplays()
 	if n < 1 {
@@ -273,6 +280,16 @@ func (t *ScreenshotTool) Execute(args map[string]any) Result {
 type ClipboardTool struct{}
 
 func (t *ClipboardTool) Name() string { return "clipboard" }
+
+func (t *ClipboardTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Read from or write to the clipboard.",
+		Params: map[string]any{
+			"action": prop("string", "read or write (default read)"),
+			"text":   prop("string", "Text to write (write action only)"),
+		},
+	}
+}
 
 func (t *ClipboardTool) Execute(args map[string]any) Result {
 	action := getStr(args, "action")
@@ -334,6 +351,20 @@ type MouseTool struct{}
 
 func (t *MouseTool) Name() string { return "mouse" }
 
+func (t *MouseTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Move, click, scroll, or drag the mouse.",
+		Params: map[string]any{
+			"action": prop("string", "move, click, right_click, double_click, scroll, drag (default click)"),
+			"x":      prop("integer", "X coordinate in screenshot space"),
+			"y":      prop("integer", "Y coordinate in screenshot space"),
+			"x2":     prop("integer", "End X for drag"),
+			"y2":     prop("integer", "End Y for drag"),
+			"amount": prop("integer", "Scroll notches (positive=up, negative=down)"),
+		},
+	}
+}
+
 func (t *MouseTool) Execute(args map[string]any) Result {
 	action := getStr(args, "action")
 	if action == "" {
@@ -394,6 +425,17 @@ func (t *MouseTool) Execute(args map[string]any) Result {
 type KeyboardTool struct{}
 
 func (t *KeyboardTool) Name() string { return "keyboard" }
+
+func (t *KeyboardTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Type text or press key combinations.",
+		Params: map[string]any{
+			"action": prop("string", "type (send text) or press (key combo) (default type)"),
+			"text":   prop("string", "Text to type, or key combo like ctrl+c"),
+		},
+		Required: []string{"text"},
+	}
+}
 
 func (t *KeyboardTool) Execute(args map[string]any) Result {
 	action := getStr(args, "action")

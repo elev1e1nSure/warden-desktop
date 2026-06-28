@@ -15,6 +15,17 @@ type GoogleSearchTool struct{}
 
 func (t *GoogleSearchTool) Name() string { return "google_search" }
 
+func (t *GoogleSearchTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Search the web and return results.",
+		Params: map[string]any{
+			"query":       prop("string", "Search query"),
+			"max_results": prop("integer", "Number of results (1-20, default 5)"),
+		},
+		Required: []string{"query"},
+	}
+}
+
 func (t *GoogleSearchTool) Execute(args map[string]any) Result {
 	query := strings.TrimSpace(getStr(args, "query"))
 	if query == "" {
@@ -169,6 +180,19 @@ func hexVal(c byte) int {
 type WebFetchTool struct{}
 
 func (t *WebFetchTool) Name() string { return "webfetch" }
+
+func (t *WebFetchTool) Spec() ToolSpec {
+	return ToolSpec{
+		Description: "Fetch a URL and return its text content.",
+		Params: map[string]any{
+			"url":        prop("string", "URL to fetch"),
+			"format":     prop("string", "markdown, text, or html (default markdown)"),
+			"timeout":    prop("integer", "Timeout in seconds (1-60, default 15)"),
+			"verify_ssl": prop("boolean", "Verify TLS certificate (default true)"),
+		},
+		Required: []string{"url"},
+	}
+}
 
 func (t *WebFetchTool) Execute(args map[string]any) Result {
 	urlStr := getStr(args, "url")
