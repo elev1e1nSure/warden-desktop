@@ -107,18 +107,189 @@ func Definitions() []ToolDefinition {
 	reg := Registry()
 	out := make([]ToolDefinition, 0, len(reg))
 	for name := range reg {
-		params := map[string]any{
-			"type":       "object",
-			"properties": map[string]any{},
-		}
 		out = append(out, ToolDefinition{
 			Type: "function",
 			Function: ToolFunctionDefinition{
 				Name:        name,
 				Description: describe(name),
-				Parameters:  params,
+				Parameters:  schema(name),
 			},
 		})
+	}
+	return out
+}
+
+func prop(typ, desc string) map[string]any {
+	return map[string]any{"type": typ, "description": desc}
+}
+
+func schema(name string) map[string]any {
+	props := map[string]any{}
+	required := []string{}
+
+	req := func(fields ...string) { required = append(required, fields...) }
+
+	switch name {
+	case "powershell", "bash":
+		props["command"] = prop("string", "Shell command to execute")
+		req("command")
+	case "file_read":
+		props["path"] = prop("string", "Absolute or relative path to read")
+		props["offset"] = prop("integer", "Line number to start from (0-based)")
+		props["limit"] = prop("integer", "Maximum number of lines to return")
+		req("path")
+	case "file_write":
+		props["path"] = prop("string", "Path to write to")
+		props["content"] = prop("string", "Text content to write")
+		req("path", "content")
+	case "file_delete":
+		props["path"] = prop("string", "Path to delete")
+		req("path")
+	case "file_list":
+		props["path"] = prop("string", "Directory to list")
+		props["recursive"] = prop("boolean", "List recursively")
+	case "file_move", "file_copy":
+		props["src"] = prop("string", "Source path")
+		props["dst"] = prop("string", "Destination path")
+		req("src", "dst")
+	case "glob":
+		props["pattern"] = prop("string", "Glob pattern, e.g. src/**/*.ts")
+		props["dir"] = prop("string", "Root directory (default: cwd)")
+		req("pattern")
+	case "grep":
+		props["pattern"] = prop("string", "Regular expression to search")
+		props["path"] = prop("string", "File or directory to search in")
+		props["recursive"] = prop("boolean", "Search recursively (default true)")
+		req("pattern")
+	case "edit":
+		props["path"] = prop("string", "File to edit")
+		props["old"] = prop("string", "Exact string to replace")
+		props["new"] = prop("string", "Replacement string")
+		req("path", "old", "new")
+	case "apply_patch":
+		props["patch"] = prop("string", "Unified diff or OpenCode patch content")
+		req("patch")
+	case "archive":
+		props["action"] = prop("string", "One of: list, create, extract")
+		props["path"] = prop("string", "Archive file path")
+		props["dest"] = prop("string", "Destination directory (extract only)")
+		props["files"] = map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Files to include (create only)"}
+		req("action", "path")
+	case "screenshot":
+		// no required args
+	case "clipboard":
+		props["action"] = prop("string", "read or write")
+		props["text"] = prop("string", "Text to write (write action only)")
+	case "mouse":
+		props["action"] = prop("string", "move, click, right_click, double_click, scroll, drag")
+		props["x"] = prop("integer", "X coordinate in screenshot space")
+		props["y"] = prop("integer", "Y coordinate in screenshot space")
+		props["x2"] = prop("integer", "End X for drag")
+		props["y2"] = prop("integer", "End Y for drag")
+		props["amount"] = prop("integer", "Scroll notches (positive=up, negative=down)")
+	case "keyboard":
+		props["action"] = prop("string", "type (send text) or press (key combo)")
+		props["text"] = prop("string", "Text to type, or key combo like ctrl+c")
+		req("text")
+	case "image_locate":
+		props["image"] = prop("string", "Absolute path to the template image to find on screen")
+		req("image")
+	case "ocr":
+		props["image"] = prop("string", "Path to image file; omit to capture the screen")
+		props["x"] = prop("integer", "Region X (screenshot space, requires y/w/h)")
+		props["y"] = prop("integer", "Region Y")
+		props["w"] = prop("integer", "Region width")
+		props["h"] = prop("integer", "Region height")
+	case "wait_for":
+		props["type"] = prop("string", "window, text, or image")
+		props["target"] = prop("string", "Window title, text to find, or image path")
+		props["timeout"] = prop("number", "Seconds to wait (default 10, max 30)")
+		props["interval"] = prop("number", "Poll interval in seconds (default 0.5)")
+		req("type", "target")
+	case "system_info":
+		// no args
+	case "notify":
+		props["message"] = prop("string", "Notification body")
+		props["title"] = prop("string", "Notification title (default: Warden)")
+		req("message")
+	case "process_list":
+		props["filter"] = prop("string", "Optional name filter")
+	case "process_kill":
+		props["pid"] = prop("integer", "Process ID to kill")
+		props["name"] = prop("string", "Process name to kill (kills all matches)")
+	case "window_list":
+		// no args
+	case "window_focus":
+		props["title"] = prop("string", "Substring of window title to focus")
+		req("title")
+	case "window_manage":
+		props["title"] = prop("string", "Substring of window title")
+		props["action"] = prop("string", "move, resize, minimize, maximize, restore, close")
+		props["x"] = prop("integer", "New X position (move)")
+		props["y"] = prop("integer", "New Y position (move)")
+		props["w"] = prop("integer", "New width (resize)")
+		props["h"] = prop("integer", "New height (resize)")
+		req("title", "action")
+	case "browser_open":
+		props["url"] = prop("string", "URL to open")
+		req("url")
+	case "browser_read":
+		// no args
+	case "browser_screenshot":
+		// no args
+	case "browser_click":
+		props["selector"] = prop("string", "CSS selector of element to click")
+		req("selector")
+	case "browser_fill":
+		props["selector"] = prop("string", "CSS selector of input")
+		props["value"] = prop("string", "Value to fill")
+		req("selector", "value")
+	case "youtube_search":
+		props["query"] = prop("string", "Search query")
+		req("query")
+	case "google_search":
+		props["query"] = prop("string", "Search query")
+		req("query")
+	case "webfetch":
+		props["url"] = prop("string", "URL to fetch")
+		req("url")
+	case "http_request":
+		props["url"] = prop("string", "Full URL including scheme")
+		props["method"] = prop("string", "HTTP method: GET, POST, PUT, PATCH, DELETE (default GET)")
+		props["body"] = prop("string", "Request body")
+		props["headers"] = map[string]any{"type": "object", "description": "Request headers as key-value pairs"}
+		props["timeout"] = prop("integer", "Timeout in seconds (1-120, default 30)")
+		req("url")
+	case "todowrite":
+		props["todos"] = map[string]any{
+			"type":        "array",
+			"description": "Updated todo list",
+			"items": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"id":      prop("string", "Unique id"),
+					"content": prop("string", "Task description"),
+					"status":  prop("string", "pending, in_progress, or completed"),
+					"priority": prop("string", "high, medium, or low"),
+				},
+			},
+		}
+		req("todos")
+	case "skill":
+		props["name"] = prop("string", "Skill name to load")
+		req("name")
+	case "question":
+		props["question"] = prop("string", "Question to ask the user")
+		props["options"] = map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Optional answer choices"}
+		req("question")
+	}
+
+	out := map[string]any{
+		"type":       "object",
+		"properties": props,
+	}
+	if len(required) > 0 {
+		out["required"] = required
 	}
 	return out
 }

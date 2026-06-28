@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -247,7 +248,7 @@ func isSSRFSafeURL(rawURL string) bool {
 		}
 	}
 	// DNS resolve check
-	addrs, err := net.DefaultResolver.LookupHost(nil, hostname)
+	addrs, err := net.DefaultResolver.LookupHost(context.Background(), hostname)
 	if err == nil {
 		for _, a := range addrs {
 			ip := net.ParseIP(a)
