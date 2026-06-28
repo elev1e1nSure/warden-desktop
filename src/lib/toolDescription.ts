@@ -160,10 +160,10 @@ export function toolDescription(b: ToolBlock): ToolLabel {
       return r("Listed", cut(str("path", "."), 48));
 
     case "file_move":
-      return r("Moved", `${base(str("src"))} → ${base(str("dst"))}`);
+      return r("Moved", `${base(str("src"))} → ${base(str("dest"))}`);
 
     case "file_copy":
-      return r("Copied", `${base(str("src"))} → ${base(str("dst"))}`);
+      return r("Copied", `${base(str("src"))} → ${base(str("dest"))}`);
 
     case "edit":
       return r("Edited", base(str("path")));

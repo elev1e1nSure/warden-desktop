@@ -53,6 +53,17 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 	}
 
 	switch toolName {
+	case "edit":
+		path := getString(norm, "path")
+		if isDangerousPath(path) {
+			return dec("blocked", "dangerous path", "File path is outside allowed scope",
+				"UNC path, device path, or traversal detected")
+		}
+		if !isPathWithinWorkspace(path, workspace) {
+			return dec("blocked", "edits outside workspace", "Editing file outside workspace is blocked")
+		}
+		return dec("confirm", "modifies files", "Editing file inside workspace")
+
 	case "file_write", "write":
 		path := getString(norm, "path")
 		if isDangerousPath(path) {
@@ -79,6 +90,12 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 			details = append(details, "recursive directory deletion")
 		}
 		return dec("confirm", "destructive file operation", "Deleting file inside workspace", details...)
+
+	case "glob":
+		return dec("safe", "read-only", "Searching files by pattern")
+
+	case "grep":
+		return dec("safe", "read-only", "Searching file contents")
 
 	case "file_read", "read":
 		path := getString(norm, "path")
@@ -329,6 +346,9 @@ func AssessToolCall(toolName string, args map[string]any, cwd string, mode strin
 	case "memory":
 		return dec("safe", "local notes store",
 			fmt.Sprintf("memory %s", getString(norm, "action")))
+
+	case "memory_list", "memory_save", "memory_delete", "memory_clear":
+		return dec("safe", "local notes store", fmt.Sprintf("Using %s", toolName))
 
 	case "http_request":
 		method := strings.ToUpper(getString(norm, "method"))
