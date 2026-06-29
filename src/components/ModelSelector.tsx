@@ -206,7 +206,6 @@ export default function ModelSelector({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional open-only effect
   useLayoutEffect(() => {
     if (!open) {
       setQuery("");
