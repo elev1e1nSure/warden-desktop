@@ -34,7 +34,6 @@ warden-desktop/
   docs/            # documentation
   justfile         # project build tasks
   AGENTS.md        # agent instructions
-  CLAUDE.md        # Claude desktop agent config
   biome.json       # frontend linter/formatter
   package.json     # frontend dependencies and scripts
   go.mod           # Go module definition
